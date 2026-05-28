@@ -2,26 +2,27 @@
   <div class="auth-page dark">
     <div class="left-panel">
       <div class="content">
-        <h1>Baseline Task Tracker</h1>
-        <p>Manage enterprise projects with confidence.</p>
+        <h1>Reset Password</h1>
+        <p>Create a new password for your account</p>
       </div>
     </div>
 
     <div class="right-panel">
       <div class="card">
-        <h2>Welcome Back</h2>
-        <p>Login to continue</p>
+        <h2>Reset Password</h2>
 
-        <form @submit.prevent="login">
+        <form @submit.prevent="submit">
           <input type="email" v-model="form.email" placeholder="Email" />
-          <input type="password" v-model="form.password" placeholder="Password" />
 
-          <button>Login</button>
+          <input type="password" v-model="form.password" placeholder="New Password" />
+
+          <input type="password" v-model="form.password_confirmation" placeholder="Confirm Password" />
+
+          <button>Reset Password</button>
         </form>
 
         <div class="links">
-          <Link href="/forgot-password">Forgot Password?</Link>
-          <Link href="/register">Create Account</Link>
+          <Link href="/login">Back to Login</Link>
         </div>
       </div>
     </div>
@@ -30,15 +31,33 @@
 
 <script setup>
 import { reactive } from "vue";
-import { router, Link } from "@inertiajs/vue3";
+import { router, Link, usePage } from "@inertiajs/vue3";
+import { useToast } from "vue-toastification";
+
+const toast = useToast();
+const page = usePage();
 
 const form = reactive({
-  email: "",
+  email: page.props.email || "",
+  token: page.props.token || "",
   password: "",
+  password_confirmation: "",
 });
 
-const login = () => {
-  router.post("/login", form);
+const submit = () => {
+  if (!form.password || !form.password_confirmation) {
+    toast.error("Please fill all fields");
+    return;
+  }
+
+  router.post("/reset-password", form, {
+    onSuccess: () => {
+      toast.success("Password reset successful");
+    },
+    onError: () => {
+      toast.error("Invalid or expired reset link");
+    },
+  });
 };
 </script>
 
@@ -51,10 +70,10 @@ const login = () => {
 
 .left-panel {
   width: 55%;
-  background:
-    linear-gradient(rgba(15,23,42,.8), rgba(15,23,42,.8)),
-    url('https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=2070');
+  background: linear-gradient(rgba(15,23,42,.85), rgba(15,23,42,.85)),
+    url('https://images.unsplash.com/photo-1639322537228-f710d846310a?q=80&w=2070');
   background-size: cover;
+  background-position: center;
   color: white;
   display: flex;
   align-items: center;
@@ -64,11 +83,12 @@ const login = () => {
 .content h1 {
   font-size: 64px;
   margin-bottom: 20px;
+  font-weight: 700;
 }
 
 .content p {
   font-size: 18px;
-  opacity: .85;
+  opacity: 0.85;
 }
 
 .right-panel {
@@ -85,15 +105,6 @@ const login = () => {
   padding: 40px;
   border-radius: 20px;
   color: white;
-}
-
-.card h2 {
-  font-size: 32px;
-}
-
-.card p {
-  color: #94a3b8;
-  margin: 12px 0 30px;
 }
 
 input {
@@ -118,14 +129,7 @@ button {
   cursor: pointer;
 }
 
-.links {
-  margin-top: 22px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.links a {
-  color: #818cf8;
-  text-decoration: none;
+button:hover {
+  background: #4338ca;
 }
 </style>
