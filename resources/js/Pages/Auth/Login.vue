@@ -13,10 +13,50 @@
         <p>Login to continue</p>
 
         <form @submit.prevent="login">
-          <input type="email" v-model="form.email" placeholder="Email" />
-          <input type="password" v-model="form.password" placeholder="Password" />
+          <div class="field-group">
+            <input
+              type="email"
+              v-model="form.email"
+              placeholder="Email"
+              @blur="validateEmail(); handleBlur('email')"
+            />
 
-          <button>Login</button>
+            <span
+              v-if="errors.email && touched.email"
+              class="error-text"
+            >
+              {{ errors.email }}
+            </span>
+          </div>
+
+          <div class="field-group">
+            <div class="input-wrapper">
+              <input
+                :type="showPassword ? 'text' : 'password'"
+                v-model="form.password"
+                placeholder="Password"
+                @blur="validatePassword(); handleBlur('password')"
+              />
+
+              <span
+                class="toggle-icon"
+                @click="showPassword = !showPassword"
+              >
+                👁️
+              </span>
+            </div>
+
+            <span
+              v-if="errors.password && touched.password"
+              class="error-text"
+            >
+              {{ errors.password }}
+            </span>
+          </div>
+
+          <button :disabled="isFormEmpty">
+            Login
+          </button>
         </form>
 
         <div class="links">
@@ -29,16 +69,103 @@
 </template>
 
 <script setup>
-import { reactive } from "vue";
+import { reactive, computed, ref } from "vue";
 import { router, Link } from "@inertiajs/vue3";
+import { useToast } from "vue-toastification";
+
+const toast = useToast();
 
 const form = reactive({
   email: "",
   password: "",
 });
 
+const errors = reactive({
+  email: "",
+  password: "",
+});
+
+const touched = reactive({
+  email: false,
+  password: false,
+});
+
+const showPassword = ref(false);
+
+const isFormEmpty = computed(() => {
+  return !form.email || !form.password;
+});
+
+const hasErrors = computed(() => {
+  return !!errors.email || !!errors.password;
+});
+
+const validateEmail = () => {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!form.email) {
+    errors.email = "Email is required";
+  } else if (!regex.test(form.email)) {
+    errors.email = "Please enter a valid email address";
+  } else {
+    errors.email = "";
+  }
+};
+
+const validatePassword = () => {
+  if (!form.password) {
+    errors.password = "Password is required";
+  } else if (form.password.length < 6) {
+    errors.password = "Password must be at least 6 characters";
+  } else {
+    errors.password = "";
+  }
+};
+
+const handleBlur = (field) => {
+  touched[field] = true;
+};
+
 const login = () => {
-  router.post("/login", form);
+  touched.email = true;
+  touched.password = true;
+
+  validateEmail();
+  validatePassword();
+
+  if (hasErrors.value) {
+    toast.error("Please fix validation errors", {
+      toastClassName: "custom-toast",
+    });
+    return;
+  }
+
+  router.post("/login", form, {
+    preserveState: true,
+    preserveScroll: true,
+
+    onSuccess: () => {
+      toast("Login successful", {
+        type: "success",
+        toastClassName: "custom-toast",
+      });
+    },
+
+    onError: (backendErrors) => {
+      if (backendErrors.email) {
+        toast.error("Invalid email or password", {
+          toastClassName: "custom-toast",
+        });
+        return;
+      }
+
+      Object.values(backendErrors).forEach((error) => {
+        toast.error(error, {
+          toastClassName: "custom-toast",
+        });
+      });
+    },
+  });
 };
 </script>
 
@@ -55,6 +182,7 @@ const login = () => {
     linear-gradient(rgba(15,23,42,.8), rgba(15,23,42,.8)),
     url('https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=2070');
   background-size: cover;
+  background-position: center;
   color: white;
   display: flex;
   align-items: center;
@@ -64,6 +192,7 @@ const login = () => {
 .content h1 {
   font-size: 64px;
   margin-bottom: 20px;
+  font-weight: 700;
 }
 
 .content p {
@@ -96,15 +225,50 @@ const login = () => {
   margin: 12px 0 30px;
 }
 
+.field-group {
+  margin-bottom: 16px;
+}
+
 input {
   width: 100%;
   height: 52px;
-  margin-bottom: 18px;
   border-radius: 12px;
   border: 1px solid #334155;
   background: #1e293b;
   color: white;
   padding: 0 15px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.toggle-icon {
+  position: absolute;
+  right: 15px;
+  cursor: pointer;
+  font-size: 18px;
+  user-select: none;
+}
+
+.error-text {
+  display: block;
+  color: #ff0000 !important;
+  font-size: 12px;
+  margin-top: 5px;
+  margin-left: 4px;
+  margin-bottom: 0;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 button {
@@ -116,6 +280,19 @@ button {
   color: white;
   font-weight: 600;
   cursor: pointer;
+  font-size: 15px;
+  transition: background 0.2s ease;
+  margin-top: 8px;
+}
+
+button:hover {
+  background: #4338ca;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #3730a3;
 }
 
 .links {
@@ -127,5 +304,16 @@ button {
 .links a {
   color: #818cf8;
   text-decoration: none;
+  font-size: 14px;
+}
+
+.links a:hover {
+  text-decoration: underline;
+}
+
+:global(.custom-toast) {
+  background: #312e81 !important;
+  color: white !important;
+  border-radius: 12px !important;
 }
 </style>

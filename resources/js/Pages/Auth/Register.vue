@@ -13,39 +13,86 @@
         <p>Get started with your enterprise workspace</p>
 
         <form @submit.prevent="register">
-          <input type="text" v-model="form.name" placeholder="Full Name" @input="validateName"
-            @focus="activeField = 'name'" @blur="handleBlur('name')" />
-          <p v-if="errors.name && activeField === 'name'" class="error-text">
-            {{ errors.name }}
-          </p>
+          <div class="field-group">
+            <input
+              type="text"
+              v-model="form.name"
+              placeholder="Full Name"
+              @blur="validateName(); handleBlur('name')"
+            />
 
-          <input type="email" v-model="form.email" placeholder="Email" @input="validateEmail"
-            @focus="activeField = 'email'" @blur="handleBlur('email')" />
-          <p v-if="errors.email && activeField === 'email'" class="error-text">
-            {{ errors.email }}
-          </p>
-
-          <div class="input-wrapper">
-            <input :type="showPassword ? 'text' : 'password'" v-model="form.password" placeholder="Password"
-              @input="validatePassword" @focus="activeField = 'password'" @blur="handleBlur('password')" />
-            <span class="toggle-icon" @click="showPassword = !showPassword">
-              {{ showPassword ? '👁️' : '👁️' }}
-            </span>
+            <p
+              v-if="errors.name && touched.name"
+              class="error-text"
+            >
+              {{ errors.name }}
+            </p>
           </div>
 
-          <p v-if="errors.password && activeField === 'password'" class="error-text">
-            {{ errors.password }}
-          </p>
+          <div class="field-group">
+            <input
+              type="email"
+              v-model="form.email"
+              placeholder="Email"
+              @blur="validateEmail(); handleBlur('email')"
+            />
 
-          <input :type="showPassword ? 'text' : 'password'" v-model="form.password_confirmation"
-            placeholder="Confirm Password" @input="validateConfirmPassword" @focus="activeField = 'confirm'"
-            @blur="handleBlur('confirm')" />
+            <p
+              v-if="errors.email && touched.email"
+              class="error-text"
+            >
+              {{ errors.email }}
+            </p>
+          </div>
 
-          <p v-if="errors.password_confirmation && activeField === 'confirm'" class="error-text">
-            {{ errors.password_confirmation }}
-          </p>
+          <div class="field-group">
+            <div class="input-wrapper">
+              <input
+                :type="showPassword ? 'text' : 'password'"
+                v-model="form.password"
+                placeholder="Password"
+                @blur="validatePassword(); handleBlur('password')"
+              />
 
-          <button :disabled="hasErrors || isFormEmpty">
+              <span
+                class="toggle-icon"
+                @click="showPassword = !showPassword"
+              >
+                👁️
+              </span>
+            </div>
+
+            <p
+              v-if="errors.password && touched.password"
+              class="error-text"
+            >
+              {{ errors.password }}
+            </p>
+          </div>
+
+          <div class="field-group">
+            <input
+              :type="showPassword ? 'text' : 'password'"
+              v-model="form.password_confirmation"
+              placeholder="Confirm Password"
+              @blur="
+                validateConfirmPassword();
+                handleBlur('password_confirmation');
+              "
+            />
+
+            <p
+              v-if="
+                errors.password_confirmation &&
+                touched.password_confirmation
+              "
+              class="error-text"
+            >
+              {{ errors.password_confirmation }}
+            </p>
+          </div>
+
+          <button :disabled="isFormEmpty">
             Create Account
           </button>
         </form>
@@ -61,6 +108,9 @@
 <script setup>
 import { reactive, computed, ref } from "vue";
 import { router, Link } from "@inertiajs/vue3";
+import { useToast } from "vue-toastification";
+
+const toast = useToast();
 
 const form = reactive({
   name: "",
@@ -76,12 +126,21 @@ const errors = reactive({
   password_confirmation: "",
 });
 
+const touched = reactive({
+  name: false,
+  email: false,
+  password: false,
+  password_confirmation: false,
+});
+
 const showPassword = ref(false);
-const activeField = ref("");
 
 const isFormEmpty = computed(() => {
   return (
-    !form.name || !form.email || !form.password || !form.password_confirmation
+    !form.name ||
+    !form.email ||
+    !form.password ||
+    !form.password_confirmation
   );
 });
 
@@ -126,6 +185,8 @@ const validatePassword = () => {
 
   if (!form.password) {
     errors.password = "Password is required";
+  } else if (form.password.length < 6) {
+    errors.password = "Password must be at least 6 characters";
   } else if (!regex.test(form.password)) {
     errors.password =
       "Must include uppercase, lowercase, number & special char";
@@ -150,14 +211,68 @@ const validateConfirmPassword = () => {
 };
 
 const handleBlur = (field) => {
-  activeField.value = "";
-  errors[field] = "";
+  touched[field] = true;
 };
 
 const register = () => {
-  if (!hasErrors.value) {
-    router.post("/register", form);
+  touched.name = true;
+  touched.email = true;
+  touched.password = true;
+  touched.password_confirmation = true;
+
+  validateName();
+  validateEmail();
+  validatePassword();
+  validateConfirmPassword();
+
+  if (hasErrors.value) {
+    toast.error("Please fix validation errors", {
+      toastClassName: "custom-toast",
+    });
+    return;
   }
+
+  router.post("/register", form, {
+    preserveState: true,
+    preserveScroll: true,
+
+    onSuccess: () => {
+      toast("Account created successfully", {
+        type: "success",
+        toastClassName: "custom-toast",
+      });
+
+      form.name = "";
+      form.email = "";
+      form.password = "";
+      form.password_confirmation = "";
+
+      errors.name = "";
+      errors.email = "";
+      errors.password = "";
+      errors.password_confirmation = "";
+
+      touched.name = false;
+      touched.email = false;
+      touched.password = false;
+      touched.password_confirmation = false;
+    },
+
+    onError: (backendErrors) => {
+      if (backendErrors.email) {
+        toast.error("User with this email already exists", {
+          toastClassName: "custom-toast",
+        });
+        return;
+      }
+
+      Object.values(backendErrors).forEach((error) => {
+        toast.error(error, {
+          toastClassName: "custom-toast",
+        });
+      });
+    },
+  });
 };
 </script>
 
@@ -216,10 +331,13 @@ const register = () => {
   margin: 12px 0 30px;
 }
 
+.field-group {
+  margin-bottom: 14px;
+}
+
 input {
   width: 100%;
   height: 52px;
-  margin-bottom: 18px;
   border-radius: 12px;
   border: 1px solid #334155;
   background: #1e293b;
@@ -243,17 +361,18 @@ input:focus {
 .toggle-icon {
   position: absolute;
   right: 15px;
-  color: #6366f1;
-  font-size: 12px;
   cursor: pointer;
-  font-weight: 600;
+  font-size: 18px;
   user-select: none;
 }
 
 .error-text {
-  color: #ff4d4d;
+  color: #ff0000 !important;
   font-size: 12px;
-  margin: -12px 0 10px 5px;
+  margin-top: 4px;
+  margin-left: 4px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 button {
@@ -267,6 +386,7 @@ button {
   cursor: pointer;
   font-size: 15px;
   transition: background 0.2s ease;
+  margin-top: 10px;
 }
 
 button:hover {
@@ -293,5 +413,11 @@ button:disabled {
 
 .links a:hover {
   text-decoration: underline;
+}
+
+:global(.custom-toast) {
+  background: #312e81 !important;
+  color: white !important;
+  border-radius: 12px !important;
 }
 </style>

@@ -12,13 +12,70 @@
         <h2>Reset Password</h2>
 
         <form @submit.prevent="submit">
-          <input type="email" v-model="form.email" placeholder="Email" />
+          <div class="field-group">
+            <p class="locked-text">
+              Email cannot be changed
+            </p>
 
-          <input type="password" v-model="form.password" placeholder="New Password" />
+            <input
+              type="email"
+              v-model="form.email"
+              placeholder="Email"
+              disabled
+              class="disabled-input"
+            />
+          </div>
 
-          <input type="password" v-model="form.password_confirmation" placeholder="Confirm Password" />
+          <div class="field-group">
+            <p
+              v-if="errors.password && touched.password"
+              class="error-text"
+            >
+              {{ errors.password }}
+            </p>
 
-          <button>Reset Password</button>
+            <div class="input-wrapper">
+              <input
+                :type="showPassword ? 'text' : 'password'"
+                v-model="form.password"
+                placeholder="New Password"
+                @blur="validatePassword(); handleBlur('password')"
+              />
+
+              <span
+                class="toggle-icon"
+                @click="showPassword = !showPassword"
+              >
+                👁️
+              </span>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <p
+              v-if="
+                errors.password_confirmation &&
+                touched.password_confirmation
+              "
+              class="error-text"
+            >
+              {{ errors.password_confirmation }}
+            </p>
+
+            <input
+              :type="showPassword ? 'text' : 'password'"
+              v-model="form.password_confirmation"
+              placeholder="Confirm Password"
+              @blur="
+                validateConfirmPassword();
+                handleBlur('password_confirmation');
+              "
+            />
+          </div>
+
+          <button :disabled="isFormEmpty">
+            Reset Password
+          </button>
         </form>
 
         <div class="links">
@@ -30,7 +87,7 @@
 </template>
 
 <script setup>
-import { reactive } from "vue";
+import { reactive, computed, ref } from "vue";
 import { router, Link, usePage } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 
@@ -44,18 +101,97 @@ const form = reactive({
   password_confirmation: "",
 });
 
+const errors = reactive({
+  password: "",
+  password_confirmation: "",
+});
+
+const touched = reactive({
+  password: false,
+  password_confirmation: false,
+});
+
+const showPassword = ref(false);
+
+const isFormEmpty = computed(() => {
+  return !form.password || !form.password_confirmation;
+});
+
+const hasErrors = computed(() => {
+  return (
+    !!errors.password ||
+    !!errors.password_confirmation
+  );
+});
+
+const validatePassword = () => {
+  const regex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).+$/;
+
+  if (!form.password) {
+    errors.password = "Password is required";
+  } else if (form.password.length < 6) {
+    errors.password = "Password must be at least 6 characters";
+  } else if (!regex.test(form.password)) {
+    errors.password =
+      "Must include uppercase, lowercase, number & special char";
+  } else {
+    errors.password = "";
+  }
+
+  validateConfirmPassword();
+};
+
+const validateConfirmPassword = () => {
+  if (!form.password_confirmation || !form.password) {
+    errors.password_confirmation = "";
+    return;
+  }
+
+  if (form.password !== form.password_confirmation) {
+    errors.password_confirmation = "Passwords do not match";
+  } else {
+    errors.password_confirmation = "";
+  }
+};
+
+const handleBlur = (field) => {
+  touched[field] = true;
+};
+
 const submit = () => {
-  if (!form.password || !form.password_confirmation) {
-    toast.error("Please fill all fields");
+  touched.password = true;
+  touched.password_confirmation = true;
+
+  validatePassword();
+  validateConfirmPassword();
+
+  if (hasErrors.value) {
+    toast.error("Please fix validation errors", {
+      toastClassName: "custom-toast",
+    });
     return;
   }
 
   router.post("/reset-password", form, {
+    preserveState: true,
+    preserveScroll: true,
+
     onSuccess: () => {
-      toast.success("Password reset successful");
+      toast("Password reset successful", {
+        type: "success",
+        toastClassName: "custom-toast",
+      });
+
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1200);
     },
+
     onError: () => {
-      toast.error("Invalid or expired reset link");
+      toast.error("Invalid or expired reset link", {
+        toastClassName: "custom-toast",
+      });
     },
   });
 };
@@ -107,15 +243,59 @@ const submit = () => {
   color: white;
 }
 
+.field-group {
+  margin-bottom: 18px;
+}
+
 input {
   width: 100%;
   height: 52px;
-  margin-bottom: 18px;
   border-radius: 12px;
   border: 1px solid #334155;
   background: #1e293b;
   color: white;
   padding: 0 15px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.disabled-input {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.locked-text {
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 6px;
+  margin-left: 2px;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.toggle-icon {
+  position: absolute;
+  right: 15px;
+  cursor: pointer;
+  font-size: 18px;
+  user-select: none;
+}
+
+.error-text {
+  color: #ff0000 !important;
+  font-size: 12px;
+  margin-bottom: 6px;
+  margin-left: 2px;
+  font-weight: 600;
 }
 
 button {
@@ -127,9 +307,37 @@ button {
   color: white;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.2s ease;
 }
 
 button:hover {
   background: #4338ca;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #3730a3;
+}
+
+.links {
+  margin-top: 22px;
+  display: flex;
+  justify-content: center;
+}
+
+.links a {
+  color: #818cf8;
+  text-decoration: none;
+}
+
+.links a:hover {
+  text-decoration: underline;
+}
+
+:global(.custom-toast) {
+  background: #312e81 !important;
+  color: white !important;
+  border-radius: 12px !important;
 }
 </style>
