@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Auth\Events\PasswordReset;
 use App\Http\Controllers\AdminController;
 
-Route::get('/', fn () => Inertia::render('Welcome'));
+Route::get('/', fn () => Inertia::render('Dashboard'));
 
 Route::get('/login', fn () => Inertia::render('Auth/Login'));
 Route::get('/register', fn () => Inertia::render('Auth/Register'));
