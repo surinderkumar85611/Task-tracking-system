@@ -8,12 +8,22 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Auth\Events\PasswordReset;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\MemberController;
 
 Route::get('/', fn () => Inertia::render('Dashboard'));
 
 Route::get('/login', fn () => Inertia::render('Auth/Login'));
 Route::get('/register', fn () => Inertia::render('Auth/Register'));
 Route::get('/forgot-password', fn () => Inertia::render('Auth/ForgotPassword'));
+
+Route::get('/project', fn () => Inertia::render('Projects'));
+
+Route::get('/member', [MemberController::class, 'index']);
+Route::post('/member', [MemberController::class, 'store']);
+Route::put(
+    '/members/{member}/assign',
+    [MemberController::class, 'assignMember']
+);
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
