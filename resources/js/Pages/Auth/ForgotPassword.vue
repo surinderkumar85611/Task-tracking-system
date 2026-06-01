@@ -19,6 +19,7 @@
               v-model="form.email"
               placeholder="Email Address"
               @blur="validateEmail(); handleBlur('email')"
+              @input="validateEmail"
             />
 
             <p
@@ -29,7 +30,7 @@
             </p>
           </div>
 
-          <button :disabled="isFormEmpty">
+          <button>
             Send Reset Link
           </button>
         </form>
@@ -59,10 +60,6 @@ const errors = reactive({
 
 const touched = reactive({
   email: false,
-});
-
-const isFormEmpty = computed(() => {
-  return !form.email;
 });
 
 const hasErrors = computed(() => {
@@ -233,12 +230,6 @@ button {
 
 button:hover {
   background: #4338ca;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: #3730a3;
 }
 
 .links {

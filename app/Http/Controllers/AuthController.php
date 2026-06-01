@@ -31,7 +31,7 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        return redirect('/login');
+        return back()->with('success', 'Account created successfully');
     }
 
     public function login(Request $request)
@@ -43,7 +43,8 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            return redirect('/');
+
+           return back()->with('success', 'Login successful');
         }
 
         return back()->withErrors([

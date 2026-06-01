@@ -14,47 +14,30 @@
 
         <form @submit.prevent="login">
           <div class="field-group">
-            <input
-              type="email"
-              v-model="form.email"
-              placeholder="Email"
-              @blur="validateEmail(); handleBlur('email')"
-            />
+            <input type="email" v-model="form.email" placeholder="Email" @blur="validateEmail(); handleBlur('email')"
+              @input="validateEmail" />
 
-            <span
-              v-if="errors.email && touched.email"
-              class="error-text"
-            >
+            <span v-if="errors.email && touched.email" class="error-text">
               {{ errors.email }}
             </span>
           </div>
 
           <div class="field-group">
             <div class="input-wrapper">
-              <input
-                :type="showPassword ? 'text' : 'password'"
-                v-model="form.password"
-                placeholder="Password"
-                @blur="validatePassword(); handleBlur('password')"
-              />
+              <input :type="showPassword ? 'text' : 'password'" v-model="form.password" placeholder="Password"
+                @blur="validatePassword(); handleBlur('password')" @input="validatePassword" />
 
-              <span
-                class="toggle-icon"
-                @click="showPassword = !showPassword"
-              >
+              <span class="toggle-icon" @click="showPassword = !showPassword">
                 👁️
               </span>
             </div>
 
-            <span
-              v-if="errors.password && touched.password"
-              class="error-text"
-            >
+            <span v-if="errors.password && touched.password" class="error-text">
               {{ errors.password }}
             </span>
           </div>
 
-          <button :disabled="isFormEmpty">
+          <button>
             Login
           </button>
         </form>
@@ -91,10 +74,6 @@ const touched = reactive({
 });
 
 const showPassword = ref(false);
-
-const isFormEmpty = computed(() => {
-  return !form.email || !form.password;
-});
 
 const hasErrors = computed(() => {
   return !!errors.email || !!errors.password;
@@ -149,6 +128,10 @@ const login = () => {
         type: "success",
         toastClassName: "custom-toast",
       });
+
+      setTimeout(() => {
+        router.visit("/admin/dashboard"); 
+      }, 1200);
     },
 
     onError: (backendErrors) => {
@@ -179,7 +162,7 @@ const login = () => {
 .left-panel {
   width: 55%;
   background:
-    linear-gradient(rgba(15,23,42,.8), rgba(15,23,42,.8)),
+    linear-gradient(rgba(15, 23, 42, .8), rgba(15, 23, 42, .8)),
     url('https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=2070');
   background-size: cover;
   background-position: center;
@@ -287,12 +270,6 @@ button {
 
 button:hover {
   background: #4338ca;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: #3730a3;
 }
 
 .links {

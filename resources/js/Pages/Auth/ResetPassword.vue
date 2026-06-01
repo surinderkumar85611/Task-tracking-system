@@ -27,19 +27,13 @@
           </div>
 
           <div class="field-group">
-            <p
-              v-if="errors.password && touched.password"
-              class="error-text"
-            >
-              {{ errors.password }}
-            </p>
-
             <div class="input-wrapper">
               <input
                 :type="showPassword ? 'text' : 'password'"
                 v-model="form.password"
                 placeholder="New Password"
                 @blur="validatePassword(); handleBlur('password')"
+                @input="validatePassword"
               />
 
               <span
@@ -49,9 +43,36 @@
                 👁️
               </span>
             </div>
+
+            <p
+              v-if="errors.password && touched.password"
+              class="error-text"
+            >
+              {{ errors.password }}
+            </p>
           </div>
 
           <div class="field-group">
+            <div class="input-wrapper">
+              <input
+                :type="showConfirmPassword ? 'text' : 'password'"
+                v-model="form.password_confirmation"
+                placeholder="Confirm Password"
+                @blur="
+                  validateConfirmPassword();
+                  handleBlur('password_confirmation');
+                "
+                @input="validateConfirmPassword"
+              />
+
+              <span
+                class="toggle-icon"
+                @click="showConfirmPassword = !showConfirmPassword"
+              >
+                👁️
+              </span>
+            </div>
+
             <p
               v-if="
                 errors.password_confirmation &&
@@ -61,19 +82,9 @@
             >
               {{ errors.password_confirmation }}
             </p>
-
-            <input
-              :type="showPassword ? 'text' : 'password'"
-              v-model="form.password_confirmation"
-              placeholder="Confirm Password"
-              @blur="
-                validateConfirmPassword();
-                handleBlur('password_confirmation');
-              "
-            />
           </div>
 
-          <button :disabled="isFormEmpty">
+          <button>
             Reset Password
           </button>
         </form>
@@ -87,7 +98,7 @@
 </template>
 
 <script setup>
-import { reactive, computed, ref } from "vue";
+import { reactive, computed, ref, onMounted } from "vue";
 import { router, Link, usePage } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 
@@ -112,9 +123,12 @@ const touched = reactive({
 });
 
 const showPassword = ref(false);
+const showConfirmPassword = ref(false);
 
-const isFormEmpty = computed(() => {
-  return !form.password || !form.password_confirmation;
+onMounted(() => {
+  if (!form.token || !form.email) {
+    router.visit("/login");
+  }
 });
 
 const hasErrors = computed(() => {
@@ -184,7 +198,7 @@ const submit = () => {
       });
 
       setTimeout(() => {
-        window.location.href = "/login";
+        router.visit("/login");
       }, 1200);
     },
 
@@ -293,7 +307,7 @@ input:focus {
 .error-text {
   color: #ff0000 !important;
   font-size: 12px;
-  margin-bottom: 6px;
+  margin-top: 6px;
   margin-left: 2px;
   font-weight: 600;
 }
@@ -312,12 +326,6 @@ button {
 
 button:hover {
   background: #4338ca;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: #3730a3;
 }
 
 .links {

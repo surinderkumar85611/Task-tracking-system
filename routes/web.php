@@ -10,11 +10,18 @@ use Illuminate\Auth\Events\PasswordReset;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\MemberController;
 
-Route::get('/', fn () => Inertia::render('Dashboard'));
+Route::get('/', function () {
 
-Route::get('/login', fn () => Inertia::render('Auth/Login'));
-Route::get('/register', fn () => Inertia::render('Auth/Register'));
-Route::get('/forgot-password', fn () => Inertia::render('Auth/ForgotPassword'));
+    if (auth()->check()) {
+        return redirect('/admin/dashboard');
+    }
+
+    return redirect('/login');
+});
+Route::get('/login', fn() => Inertia::render('Auth/Login'))
+    ->name('login');
+Route::get('/register', fn() => Inertia::render('Auth/Register'));
+Route::get('/forgot-password', fn() => Inertia::render('Auth/ForgotPassword'));
 
 Route::get('/project', fn () => Inertia::render('Projects'));
 
@@ -41,8 +48,15 @@ Route::post('/forgot-password', function (Request $request) {
         'status' => $status
     ]);
 });
-
+Route::get('/reset-password', function () {
+    return redirect('/login');
+});
 Route::get('/reset-password/{token}', function ($token, Request $request) {
+
+    if (!$token || !$request->email) {
+        return redirect('/login');
+    }
+
     return Inertia::render('Auth/ResetPassword', [
         'token' => $token,
         'email' => $request->email,
@@ -74,8 +88,7 @@ Route::post('/reset-password', function (Request $request) {
 
 
 Route::middleware(['auth'])->group(function () {
-    
+
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])
         ->name('admin.dashboard');
-
 });
