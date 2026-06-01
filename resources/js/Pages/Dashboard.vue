@@ -1,21 +1,7 @@
 <template>
-  <div class="dashboard" :class="themeClass">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="logo">BTT<span>Board</span></div>
-      <nav class="nav-links">
-        <a href="#" class="active">Dashboard</a>
-        <a href="#">Projects</a>
-        <a href="#">Team</a>
-        <a href="#">Calendar</a>
-        <a href="#">Settings</a>
-      </nav>
-      <div class="upgrade">
-        <p>Upgrade Plan</p>
-        <small>Unlock premium analytics & AI tools.</small>
-        <button>Upgrade</button>
-      </div>
-    </aside>
+  <div class="dashboard" :class="theme.themeClass">
+
+    <Sidebar />
 
     <!-- Main Content -->
     <main class="main-content">
@@ -26,8 +12,8 @@
           <p>Welcome back, manage your workspace.</p>
         </div>
         <div class="header-right">
-          <button class="theme-btn" @click="toggleTheme">
-            {{ isDark ? "☀️" : "🌙" }}
+          <button class="theme-btn" @click="theme.toggleTheme">
+            {{ theme.isDark ? "☀️" : "🌙" }}
           </button>
           <input type="text" placeholder="Search..." />
           <button class="icon-btn">🔔</button>
@@ -119,9 +105,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-
-const isDark = ref(true);
+import { ref, computed, onMounted } from "vue";
+import { useThemeStore } from "../stores/theme";
+import Sidebar from "./components/Sidebar.vue";
 
 const boards = [
   { title: "Website Redesign", progress: 75 },
@@ -130,188 +116,10 @@ const boards = [
   { title: "CRM Dashboard", progress: 63 },
 ];
 
-const themeClass = computed(() =>
-  isDark.value ? "theme-dark" : "theme-light"
-);
-
-const toggleTheme = () => {
-  isDark.value = !isDark.value;
-};
+const theme = useThemeStore();
 </script>
 
 <style scoped>
-/* Reset + Base */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: 'Inter', sans-serif;
-}
-
-.dashboard {
-  display: flex;
-  height: 100vh;
-  color: #fff;
-  background: #0f172a;
-  overflow: hidden;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* THEMES */
-
-.theme-dark {
-  --bg: #0f172a;
-  --card: rgba(255, 255, 255, 0.05);
-  --sidebar: #111827;
-  --text: #ffffff;
-  --subtext: #94a3b8;
-  --border: rgba(255, 255, 255, 0.08);
-  --hover: rgba(255, 255, 255, 0.08);
-}
-
-.theme-light {
-  --bg: #f4f7fb;
-  --card: rgba(255, 255, 255, 0.8);
-  --sidebar: #ffffff;
-  --text: #0f172a;
-  --subtext: #64748b;
-  --border: rgba(15, 23, 42, 0.08);
-  --hover: rgba(15, 23, 42, 0.05);
-}
-
-.dashboard {
-  background: var(--bg);
-  color: var(--text);
-}
-
-/* Sidebar */
-.sidebar {
-  width: 280px;
-  background: var(--sidebar);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 20px;
-}
-
-.logo {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 40px;
-}
-
-.logo span {
-  color: #06b6d4;
-}
-
-.nav-links a {
-  display: block;
-  padding: 12px 16px;
-  border-radius: 12px;
-  margin-bottom: 8px;
-  color: var(--text);
-  text-decoration: none;
-  transition: background 0.3s;
-}
-
-.nav-links a:hover {
-  background: var(--hover);
-}
-
-.nav-links a.active {
-  background: #06b6d4;
-  color: #111827;
-}
-
-.upgrade {
-  background: var(--bg);
-  padding: 15px;
-  border-radius: 15px;
-  text-align: center;
-  margin-top: 20px;
-}
-
-.upgrade button {
-  margin-top: 10px;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 10px;
-  background: #06b6d4;
-  color: #111827;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.upgrade button:hover {
-  background: #0ea5e9;
-}
-
-/* Main Content */
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 40px;
-  border-bottom: 1px solid #1f2937;
-}
-
-.header h1 {
-  font-size: 28px;
-  font-weight: bold;
-}
-
-.header p {
-  color: #9ca3af;
-  margin-top: 4px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.header-right input {
-  padding: 6px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  outline: none;
-  transition: all 0.3s ease;
-}
-
-.header-right .icon-btn {
-  background: var(--card);
-  border: 1px solid var(--border);
-  padding: 8px 12px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: var(--text);
-}
-
-.header-right .icon-btn:hover {
-  background: var(--hover);
-}
-
-.header-right .avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-}
-
-.header-right input::placeholder {
-  color: var(--subtext);
-}
-
 /* Stats Cards */
 .stats {
   display: grid;
@@ -332,42 +140,6 @@ const toggleTheme = () => {
 
 .theme-dark .stats .card p {
   color: var(--card-text-inverse);
-}
-
-.card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 15px;
-  padding: 20px;
-  position: relative;
-  overflow: hidden;
-}
-
-.card p {
-  color: var(--subtext);
-  margin-bottom: 10px;
-}
-
-.card h2 {
-  color: var(--text);
-  font-size: 28px;
-  font-weight: bold;
-}
-
-.card.blue {
-  background: linear-gradient(135deg, #3b82f6, #06b6d4);
-}
-
-.card.purple {
-  background: linear-gradient(135deg, #8b5cf6, #ec4899);
-}
-
-.card.green {
-  background: linear-gradient(135deg, #22c55e, #10b981);
-}
-
-.card.orange {
-  background: linear-gradient(135deg, #f97316, #ef4444);
 }
 
 /* Dashboard Content */
@@ -549,59 +321,4 @@ const toggleTheme = () => {
   color: #fbbf24;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 10px;
-}
-
-/* Responsive */
-@media(max-width: 1100px) {
-  .dashboard-content {
-    flex-direction: column;
-  }
-
-  .sidebar-right {
-    flex-direction: row;
-  }
-}
-
-@media(max-width: 768px) {
-  .sidebar {
-    display: none;
-  }
-
-  .header {
-    flex-direction: column;
-    gap: 15px;
-    align-items: flex-start;
-  }
-
-  .stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .sidebar-right {
-    flex-direction: column;
-  }
-}
-
-@media(max-width: 500px) {
-  .stats {
-    grid-template-columns: 1fr;
-  }
-
-  .header-right {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .header-right input {
-    width: 100%;
-  }
-}
 </style>
