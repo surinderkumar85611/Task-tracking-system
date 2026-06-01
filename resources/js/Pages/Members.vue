@@ -181,7 +181,7 @@
                 @dragstart="dragMember(member)"
                 >
 
-                <img :src="member.avatar" />
+                <img :src="member.avatar" class="nwe_test"/>
 
                 <div>
                   <p>{{ member.name }}</p>
