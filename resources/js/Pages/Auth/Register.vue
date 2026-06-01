@@ -14,87 +14,49 @@
 
         <form @submit.prevent="register">
           <div class="field-group">
-            <input
-              type="text"
-              v-model="form.name"
-              placeholder="Full Name"
-              @blur="validateName(); handleBlur('name')"
-            />
-
-            <p
-              v-if="errors.name && touched.name"
-              class="error-text"
-            >
+            <input type="text" v-model="form.name" placeholder="Full Name" @blur="validateName(); handleBlur('name')"
+              @input="validateName" />
+            <p v-if="errors.name && touched.name" class="error-text">
               {{ errors.name }}
             </p>
           </div>
 
           <div class="field-group">
-            <input
-              type="email"
-              v-model="form.email"
-              placeholder="Email"
-              @blur="validateEmail(); handleBlur('email')"
-            />
-
-            <p
-              v-if="errors.email && touched.email"
-              class="error-text"
-            >
+            <input type="email" v-model="form.email" placeholder="Email" @blur="validateEmail(); handleBlur('email')"
+              @input="validateEmail" />
+            <p v-if="errors.email && touched.email" class="error-text">
               {{ errors.email }}
             </p>
           </div>
 
           <div class="field-group">
             <div class="input-wrapper">
-              <input
-                :type="showPassword ? 'text' : 'password'"
-                v-model="form.password"
-                placeholder="Password"
-                @blur="validatePassword(); handleBlur('password')"
-              />
-
-              <span
-                class="toggle-icon"
-                @click="showPassword = !showPassword"
-              >
+              <input :type="showPassword ? 'text' : 'password'" v-model="form.password" placeholder="Password"
+                @blur="validatePassword(); handleBlur('password')" @input="validatePassword" />
+              <span class="toggle-icon" @click="showPassword = !showPassword">
                 👁️
               </span>
             </div>
-
-            <p
-              v-if="errors.password && touched.password"
-              class="error-text"
-            >
+            <p v-if="errors.password && touched.password" class="error-text">
               {{ errors.password }}
             </p>
           </div>
 
           <div class="field-group">
-            <input
-              :type="showPassword ? 'text' : 'password'"
-              v-model="form.password_confirmation"
-              placeholder="Confirm Password"
-              @blur="
-                validateConfirmPassword();
-                handleBlur('password_confirmation');
-              "
-            />
-
-            <p
-              v-if="
-                errors.password_confirmation &&
-                touched.password_confirmation
-              "
-              class="error-text"
-            >
+            <div class="input-wrapper">
+              <input :type="showConfirmPassword ? 'text' : 'password'" v-model="form.password_confirmation"
+                placeholder="Confirm Password" @blur="validateConfirmPassword(); handleBlur('password_confirmation')"
+                @input="validateConfirmPassword" />
+              <span class="toggle-icon" @click="showConfirmPassword = !showConfirmPassword">
+                👁️
+              </span>
+            </div>
+            <p v-if="errors.password_confirmation && touched.password_confirmation" class="error-text">
               {{ errors.password_confirmation }}
             </p>
           </div>
 
-          <button :disabled="isFormEmpty">
-            Create Account
-          </button>
+          <button>Create Account</button>
         </form>
 
         <div class="links">
@@ -134,15 +96,7 @@ const touched = reactive({
 });
 
 const showPassword = ref(false);
-
-const isFormEmpty = computed(() => {
-  return (
-    !form.name ||
-    !form.email ||
-    !form.password ||
-    !form.password_confirmation
-  );
-});
+const showConfirmPassword = ref(false);
 
 const hasErrors = computed(() => {
   return (
@@ -155,7 +109,6 @@ const hasErrors = computed(() => {
 
 const validateName = () => {
   const regex = /^[A-Za-z\s]+$/;
-
   if (!form.name) {
     errors.name = "Name is required";
   } else if (form.name.length < 4) {
@@ -169,7 +122,6 @@ const validateName = () => {
 
 const validateEmail = () => {
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
   if (!form.email) {
     errors.email = "Email is required";
   } else if (!regex.test(form.email)) {
@@ -180,8 +132,7 @@ const validateEmail = () => {
 };
 
 const validatePassword = () => {
-  const regex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).+$/;
+  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).+$/;
 
   if (!form.password) {
     errors.password = "Password is required";
@@ -226,7 +177,7 @@ const register = () => {
   validateConfirmPassword();
 
   if (hasErrors.value) {
-    toast.error("Please fix validation errors", {
+    toast.error("Please fill all the fields", {
       toastClassName: "custom-toast",
     });
     return;
@@ -256,8 +207,11 @@ const register = () => {
       touched.email = false;
       touched.password = false;
       touched.password_confirmation = false;
-    },
 
+      setTimeout(() => {
+        router.visit("/login");
+      }, 1200);
+    },
     onError: (backendErrors) => {
       if (backendErrors.email) {
         toast.error("User with this email already exists", {
@@ -344,7 +298,6 @@ input {
   color: white;
   padding: 0 15px;
   font-size: 14px;
-  transition: border-color 0.2s ease;
 }
 
 input:focus {
@@ -372,7 +325,6 @@ input:focus {
   margin-top: 4px;
   margin-left: 4px;
   font-weight: 600;
-  line-height: 1.2;
 }
 
 button {
@@ -384,19 +336,6 @@ button {
   color: white;
   font-weight: 600;
   cursor: pointer;
-  font-size: 15px;
-  transition: background 0.2s ease;
-  margin-top: 10px;
-}
-
-button:hover {
-  background: #4338ca;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: #3730a3;
 }
 
 .links {
@@ -408,16 +347,5 @@ button:disabled {
 .links a {
   color: #818cf8;
   text-decoration: none;
-  font-size: 14px;
-}
-
-.links a:hover {
-  text-decoration: underline;
-}
-
-:global(.custom-toast) {
-  background: #312e81 !important;
-  color: white !important;
-  border-radius: 12px !important;
 }
 </style>
