@@ -112,13 +112,6 @@ const login = () => {
   validateEmail();
   validatePassword();
 
-  if (hasErrors.value) {
-    toast.error("Please fix validation errors", {
-      toastClassName: "custom-toast",
-    });
-    return;
-  }
-
   router.post("/login", form, {
     preserveState: true,
     preserveScroll: true,

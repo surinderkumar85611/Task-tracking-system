@@ -180,12 +180,6 @@ const submit = () => {
   validatePassword();
   validateConfirmPassword();
 
-  if (hasErrors.value) {
-    toast.error("Please fix validation errors", {
-      toastClassName: "custom-toast",
-    });
-    return;
-  }
 
   router.post("/reset-password", form, {
     preserveState: true,
