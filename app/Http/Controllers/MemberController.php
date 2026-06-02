@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Member;
+use App\Models\Workspace;
 
 use Inertia\Inertia;
 
@@ -51,6 +52,8 @@ class MemberController extends Controller
         ]);
 
         Member::create([
+            'workspace_id' => session('workspace_id'),
+
             'first_name' => $validated['firstName'],
             'last_name' => $validated['lastName'],
             'email' => $validated['email'],
@@ -64,17 +67,24 @@ class MemberController extends Controller
 
     public function index()
     {
-        $leaders = Member::where('role', 'TL')
+        $workspaceId = session('workspace_id');
+
+        $leaders = Member::where('workspace_id', $workspaceId)
+            ->where('role', 'TL')
             ->with('teamMembers')
             ->get();
 
-        $members = Member::where('role', 'Member')
+        $members = Member::where('workspace_id', $workspaceId)
+            ->where('role', 'Member')
             ->whereNull('assigned_to')
             ->get();
+
+        $workspaces = Workspace::all();
 
         return Inertia::render('Members', [
             'teamLeaders' => $leaders,
             'members' => $members,
+            'workspaces' => $workspaces,
         ]);
     }
 
