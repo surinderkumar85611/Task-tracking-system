@@ -123,24 +123,11 @@ const login = () => {
       });
 
       setTimeout(() => {
-        router.visit("/admin/dashboard"); 
+        router.visit("/dashboard"); 
       }, 1200);
     },
 
-    onError: (backendErrors) => {
-      if (backendErrors.email) {
-        toast.error("Invalid email or password", {
-          toastClassName: "custom-toast",
-        });
-        return;
-      }
-
-      Object.values(backendErrors).forEach((error) => {
-        toast.error(error, {
-          toastClassName: "custom-toast",
-        });
-      });
-    },
+    
   });
 };
 </script>

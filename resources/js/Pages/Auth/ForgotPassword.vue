@@ -87,13 +87,6 @@ const sendReset = () => {
 
   validateEmail();
 
-  if (hasErrors.value) {
-    toast.error("Please fix validation errors", {
-      toastClassName: "custom-toast",
-    });
-    return;
-  }
-
   router.post("/forgot-password", form, {
     preserveState: true,
     preserveScroll: true,
@@ -109,18 +102,7 @@ const sendReset = () => {
       touched.email = false;
     },
 
-    onError: (backendErrors) => {
-      if (backendErrors.email) {
-        toast.error(backendErrors.email, {
-          toastClassName: "custom-toast",
-        });
-        return;
-      }
-
-      toast.error("Something went wrong", {
-        toastClassName: "custom-toast",
-      });
-    },
+    
   });
 };
 </script>
