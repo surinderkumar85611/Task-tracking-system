@@ -1,5 +1,5 @@
 <?php
-
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
@@ -15,7 +15,7 @@ use App\Http\Controllers\ProjectController;
 Route::get('/', function () {
 
     if (auth()->check()) {
-        return redirect('/admin/dashboard');
+        return redirect('/dashboard');
     }
 
     return redirect('/login');
@@ -91,9 +91,21 @@ Route::post('/reset-password', function (Request $request) {
 
 Route::middleware(['auth'])->group(function () {
 
-    Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])
-        ->name('admin.dashboard');
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])
+    ->name('dashboard');
 });
+
+Route::post('/logout', function (Request $request) {
+
+    Auth::logout();
+
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    return redirect('/login');
+
+})->middleware('auth')->name('logout');
+
 
 Route::post('/workspace', [WorkspaceController::class, 'store']);
 Route::post('/workspace/select', [WorkspaceController::class, 'select']);
@@ -106,3 +118,4 @@ Route::delete(
     '/project/{project}',
     [ProjectController::class, 'destroy']
 );
+

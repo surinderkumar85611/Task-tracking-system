@@ -176,10 +176,8 @@ const register = () => {
   validatePassword();
   validateConfirmPassword();
 
+  // Stop if frontend validation fails
   if (hasErrors.value) {
-    toast.error("Please fill all the fields", {
-      toastClassName: "custom-toast",
-    });
     return;
   }
 
@@ -212,19 +210,31 @@ const register = () => {
         router.visit("/login");
       }, 1200);
     },
+
     onError: (backendErrors) => {
       if (backendErrors.email) {
-        toast.error("User with this email already exists", {
-          toastClassName: "custom-toast",
-        });
-        return;
+        errors.email = Array.isArray(backendErrors.email)
+          ? backendErrors.email[0]
+          : backendErrors.email;
+
+        touched.email = true;
       }
 
-      Object.values(backendErrors).forEach((error) => {
-        toast.error(error, {
-          toastClassName: "custom-toast",
-        });
-      });
+      if (backendErrors.name) {
+        errors.name = Array.isArray(backendErrors.name)
+          ? backendErrors.name[0]
+          : backendErrors.name;
+
+        touched.name = true;
+      }
+
+      if (backendErrors.password) {
+        errors.password = Array.isArray(backendErrors.password)
+          ? backendErrors.password[0]
+          : backendErrors.password;
+
+        touched.password = true;
+      }
     },
   });
 };
@@ -347,5 +357,10 @@ button {
 .links a {
   color: #818cf8;
   text-decoration: none;
+}
+:global(.custom-toast) {
+  background: #312e81 !important;
+  color: white !important;
+  border-radius: 12px !important;
 }
 </style>
