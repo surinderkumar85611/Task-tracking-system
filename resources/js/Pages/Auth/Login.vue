@@ -123,7 +123,7 @@ const login = () => {
       });
 
       setTimeout(() => {
-        router.visit("/admin/dashboard"); 
+        router.visit("/dashboard"); 
       }, 1200);
     },
 
