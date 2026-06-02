@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Project;
+use App\Models\Task;
 use App\Models\Member;
 use Inertia\Inertia;
 
@@ -34,23 +35,41 @@ class ProjectController extends Controller
 
     public function index()
     {
-        $projects = Project::where(
-            'workspace_id',
-            session('workspace_id')
-        )->get();
+        $projects = Project::with([
+            'teamLeader.teamMembers',
+            'tasks.member'
+        ])
+            ->where('workspace_id', session('workspace_id'))
+            ->get();
 
         $teamLeaders = Member::where(
             'workspace_id',
             session('workspace_id')
         )
-        ->where('role', 'TL')
-        ->with('teamMembers')
-        ->get();
+            ->where('role', 'TL')
+            ->with('teamMembers')
+            ->get();
 
         return Inertia::render('Projects', [
             'projects' => $projects,
             'teamLeaders' => $teamLeaders,
         ]);
+    }
+
+    public function update(Request $request, Project $project)
+    {
+        $project->update([
+
+            'name' => $request->name,
+
+            'description' => $request->description,
+
+            'status' => $request->status,
+
+            'deadline' => $request->deadline,
+        ]);
+
+        return back();
     }
 
     public function destroy(Project $project)
