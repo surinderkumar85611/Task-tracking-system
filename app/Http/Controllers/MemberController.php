@@ -67,6 +67,7 @@ class MemberController extends Controller
 
     public function index()
     {
+
         $workspaceId = session('workspace_id');
 
         $leaders = Member::where('workspace_id', $workspaceId)
@@ -85,6 +86,7 @@ class MemberController extends Controller
             'teamLeaders' => $leaders,
             'members' => $members,
             'workspaces' => $workspaces,
+            'currentWorkspace' => session('workspace_id'),
         ]);
     }
 
