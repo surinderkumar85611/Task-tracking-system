@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Auth\Events\PasswordReset;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\WorkspaceController;
+use App\Http\Controllers\ProjectController;
 
 Route::get('/', function () {
 
@@ -23,7 +25,7 @@ Route::get('/login', fn() => Inertia::render('Auth/Login'))
 Route::get('/register', fn() => Inertia::render('Auth/Register'));
 Route::get('/forgot-password', fn() => Inertia::render('Auth/ForgotPassword'));
 
-Route::get('/project', fn () => Inertia::render('Projects'));
+// Route::get('/project', fn () => Inertia::render('Projects'));
 
 Route::get('/member', [MemberController::class, 'index']);
 Route::post('/member', [MemberController::class, 'store']);
@@ -92,3 +94,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])
         ->name('admin.dashboard');
 });
+
+Route::post('/workspace', [WorkspaceController::class, 'store']);
+Route::post('/workspace/select', [WorkspaceController::class, 'select']);
+
+Route::get('/project', [ProjectController::class, 'index']);
+
+Route::post('/project', [ProjectController::class, 'store']);
+
+Route::delete(
+    '/project/{project}',
+    [ProjectController::class, 'destroy']
+);
