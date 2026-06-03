@@ -32,6 +32,8 @@ class WorkspaceController extends Controller
             'workspace_id' => $request->workspace_id
         ]);
 
+        session()->forget('show_workspace_modal');
+
         return back();
     }
 }

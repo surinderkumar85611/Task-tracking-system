@@ -10,6 +10,9 @@
                 ➕ Create Workspace
             </button>
             <select class="workspace-select" v-model="selectedWorkspace" @change="changeWorkspace">
+                <option disabled value="">
+                    Create Workspace
+                </option>
                 <option v-for="workspace in workspaces" :key="workspace.id" :value="workspace.id">
                     {{ workspace.name }}
                 </option>
@@ -40,7 +43,7 @@
 
         </nav>
 
-        <div v-if="showWorkspaceModal" class="modal-overlay" @click.self="showWorkspaceModal = false">
+        <div v-if="showCreateWorkspaceModal" class="modal-overlay">
             <div class="modal">
 
                 <h2>Create Workspace</h2>
@@ -51,12 +54,37 @@
 
                 <div class="modal-actions">
 
-                    <button class="cancel-btn" @click="showWorkspaceModal = false">
+                    <button class="cancel-btn" @click="showCreateWorkspaceModal = false">
                         Cancel
                     </button>
 
                     <button class="create-btn" @click="createWorkspace">
                         Create
+                    </button>
+
+                </div>
+
+            </div>
+        </div>
+        <div v-if="showSelectWorkspaceModal" class="modal-overlay">
+            <div class="modal">
+
+                <h2>Select Workspace</h2>
+
+                <select v-model="selectedWorkspace" class="workspace-select">
+                    <option disabled value="">
+                        Select Workspace
+                    </option>
+
+                    <option v-for="workspace in workspaces" :key="workspace.id" :value="workspace.id">
+                        {{ workspace.name }}
+                    </option>
+                </select>
+
+                <div class="modal-actions">
+
+                    <button class="create-btn" @click="changeWorkspace" :disabled="!selectedWorkspace">
+                        Continue
                     </button>
 
                 </div>
@@ -76,10 +104,14 @@ const workspaces = page.props.workspaces || [];
 const currentWorkspace = page.props.currentWorkspace;
 
 const selectedWorkspace = ref(
-    Number(page.props.currentWorkspace)
+    page.props.currentWorkspace || ""
 );
 
-const showWorkspaceModal = ref(false);
+const showCreateWorkspaceModal = ref(false);
+
+const showSelectWorkspaceModal = ref(
+    !page.props.currentWorkspace
+);
 
 const workspaceForm = reactive({
     name: "",
@@ -98,7 +130,7 @@ const createWorkspace = () => {
 
         onSuccess: () => {
 
-            showWorkspaceModal.value = false;
+            showCreateWorkspaceModal.value = false;
 
             workspaceForm.name = "";
             workspaceForm.description = "";
@@ -108,9 +140,21 @@ const createWorkspace = () => {
 
 const changeWorkspace = () => {
 
-    router.post("/workspace/select", {
-        workspace_id: selectedWorkspace.value,
-    });
+    if (!selectedWorkspace.value) {
+        return;
+    }
+
+    router.post(
+        "/workspace/select",
+        {
+            workspace_id: selectedWorkspace.value,
+        },
+        {
+            onSuccess: () => {
+                showSelectWorkspaceModal.value = false;
+            },
+        }
+    );
 };
 </script>
 

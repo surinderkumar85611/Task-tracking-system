@@ -40,10 +40,12 @@ class HandleInertiaRequests extends Middleware
         return array_merge(parent::share($request), [
 
             'workspaces' => fn() =>
-                Workspace::orderBy('name')->get(),
+            Workspace::orderBy('name')->get(),
 
             'currentWorkspace' =>
-                session('workspace_id'),
+            session('workspace_id'),
+            'showWorkspaceModal' =>
+            session('show_workspace_modal', false),
         ]);
     }
 }
