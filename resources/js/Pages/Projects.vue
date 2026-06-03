@@ -27,11 +27,50 @@
 
             </header>
 
+            <section class="stats-grid">
+
+                <div class="stat-card">
+                    <h3>Total Projects</h3>
+                    <h1>{{ projects.length }}</h1>
+                </div>
+
+                <div class="stat-card">
+                    <h3>In Progress</h3>
+                    <h1>
+                        {{
+                            projects.filter(p => p.status === 'In Progress').length
+                        }}
+                    </h1>
+                </div>
+
+                <div class="stat-card">
+                    <h3>Completed</h3>
+                    <h1>
+                        {{
+                            projects.filter(p => p.status === 'Completed').length
+                        }}
+                    </h1>
+                </div>
+
+                <div class="stat-card">
+                    <h3>Planning</h3>
+                    <h1>
+                        {{
+                            projects.filter(p => p.status === 'Planning').length
+                        }}
+                    </h1>
+                </div>
+
+            </section>
+
             <!-- Create Project -->
             <section class="project-form-card">
 
                 <div class="section-title">
-                    <h2>Create New Project</h2>
+                    <div>
+                        <h2>Create Project</h2>
+                        <p>Create a project and assign a Team Leader.</p>
+                    </div>
 
                     <button class="save-btn" @click="createProject">
                         Create Project
@@ -95,89 +134,150 @@
                     <h2>All Projects</h2>
                 </div>
 
-                <table class="projects-table">
+                <section class="projects-grid">
 
-                    <thead>
-                        <tr>
-                            <th>Project</th>
-                            <th>Status</th>
-                            <th>Deadline</th>
-                            <th>Team</th>
-                            <th>Progress</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
+                    <div v-if="filteredProjects.length === 0" class="empty-projects">
+                        <h3>No Projects Found</h3>
 
-                    <tbody>
+                        <p>
+                            Create your first project and start assigning tasks.
+                        </p>
+                    </div>
 
-                        <tr v-if="filteredProjects.length === 0">
-                            <td colspan="6" class="empty-state">
-                                No projects exist yet.
-                                <br>
-                                <small>Create your first project to get started.</small>
-                            </td>
-                        </tr>
+                    <div class="project-card" v-for="project in filteredProjects" :key="project.id">
 
-                        <tr v-for="project in filteredProjects" :key="project.id">
+                        <div class="project-top">
 
-                            <td>
-                                <div class="project-info">
-                                    <h4>{{ project.name }}</h4>
-                                    <small>{{ project.description }}</small>
-                                </div>
-                            </td>
+                            <div>
 
-                            <td>
-                                <span class="badge" :class="project.statusClass">
-                                    {{ project.status }}
-                                </span>
-                            </td>
+                                <h3>
+                                    {{ project.name }}
+                                </h3>
 
-                            <td>{{ project.deadline }}</td>
+                                <p>
+                                    {{ project.description }}
+                                </p>
 
-                            <td>{{ project.team }} Members</td>
+                            </div>
 
-                            <td>
+                            <span class="badge" :class="project.statusClass">
+                                {{ project.status }}
+                            </span>
 
-                                <div class="progress-wrapper">
+                        </div>
 
-                                    <div class="progress-bar">
-                                        <div class="progress" :style="{
-                                            width: project.progress + '%'
-                                        }"></div>
-                                    </div>
+                        <div class="project-meta">
 
-                                    <span>
-                                        {{ project.progress }}%
-                                    </span>
+                            <div>
+                                <small>Deadline</small>
+                                <strong>{{ project.deadline }}</strong>
+                            </div>
 
-                                </div>
+                            <div>
+                                <small>Team Leader</small>
+                                <strong>
+                                    {{ project.team_leader?.first_name }}
+                                </strong>
+                            </div>
 
-                            </td>
+                        </div>
 
-                            <td>
+                        <div class="progress-section">
 
-                                <div class="actions">
+                            <div class="progress-bar">
 
-                                    <button class="edit-btn">
-                                        Edit
-                                    </button>
+                                <div class="progress" :style="{
+                                    width:
+                                        project.progress + '%'
+                                }"></div>
 
-                                    <button class="delete-btn" @click="openDeleteModal(project.id)">
-                                        Delete
-                                    </button>
+                            </div>
 
-                                </div>
+                            <span>
+                                {{ project.progress }}%
+                            </span>
 
-                            </td>
+                        </div>
 
-                        </tr>
+                        <div class="task-list">
 
-                    </tbody>
+                            <div class="task-item" v-for="task in project.tasks" :key="task.id">
 
-                </table>
+                                <strong>
+                                    {{ task.title }}
+                                </strong>
+
+                                <small>
+                                    {{ task.member?.first_name }}
+                                </small>
+
+                            </div>
+
+                        </div>
+
+                        <div class="card-actions">
+
+                            <button class="task-btn" @click="openTaskModal(project)">
+                                Manage Tasks
+                            </button>
+
+                            <button class="task-btn" @click="viewTasks(project)">
+                                View Tasks
+                            </button>
+
+                            <button class="edit-btn" @click="editProject(project)">
+                                Edit
+                            </button>
+
+                            <button class="delete-btn" @click="
+                                openDeleteModal(project.id)
+                                ">
+                                Delete
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </section>
 
             </section>
+
+            <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
+
+                <div class="modal">
+
+                    <h2>Edit Project</h2>
+
+                    <input v-model="editingProject.name" placeholder="Project Name" />
+
+                    <textarea v-model="editingProject.description" placeholder="Description"></textarea>
+
+                    <select v-model="editingProject.status">
+
+                        <option>Planning</option>
+                        <option>In Progress</option>
+                        <option>Completed</option>
+
+                    </select>
+
+                    <input type="date" v-model="editingProject.deadline" />
+
+                    <div class="modal-actions">
+
+                        <button class="cancel-btn" @click="showEditModal = false">
+                            Cancel
+                        </button>
+
+                        <button class="save-btn" @click="updateProject">
+                            Update
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
 
             <div v-if="showDeleteModal" class="modal-overlay" @click.self="showDeleteModal = false">
                 <div class="delete-modal">
@@ -203,6 +303,109 @@
 
                 </div>
             </div>
+
+            <div v-if="showTaskModal" class="modal-overlay" @click.self="closeTaskModal">
+
+                <div class="modal">
+
+                    <h2>Create Task</h2>
+
+                    <input v-model="taskForm.title" placeholder="Task title" />
+
+                    <textarea v-model="taskForm.description" placeholder="Description"></textarea>
+
+                    <select v-model="taskForm.member_id">
+
+                        <option value="">
+                            Assign Member
+                        </option>
+
+                        <option v-for="member in projectMembers" :key="member.id" :value="member.id">
+                            {{ member.first_name }}
+                            {{ member.last_name }}
+                        </option>
+
+                    </select>
+
+                    <select v-model="taskForm.priority">
+                        <option>Low</option>
+                        <option>Medium</option>
+                        <option>High</option>
+                    </select>
+
+                    <input type="date" v-model="taskForm.deadline" />
+
+                    <button class="cancel-btn" @click="closeTaskModal">
+                        Close
+                    </button>
+
+                    <button @click="createTask">
+                        Create Task
+                    </button>
+
+                </div>
+
+            </div>
+
+            <div v-if="showViewTaskModal" class="modal-overlay" @click.self="closeViewTaskModal">
+                <div class="task-view-modal">
+
+                    <div class="modal-header">
+                        <h2>
+                            Tasks -
+                            {{ selectedTaskProject?.name }}
+                        </h2>
+
+                        <button class="close-btn" @click="closeViewTaskModal">
+                            ✕
+                        </button>
+                    </div>
+
+                    <div v-if="
+                        !selectedTaskProject?.tasks ||
+                        selectedTaskProject.tasks.length === 0
+                    " class="empty-task">
+                        No tasks created yet.
+                    </div>
+
+                    <div v-else class="task-list-modal">
+
+                        <div class="task-card" v-for="task in selectedTaskProject.tasks" :key="task.id">
+
+                            <div class="task-top">
+
+                                <h3>{{ task.title }}</h3>
+
+                                <span class="priority" :class="task.priority.toLowerCase()">
+                                    {{ task.priority }}
+                                </span>
+
+                            </div>
+
+                            <p>
+                                {{ task.description }}
+                            </p>
+
+                            <div class="task-footer">
+
+                                <span>
+                                    Assigned To:
+                                    {{ task.member?.first_name }}
+                                    {{ task.member?.last_name }}
+                                </span>
+
+                                <span>
+                                    {{ task.status }}
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
         </main>
 
     </div>
@@ -213,14 +416,21 @@ import { reactive, ref, computed } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 import Sidebar from "./components/Sidebar.vue";
-
 import { useThemeStore } from "../stores/theme";
 
-const page = usePage();
-const workspaces = page.props.workspaces || [];
-const currentWorkspace = page.props.currentWorkspace;
-
 const theme = useThemeStore();
+const toast = useToast();
+
+const props = defineProps({
+    projects: {
+        type: Array,
+        default: () => [],
+    },
+    teamLeaders: {
+        type: Array,
+        default: () => [],
+    },
+});
 
 const search = ref("");
 
@@ -232,44 +442,154 @@ const form = reactive({
     team_leader_id: "",
 });
 
-const toast = useToast();
-
-const props = defineProps({
-    projects: Array,
-    teamLeaders: Array,
-});
-
-const projects = computed(() => props.projects);
+const projects = computed(() => props.projects || []);
 
 const filteredProjects = computed(() => {
-    return projects.value.filter((project) =>
+
+    return projects.value.filter(project =>
         project.name
-            .toLowerCase()
+            ?.toLowerCase()
             .includes(search.value.toLowerCase())
     );
+
 });
 
 const createProject = () => {
 
     router.post("/project", form, {
+
         preserveScroll: true,
 
         onSuccess: () => {
+
             toast.success("Project created successfully");
+
+            form.name = "";
+            form.status = "Planning";
+            form.deadline = "";
+            form.description = "";
+            form.team_leader_id = "";
         },
 
-        onError: (errors) => {
+        onError: () => {
             toast.error("Validation failed");
         },
     });
 };
 
+const showTaskModal = ref(false);
+const selectedProject = ref(null);
+
+const taskForm = reactive({
+    project_id: "",
+    title: "",
+    description: "",
+    member_id: "",
+    priority: "Medium",
+    deadline: "",
+});
+
+const openTaskModal = (project) => {
+
+    selectedProject.value = project;
+
+    taskForm.project_id = project.id;
+
+    showTaskModal.value = true;
+};
+
+const closeTaskModal = () => {
+
+    showTaskModal.value = false;
+
+    selectedProject.value = null;
+
+    taskForm.project_id = "";
+    taskForm.title = "";
+    taskForm.description = "";
+    taskForm.member_id = "";
+    taskForm.priority = "Medium";
+    taskForm.deadline = "";
+};
+
+const showViewTaskModal = ref(false);
+const selectedTaskProject = ref(null);
+
+const viewTasks = (project) => {
+    selectedTaskProject.value = project;
+    showViewTaskModal.value = true;
+};
+
+const closeViewTaskModal = () => {
+    showViewTaskModal.value = false;
+    selectedTaskProject.value = null;
+};
+
+const showEditModal = ref(false);
+const editingProject = ref(null);
+const editProject = (project) => {
+
+    editingProject.value = { ...project };
+
+    showEditModal.value = true;
+};
+
+const createTask = () => {
+
+    router.post("/task", taskForm, {
+
+        preserveScroll: true,
+
+        onSuccess: () => {
+
+            toast.success("Task created successfully");
+
+            closeTaskModal();
+        },
+
+        onError: () => {
+
+            toast.error("Failed to create task");
+        },
+    });
+};
+
+const projectMembers = computed(() => {
+
+    if (!selectedProject.value?.team_leader?.team_members) {
+        return [];
+    }
+
+    return selectedProject.value.team_leader.team_members;
+});
+
 const showDeleteModal = ref(false);
 const selectedProjectId = ref(null);
 
 const openDeleteModal = (id) => {
+
     selectedProjectId.value = id;
     showDeleteModal.value = true;
+};
+
+const updateProject = () => {
+
+    router.put(
+        `/project/${editingProject.value.id}`,
+        editingProject.value,
+        {
+            preserveScroll: true,
+
+            onSuccess: () => {
+
+                toast.success(
+                    "Project updated successfully"
+                );
+
+                showEditModal.value = false;
+            },
+        }
+    );
 };
 
 const deleteProject = () => {
@@ -416,7 +736,7 @@ const deleteProject = () => {
 }
 
 .progress-bar {
-    width: 120px;
+    width: 260px;
     height: 8px;
     background: rgba(255, 255, 255, 0.08);
     border-radius: 20px;
@@ -512,5 +832,242 @@ const deleteProject = () => {
     padding: 40px;
     color: var(--subtext);
     font-size: 15px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 25px;
+    padding-top: 10px;
+}
+
+.stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 20px;
+}
+
+.stat-card h3 {
+    color: var(--subtext);
+    font-size: 14px;
+}
+
+.stat-card h1 {
+    margin-top: 10px;
+    font-size: 32px;
+}
+
+.projects-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+    margin-top: 25px;
+}
+
+.project-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+}
+
+.project-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.project-top p {
+    margin-top: 8px;
+    color: var(--subtext);
+}
+
+.project-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.project-meta small {
+    display: block;
+    color: var(--subtext);
+    margin-bottom: 5px;
+}
+
+.progress-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.card-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.task-btn {
+    background: #8b5cf6;
+    color: white;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.task-list {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.task-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.task-item strong {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.task-item small {
+    color: var(--subtext);
+}
+
+.modal {
+    width: 550px;
+    background: var(--card);
+    border-radius: 20px;
+    padding: 25px;
+    border: 1px solid var(--border);
+
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.modal input,
+.modal textarea,
+.modal select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+}
+
+.modal textarea {
+    min-height: 120px;
+}
+
+.modal button {
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+}
+
+.empty-projects {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 60px;
+    border: 2px dashed var(--border);
+    border-radius: 20px;
+}
+
+.task-view-modal {
+    width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: var(--card);
+    border-radius: 20px;
+    padding: 25px;
+    border: 1px solid var(--border);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.close-btn {
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.task-list-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.task-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    padding: 18px;
+}
+
+.task-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.task-card p {
+    color: var(--subtext);
+    margin-bottom: 15px;
+}
+
+.task-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+}
+
+.priority {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.priority.low {
+    background: rgba(34, 197, 94, .15);
+    color: #22c55e;
+}
+
+.priority.medium {
+    background: rgba(251, 191, 36, .15);
+    color: #fbbf24;
+}
+
+.priority.high {
+    background: rgba(239, 68, 68, .15);
+    color: #ef4444;
+}
+
+.empty-task {
+    text-align: center;
+    padding: 40px;
+    color: var(--subtext);
 }
 </style>

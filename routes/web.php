@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -11,6 +12,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\TaskController;
 
 Route::get('/', function () {
 
@@ -24,8 +26,6 @@ Route::get('/login', fn() => Inertia::render('Auth/Login'))
     ->name('login');
 Route::get('/register', fn() => Inertia::render('Auth/Register'));
 Route::get('/forgot-password', fn() => Inertia::render('Auth/ForgotPassword'));
-
-// Route::get('/project', fn () => Inertia::render('Projects'));
 
 Route::get('/member', [MemberController::class, 'index']);
 Route::post('/member', [MemberController::class, 'store']);
@@ -92,7 +92,7 @@ Route::post('/reset-password', function (Request $request) {
 Route::middleware(['auth'])->group(function () {
 
     Route::get('/dashboard', [AdminController::class, 'dashboard'])
-    ->name('dashboard');
+        ->name('dashboard');
 });
 
 Route::post('/logout', function (Request $request) {
@@ -103,7 +103,6 @@ Route::post('/logout', function (Request $request) {
     $request->session()->regenerateToken();
 
     return redirect('/login');
-
 })->middleware('auth')->name('logout');
 
 
@@ -119,3 +118,12 @@ Route::delete(
     [ProjectController::class, 'destroy']
 );
 
+Route::post(
+    '/task',
+    [TaskController::class, 'store']
+);
+
+Route::put(
+    '/project/{project}',
+    [ProjectController::class, 'update']
+);
