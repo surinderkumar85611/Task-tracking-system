@@ -70,6 +70,6 @@ class InvitationController extends Controller
         'invite_department' => $invite->department,
     ]);
 
-    return redirect('/auth/google/redirect');
+    return redirect('/complete-profile');
 }
 }

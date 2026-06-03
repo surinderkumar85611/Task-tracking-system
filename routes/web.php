@@ -17,7 +17,6 @@ use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\TaskController;
 
 Route::get('/', function () {
-
     if (auth()->check()) {
         return redirect('/dashboard');
     }
@@ -28,24 +27,13 @@ Route::get('/', function () {
 Route::get('/login', fn() => Inertia::render('Auth/Login'))
     ->name('login');
 
-
 Route::get('/register', fn() => Inertia::render('Auth/Register'));
-
 Route::get('/forgot-password', fn() => Inertia::render('Auth/ForgotPassword'));
-
-Route::get('/member', [MemberController::class, 'index']);
-Route::post('/member', [MemberController::class, 'store']);
-Route::put(
-    '/members/{member}/assign',
-    [MemberController::class, 'assignMember']
-);
-
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::post('/forgot-password', function (Request $request) {
-
     $request->validate([
         'email' => 'required|email',
     ]);
@@ -64,7 +52,6 @@ Route::get('/reset-password', function () {
 });
 
 Route::get('/reset-password/{token}', function ($token, Request $request) {
-
     if (!$token || !$request->email) {
         return redirect('/login');
     }
@@ -73,11 +60,9 @@ Route::get('/reset-password/{token}', function ($token, Request $request) {
         'token' => $token,
         'email' => $request->email,
     ]);
-
 })->name('password.reset');
 
 Route::post('/reset-password', function (Request $request) {
-
     $request->validate([
         'email' => 'required|email',
         'password' => 'required|min:6|confirmed',
@@ -92,7 +77,6 @@ Route::post('/reset-password', function (Request $request) {
             'token'
         ),
         function ($user, $password) {
-
             $user->forceFill([
                 'password' => Hash::make($password),
             ])->save();
@@ -106,17 +90,15 @@ Route::post('/reset-password', function (Request $request) {
         : back()->withErrors(['email' => [__($status)]]);
 });
 
+
+
 Route::middleware(['auth'])->group(function () {
 
     Route::get('/dashboard', [AdminController::class, 'dashboard'])
         ->name('dashboard');
 
-
     Route::get('/member', [MemberController::class, 'index']);
     Route::post('/member', [MemberController::class, 'store']);
-
-});
-
 
     Route::put(
         '/members/{member}/assign',
@@ -129,27 +111,31 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/project', [ProjectController::class, 'index']);
     Route::post('/project', [ProjectController::class, 'store']);
 
+    Route::put(
+        '/project/{project}',
+        [ProjectController::class, 'update']
+    );
 
     Route::delete(
         '/project/{project}',
         [ProjectController::class, 'destroy']
     );
 
+    Route::post(
+        '/task',
+        [TaskController::class, 'store']
+    );
+
     Route::post('/logout', function (Request $request) {
-
-    return redirect('/login');
-})->middleware('auth')->name('logout');
-
-
         Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
         return redirect('/login');
-
     })->name('logout');
 });
+
 
 Route::post('/invite/generate', [InvitationController::class, 'generate']);
 Route::get('/invite/accept/{token}', [InvitationController::class, 'accept']);
@@ -157,14 +143,3 @@ Route::get('/invite/accept/{token}', [InvitationController::class, 'accept']);
 
 Route::get('/auth/google/redirect', [GoogleController::class, 'redirect']);
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
-
-Route::post(
-    '/task',
-    [TaskController::class, 'store']
-);
-
-Route::put(
-    '/project/{project}',
-    [ProjectController::class, 'update']
-);
-

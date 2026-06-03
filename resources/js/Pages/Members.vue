@@ -21,7 +21,14 @@
 
                     <button class="icon-btn">🔔</button>
 
-                    <img src="https://i.pravatar.cc/100" class="avatar" />
+                    <div class="profile-menu">
+                        <img src="https://i.pravatar.cc/100" class="avatar"
+                            @click.stop="showProfileMenu = !showProfileMenu" />
+
+                        <div v-if="showProfileMenu" class="dropdown-menu">
+                            <button @click="logout">Logout</button>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -273,7 +280,7 @@
 
 <script setup>
 import { onMounted } from "vue";
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, onBeforeUnmount } from "vue";
 import Sidebar from "./components/Sidebar.vue";
 import { useThemeStore } from "../stores/theme";
 import { router, usePage } from "@inertiajs/vue3";
@@ -284,7 +291,7 @@ const theme = useThemeStore();
 const page = usePage();
 const draggedMember = ref(null);
 const showInviteModal = ref(false);
-
+const showProfileMenu = ref(false);
 const inviteForm = reactive({
     email: "",
     role: "Member",
@@ -301,6 +308,11 @@ const form = reactive({
     department: "",
     role: "Member",
 });
+const handleClickOutside = (event) => {
+    if (!event.target.closest(".profile-menu")) {
+        showProfileMenu.value = false;
+    }
+};
 const props = defineProps({
     members: Array,
     teamLeaders: Array,
@@ -308,6 +320,8 @@ const props = defineProps({
 });
 onMounted(() => {
     inviteForm.workspace_id = props.currentWorkspace;
+
+    document.addEventListener("click", handleClickOutside);
 
     console.log("Workspace:", props.currentWorkspace);
     console.log("Invite Form:", inviteForm);
@@ -502,6 +516,12 @@ const dropMember = (leaderId) => {
 
     draggedMember.value = null;
 };
+const logout = () => {
+    router.post('/logout');
+};
+onBeforeUnmount(() => {
+    document.removeEventListener("click", handleClickOutside);
+});
 </script>
 
 <style scoped>
@@ -786,5 +806,42 @@ const dropMember = (leaderId) => {
 
 .invite-link-box input {
     flex: 1;
+}
+
+.profile-menu {
+    position: relative;
+}
+
+.avatar {
+    cursor: pointer;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 60px;
+    right: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 12px;
+    min-width: 160px;
+    z-index: 1000;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-menu button {
+    width: 100%;
+    background: #06b6d4;
+    color: white;
+    border: none;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.dropdown-menu button:hover {
+    opacity: 0.9;
 }
 </style>
