@@ -36,16 +36,25 @@ class HandleInertiaRequests extends Middleware
      */
 
     public function share(Request $request): array
-    {
-        return array_merge(parent::share($request), [
+{
+    return array_merge(parent::share($request), [
 
-            'workspaces' => fn() =>
+
+        'workspaces' => fn() =>
             Workspace::orderBy('name')->get(),
 
-            'currentWorkspace' =>
+        'currentWorkspace' =>
             session('workspace_id'),
-            'showWorkspaceModal' =>
+        'showWorkspaceModal' =>
             session('show_workspace_modal', false),
-        ]);
-    }
+
+        'flash' => [
+            'success' => fn () => session('success'),
+            'error' => fn () => session('error'),
+            'invite_link' => fn () => session('invite_link'),
+        ],
+    ]);
 }
+
+}
+

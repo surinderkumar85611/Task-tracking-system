@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\InvitationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -12,6 +13,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\TaskController;
 
 Route::get('/', function () {
@@ -22,9 +24,13 @@ Route::get('/', function () {
 
     return redirect('/login');
 });
+
 Route::get('/login', fn() => Inertia::render('Auth/Login'))
     ->name('login');
+
+
 Route::get('/register', fn() => Inertia::render('Auth/Register'));
+
 Route::get('/forgot-password', fn() => Inertia::render('Auth/ForgotPassword'));
 
 Route::get('/member', [MemberController::class, 'index']);
@@ -34,10 +40,12 @@ Route::put(
     [MemberController::class, 'assignMember']
 );
 
+
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::post('/forgot-password', function (Request $request) {
+
     $request->validate([
         'email' => 'required|email',
     ]);
@@ -50,9 +58,11 @@ Route::post('/forgot-password', function (Request $request) {
         'status' => $status
     ]);
 });
+
 Route::get('/reset-password', function () {
     return redirect('/login');
 });
+
 Route::get('/reset-password/{token}', function ($token, Request $request) {
 
     if (!$token || !$request->email) {
@@ -63,9 +73,11 @@ Route::get('/reset-password/{token}', function ($token, Request $request) {
         'token' => $token,
         'email' => $request->email,
     ]);
+
 })->name('password.reset');
 
 Route::post('/reset-password', function (Request $request) {
+
     $request->validate([
         'email' => 'required|email',
         'password' => 'required|min:6|confirmed',
@@ -73,8 +85,14 @@ Route::post('/reset-password', function (Request $request) {
     ]);
 
     $status = Password::reset(
-        $request->only('email', 'password', 'password_confirmation', 'token'),
+        $request->only(
+            'email',
+            'password',
+            'password_confirmation',
+            'token'
+        ),
         function ($user, $password) {
+
             $user->forceFill([
                 'password' => Hash::make($password),
             ])->save();
@@ -88,35 +106,57 @@ Route::post('/reset-password', function (Request $request) {
         : back()->withErrors(['email' => [__($status)]]);
 });
 
-
 Route::middleware(['auth'])->group(function () {
 
     Route::get('/dashboard', [AdminController::class, 'dashboard'])
         ->name('dashboard');
+
+
+    Route::get('/member', [MemberController::class, 'index']);
+    Route::post('/member', [MemberController::class, 'store']);
+
 });
 
-Route::post('/logout', function (Request $request) {
 
-    Auth::logout();
+    Route::put(
+        '/members/{member}/assign',
+        [MemberController::class, 'assignMember']
+    );
 
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
+    Route::post('/workspace', [WorkspaceController::class, 'store']);
+    Route::post('/workspace/select', [WorkspaceController::class, 'select']);
+
+    Route::get('/project', [ProjectController::class, 'index']);
+    Route::post('/project', [ProjectController::class, 'store']);
+
+
+    Route::delete(
+        '/project/{project}',
+        [ProjectController::class, 'destroy']
+    );
+
+    Route::post('/logout', function (Request $request) {
 
     return redirect('/login');
 })->middleware('auth')->name('logout');
 
 
-Route::post('/workspace', [WorkspaceController::class, 'store']);
-Route::post('/workspace/select', [WorkspaceController::class, 'select']);
+        Auth::logout();
 
-Route::get('/project', [ProjectController::class, 'index']);
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-Route::post('/project', [ProjectController::class, 'store']);
+        return redirect('/login');
 
-Route::delete(
-    '/project/{project}',
-    [ProjectController::class, 'destroy']
-);
+    })->name('logout');
+});
+
+Route::post('/invite/generate', [InvitationController::class, 'generate']);
+Route::get('/invite/accept/{token}', [InvitationController::class, 'accept']);
+
+
+Route::get('/auth/google/redirect', [GoogleController::class, 'redirect']);
+Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 
 Route::post(
     '/task',
@@ -127,3 +167,4 @@ Route::put(
     '/project/{project}',
     [ProjectController::class, 'update']
 );
+
