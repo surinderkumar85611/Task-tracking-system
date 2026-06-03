@@ -26,4 +26,12 @@ class Member extends Model
     {
         return $this->hasMany(Member::class, 'assigned_to');
     }
+
+    public function assignedTasks()
+    {
+        return $this->hasMany(
+            Task::class,
+            'member_id'
+        );
+    }
 }

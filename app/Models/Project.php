@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\Task;
+use App\Models\Member;
+
 class Project extends Model
 {
     protected $fillable = [
@@ -27,5 +30,10 @@ class Project extends Model
             Member::class,
             'team_leader_id'
         );
+    }
+
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
     }
 }

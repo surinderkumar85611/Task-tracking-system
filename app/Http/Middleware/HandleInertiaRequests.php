@@ -39,11 +39,14 @@ class HandleInertiaRequests extends Middleware
 {
     return array_merge(parent::share($request), [
 
+
         'workspaces' => fn() =>
             Workspace::orderBy('name')->get(),
 
         'currentWorkspace' =>
             session('workspace_id'),
+        'showWorkspaceModal' =>
+            session('show_workspace_modal', false),
 
         'flash' => [
             'success' => fn () => session('success'),
@@ -52,5 +55,6 @@ class HandleInertiaRequests extends Middleware
         ],
     ]);
 }
+
 }
 

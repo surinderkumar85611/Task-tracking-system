@@ -1,4 +1,5 @@
 <?php
+
 use App\Http\Controllers\InvitationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -13,6 +14,8 @@ use App\Http\Controllers\MemberController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\GoogleController;
+use App\Http\Controllers\TaskController;
+
 Route::get('/', function () {
 
     if (auth()->check()) {
@@ -25,9 +28,18 @@ Route::get('/', function () {
 Route::get('/login', fn() => Inertia::render('Auth/Login'))
     ->name('login');
 
+
 Route::get('/register', fn() => Inertia::render('Auth/Register'));
 
 Route::get('/forgot-password', fn() => Inertia::render('Auth/ForgotPassword'));
+
+Route::get('/member', [MemberController::class, 'index']);
+Route::post('/member', [MemberController::class, 'store']);
+Route::put(
+    '/members/{member}/assign',
+    [MemberController::class, 'assignMember']
+);
+
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -99,8 +111,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])
         ->name('dashboard');
 
+
     Route::get('/member', [MemberController::class, 'index']);
     Route::post('/member', [MemberController::class, 'store']);
+
+});
+
 
     Route::put(
         '/members/{member}/assign',
@@ -113,12 +129,17 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/project', [ProjectController::class, 'index']);
     Route::post('/project', [ProjectController::class, 'store']);
 
+
     Route::delete(
         '/project/{project}',
         [ProjectController::class, 'destroy']
     );
 
     Route::post('/logout', function (Request $request) {
+
+    return redirect('/login');
+})->middleware('auth')->name('logout');
+
 
         Auth::logout();
 
@@ -133,5 +154,17 @@ Route::middleware(['auth'])->group(function () {
 Route::post('/invite/generate', [InvitationController::class, 'generate']);
 Route::get('/invite/accept/{token}', [InvitationController::class, 'accept']);
 
+
 Route::get('/auth/google/redirect', [GoogleController::class, 'redirect']);
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
+
+Route::post(
+    '/task',
+    [TaskController::class, 'store']
+);
+
+Route::put(
+    '/project/{project}',
+    [ProjectController::class, 'update']
+);
+
