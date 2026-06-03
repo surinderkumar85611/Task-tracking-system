@@ -21,12 +21,13 @@
 
                     <button class="icon-btn">🔔</button>
 
-                    <div class="profile-menu">
+                    <div class="profile-container">
                         <img src="https://i.pravatar.cc/100" class="avatar"
                             @click.stop="showProfileMenu = !showProfileMenu" />
-
-                        <div v-if="showProfileMenu" class="dropdown-menu">
-                            <button @click="logout">Logout</button>
+                        <div v-if="showProfileMenu" class="profile-dropdown">
+                            <button @click="logout">
+                                Logout
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -808,40 +809,50 @@ onBeforeUnmount(() => {
     flex: 1;
 }
 
-.profile-menu {
+.profile-container {
     position: relative;
 }
 
 .avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
     cursor: pointer;
+    border: 2px solid var(--card);
+    transition: 0.2s ease;
 }
 
-.dropdown-menu {
+.avatar:hover {
+    transform: scale(1.05);
+}
+
+.profile-dropdown {
     position: absolute;
-    top: 60px;
+    top: 58px;
     right: 0;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 12px;
-    min-width: 160px;
-    z-index: 1000;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-}
-
-.dropdown-menu button {
-    width: 100%;
-    background: #06b6d4;
-    color: white;
-    border: none;
-    padding: 12px 18px;
+    width: 140px;
+    background: var(--sidebar);
+    border: 1px solid var(--card);
     border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.2s;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    z-index: 100;
 }
 
-.dropdown-menu button:hover {
-    opacity: 0.9;
+.profile-dropdown button {
+    width: 100%;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s ease;
+}
+
+.profile-dropdown button:hover {
+    background: var(--card);
+    color: #ef4444;
 }
 </style>

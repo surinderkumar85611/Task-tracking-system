@@ -5,30 +5,34 @@
 
         <main class="main-content">
 
-            <!-- Header -->
             <header class="header">
-
                 <div>
-                    <h1>Project Management</h1>
-                    <p>Create and manage company projects.</p>
+                    <h1>Project Workspace</h1>
+                    <p>Manage initiatives, assign operational targets, and track milestones inline.</p>
                 </div>
 
                 <div class="header-right">
-
                     <button class="theme-btn" @click="theme.toggleTheme">
                         {{ theme.isDark ? "☀️" : "🌙" }}
                     </button>
 
-                    <input type="text" placeholder="Search project..." v-model="search" />
+                    <input type="text" placeholder="Search boards..." v-model="search" />
 
-                    <img src="https://i.pravatar.cc/100" class="avatar" />
+                    <button class="icon-btn">🔔</button>
 
+                    <div class="profile-container">
+                        <img src="https://i.pravatar.cc/100" class="avatar"
+                            @click.stop="showProfileMenu = !showProfileMenu" />
+                        <div v-if="showProfileMenu" class="profile-dropdown">
+                            <button @click="logout">
+                                Logout
+                            </button>
+                        </div>
+                    </div>
                 </div>
-
             </header>
 
             <section class="stats-grid">
-
                 <div class="stat-card">
                     <h3>Total Projects</h3>
                     <h1>{{ projects.length }}</h1>
@@ -36,378 +40,228 @@
 
                 <div class="stat-card">
                     <h3>In Progress</h3>
-                    <h1>
-                        {{
-                            projects.filter(p => p.status === 'In Progress').length
-                        }}
-                    </h1>
+                    <h1>{{projects.filter(p => p.status === 'In Progress').length}}</h1>
                 </div>
 
                 <div class="stat-card">
                     <h3>Completed</h3>
-                    <h1>
-                        {{
-                            projects.filter(p => p.status === 'Completed').length
-                        }}
-                    </h1>
+                    <h1>{{projects.filter(p => p.status === 'Completed').length}}</h1>
                 </div>
 
                 <div class="stat-card">
                     <h3>Planning</h3>
-                    <h1>
-                        {{
-                            projects.filter(p => p.status === 'Planning').length
-                        }}
-                    </h1>
+                    <h1>{{projects.filter(p => p.status === 'Planning').length}}</h1>
                 </div>
-
             </section>
 
-            <!-- Create Project -->
-            <section class="project-form-card">
+            <div class="global-actions-bar">
+                <button class="monday-btn-primary" @click="openCreateProjectModal">
+                    <span class="icon">＋</span> New Project
+                </button>
 
-                <div class="section-title">
-                    <div>
-                        <h2>Create Project</h2>
-                        <p>Create a project and assign a Team Leader.</p>
-                    </div>
+                <select v-model="selectedActiveProjectFilter" class="project-view-selector">
+                    <option :value="null">📁 All Project Folders</option>
+                    <option v-for="project in projects" :key="project.id" :value="project.id">
+                        {{ project.name }}
+                    </option>
+                </select>
+            </div>
 
-                    <button class="save-btn" @click="createProject">
-                        Create Project
-                    </button>
+            <div class="monday-board-container">
+                <div v-if="filteredProjects.length === 0" class="empty-board-state">
+                    <h3>No projects found matching current parameters</h3>
+                    <button class="monday-btn-secondary" @click="openCreateProjectModal">Create your first
+                        board</button>
                 </div>
 
-                <div class="form-grid">
+                <div v-for="project in filteredProjects" :key="project.id" class="monday-project-group">
 
-                    <div class="form-group">
-                        <label>Project Name</label>
+                    <div class="monday-group-header">
+                        <div class="group-title-pane">
+                            <span class="collapse-arrow">▼</span>
+                            <h2 :style="{ borderLeft: `6px solid ${getGroupColor(project.status)}` }">
+                                {{ project.name }}
+                            </h2>
+                            <span class="group-status-tag">{{ project.status }}</span>
+                            <p class="group-desc-inline">— {{ project.description || 'No description added' }}</p>
+                        </div>
 
-                        <input v-model="form.name" type="text" placeholder="Enter project name" />
+                        <div class="group-control-actions">
+                            <button class="action-icon-btn" title="Edit Project Config"
+                                @click="openEditProjectModal(project)">✏️ Edit</button>
+                            <button class="action-icon-btn delete" title="Drop Project"
+                                @click="openDeleteModal(project.id)">🗑️ Delete</button>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label>Status</label>
+                    <div class="monday-table-wrapper">
+                        <table class="monday-editable-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-task">Task Name</th>
+                                    <th class="col-member">Member</th>
+                                    <th class="col-status">Status</th>
+                                    <th class="col-priority">Priority</th>
+                                    <th class="col-due">Due Date</th>
+                                    <th class="col-action"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="task in project.tasks" :key="task.id" class="task-row-item">
+                                    <td class="cell-task">
+                                        <input type="text" v-model="task.title" placeholder="Type task description..."
+                                            @change="syncTaskRow(task)" class="monday-input-cell" />
+                                    </td>
+                                    <td class="cell-member">
+                                        <select v-model="task.member_id" @change="syncTaskRow(task)"
+                                            class="monday-select-cell">
+                                            <option :value="null">👤 Unassigned</option>
+                                            <option v-for="member in getProjectScopeMembers(project)" :key="member.id"
+                                                :value="member.id">
+                                                {{ member.first_name }} {{ member.last_name }}
+                                            </option>
+                                        </select>
+                                    </td>
+                                    <td class="cell-status" :class="getStatusLabelClass(task.status)">
+                                        <select v-model="task.status" @change="syncTaskRow(task)"
+                                            class="monday-status-dropdown">
+                                            <option value="Todo">Todo</option>
+                                            <option value="In Progress">In Progress</option>
+                                            <option value="Completed">Completed</option>
+                                        </select>
+                                    </td>
+                                    <td class="cell-priority" :class="getPriorityLabelClass(task.priority)">
+                                        <select v-model="task.priority" @change="syncTaskRow(task)"
+                                            class="monday-priority-dropdown">
+                                            <option value="Low">Low</option>
+                                            <option value="Medium">Medium</option>
+                                            <option value="High">High</option>
+                                        </select>
+                                    </td>
+                                    <td class="cell-due">
+                                        <input type="date" v-model="task.deadline" @change="syncTaskRow(task)"
+                                            class="monday-date-cell" />
+                                    </td>
+                                    <td class="cell-action">
+                                        <button class="row-remove-trigger"
+                                            @click="removeTaskRow(task.id, project)">✕</button>
+                                    </td>
+                                </tr>
 
-                        <select v-model="form.status">
-                            <option>Planning</option>
-                            <option>In Progress</option>
-                            <option>Completed</option>
-                        </select>
+                                <tr class="append-fast-row">
+                                    <td colspan="6">
+                                        <div class="add-row-placeholder" @click="appendNewEmptyTask(project)">
+                                            <span class="plus-sign">＋</span> Add a new task to this project...
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-
-                    <div class="form-group">
-                        <label>Deadline</label>
-
-                        <input v-model="form.deadline" type="date" />
-                    </div>
-
-                    <div class="form-group">
-                        <label>Assign Team Leader</label>
-
-                        <select v-model="form.team_leader_id">
-                            <option value="">
-                                Select Team Leader
-                            </option>
-
-                            <option v-for="leader in teamLeaders" :key="leader.id" :value="leader.id">
-                                {{ leader.first_name }}
-                                {{ leader.last_name }}
-                                ({{ leader.team_members.length }} Members)
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label>Description</label>
-
-                        <textarea v-model="form.description" placeholder="Project description..."></textarea>
-                    </div>
-
                 </div>
+            </div>
 
-            </section>
+            <div v-if="showCreateProjectModal" class="modal-overlay" @click.self="showCreateProjectModal = false">
+                <div class="monday-modal">
+                    <div class="modal-head">
+                        <h2>Create Project Board</h2>
+                        <button class="close-modal-x" @click="showCreateProjectModal = false">✕</button>
+                    </div>
 
-            <!-- Projects Table -->
-            <section class="projects-table-card">
+                    <div class="modal-body-form">
+                        <div class="monday-field-group">
+                            <label>Project Title</label>
+                            <input v-model="form.name" type="text" placeholder="e.g., Login Page Redesign" />
+                        </div>
 
-                <div class="table-header">
-                    <h2>All Projects</h2>
+                        <div class="monday-field-group">
+                            <label>Status</label>
+                            <select v-model="form.status">
+                                <option>Planning</option>
+                                <option>In Progress</option>
+                                <option>Completed</option>
+                            </select>
+                        </div>
+
+                        <div class="monday-field-group">
+                            <label>Target Deadline</label>
+                            <input v-model="form.deadline" type="date" />
+                        </div>
+
+                        <div class="monday-field-group">
+                            <label>Assign Team Leader</label>
+                            <select v-model="form.team_leader_id">
+                                <option value="">Select Team Leader</option>
+                                <option v-for="leader in teamLeaders" :key="leader.id" :value="leader.id">
+                                    {{ leader.first_name }} {{ leader.last_name }} ({{ leader.team_members?.length || 0
+                                    }} Members)
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="monday-field-group full-row">
+                            <label>Description Brief</label>
+                            <textarea v-model="form.description" placeholder="Summarize goals..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="monday-modal-footer">
+                        <button class="btn-flat-cancel" @click="showCreateProjectModal = false">Cancel</button>
+                        <button class="monday-btn-primary" @click="handleCreateProject">Save Board</button>
+                    </div>
                 </div>
-
-                <section class="projects-grid">
-
-                    <div v-if="filteredProjects.length === 0" class="empty-projects">
-                        <h3>No Projects Found</h3>
-
-                        <p>
-                            Create your first project and start assigning tasks.
-                        </p>
-                    </div>
-
-                    <div class="project-card" v-for="project in filteredProjects" :key="project.id">
-
-                        <div class="project-top">
-
-                            <div>
-
-                                <h3>
-                                    {{ project.name }}
-                                </h3>
-
-                                <p>
-                                    {{ project.description }}
-                                </p>
-
-                            </div>
-
-                            <span class="badge" :class="project.statusClass">
-                                {{ project.status }}
-                            </span>
-
-                        </div>
-
-                        <div class="project-meta">
-
-                            <div>
-                                <small>Deadline</small>
-                                <strong>{{ project.deadline }}</strong>
-                            </div>
-
-                            <div>
-                                <small>Team Leader</small>
-                                <strong>
-                                    {{ project.team_leader?.first_name }}
-                                </strong>
-                            </div>
-
-                        </div>
-
-                        <div class="progress-section">
-
-                            <div class="progress-bar">
-
-                                <div class="progress" :style="{
-                                    width:
-                                        project.progress + '%'
-                                }"></div>
-
-                            </div>
-
-                            <span>
-                                {{ project.progress }}%
-                            </span>
-
-                        </div>
-
-                        <div class="task-list">
-
-                            <div class="task-item" v-for="task in project.tasks" :key="task.id">
-
-                                <strong>
-                                    {{ task.title }}
-                                </strong>
-
-                                <small>
-                                    {{ task.member?.first_name }}
-                                </small>
-
-                            </div>
-
-                        </div>
-
-                        <div class="card-actions">
-
-                            <button class="task-btn" @click="openTaskModal(project)">
-                                Manage Tasks
-                            </button>
-
-                            <button class="task-btn" @click="viewTasks(project)">
-                                View Tasks
-                            </button>
-
-                            <button class="edit-btn" @click="editProject(project)">
-                                Edit
-                            </button>
-
-                            <button class="delete-btn" @click="
-                                openDeleteModal(project.id)
-                                ">
-                                Delete
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-            </section>
+            </div>
 
             <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
-
-                <div class="modal">
-
-                    <h2>Edit Project</h2>
-
-                    <input v-model="editingProject.name" placeholder="Project Name" />
-
-                    <textarea v-model="editingProject.description" placeholder="Description"></textarea>
-
-                    <select v-model="editingProject.status">
-
-                        <option>Planning</option>
-                        <option>In Progress</option>
-                        <option>Completed</option>
-
-                    </select>
-
-                    <input type="date" v-model="editingProject.deadline" />
-
-                    <div class="modal-actions">
-
-                        <button class="cancel-btn" @click="showEditModal = false">
-                            Cancel
-                        </button>
-
-                        <button class="save-btn" @click="updateProject">
-                            Update
-                        </button>
-
+                <div class="monday-modal">
+                    <div class="modal-head">
+                        <h2>Modify Board Settings</h2>
+                        <button class="close-modal-x" @click="showEditModal = false">✕</button>
                     </div>
 
-                </div>
+                    <div class="modal-body-form" v-if="editingProject">
+                        <div class="monday-field-group">
+                            <label>Board Title</label>
+                            <input v-model="editingProject.name" />
+                        </div>
+                        <div class="monday-field-group">
+                            <label>Status Flag</label>
+                            <select v-model="editingProject.status">
+                                <option>Planning</option>
+                                <option>In Progress</option>
+                                <option>Completed</option>
+                            </select>
+                        </div>
+                        <div class="monday-field-group">
+                            <label>Target Delivery Date</label>
+                            <input type="date" v-model="editingProject.deadline" />
+                        </div>
+                        <div class="monday-field-group full-row">
+                            <label>Description Brief</label>
+                            <textarea v-model="editingProject.description"></textarea>
+                        </div>
+                    </div>
 
+                    <div class="monday-modal-footer">
+                        <button class="btn-flat-cancel" @click="showEditModal = false">Dismiss</button>
+                        <button class="monday-btn-primary" @click="updateProject">Apply Adjustments</button>
+                    </div>
+                </div>
             </div>
 
             <div v-if="showDeleteModal" class="modal-overlay" @click.self="showDeleteModal = false">
-                <div class="delete-modal">
-
-                    <h3>Delete Project</h3>
-
-                    <p>
-                        Are you sure you want to delete this project?
-                        This action cannot be undone.
-                    </p>
-
-                    <div class="modal-actions">
-
-                        <button class="cancel-btn" @click="showDeleteModal = false">
-                            Cancel
-                        </button>
-
-                        <button class="delete-confirm-btn" @click="deleteProject">
-                            Delete
-                        </button>
-
+                <div class="monday-modal confirmation-variant">
+                    <h3>Confirm Board Deletion</h3>
+                    <p>Are you absolute in your intent to drop this project tracking sheet? This operation will
+                        instantly clear any nested task matrix records permanently.</p>
+                    <div class="monday-modal-footer">
+                        <button class="btn-flat-cancel" @click="showDeleteModal = false">Cancel</button>
+                        <button class="monday-btn-danger" @click="deleteProject">Confirm Purge</button>
                     </div>
-
                 </div>
             </div>
 
-            <div v-if="showTaskModal" class="modal-overlay" @click.self="closeTaskModal">
-
-                <div class="modal">
-
-                    <h2>Create Task</h2>
-
-                    <input v-model="taskForm.title" placeholder="Task title" />
-
-                    <textarea v-model="taskForm.description" placeholder="Description"></textarea>
-
-                    <select v-model="taskForm.member_id">
-
-                        <option value="">
-                            Assign Member
-                        </option>
-
-                        <option v-for="member in projectMembers" :key="member.id" :value="member.id">
-                            {{ member.first_name }}
-                            {{ member.last_name }}
-                        </option>
-
-                    </select>
-
-                    <select v-model="taskForm.priority">
-                        <option>Low</option>
-                        <option>Medium</option>
-                        <option>High</option>
-                    </select>
-
-                    <input type="date" v-model="taskForm.deadline" />
-
-                    <button class="cancel-btn" @click="closeTaskModal">
-                        Close
-                    </button>
-
-                    <button @click="createTask">
-                        Create Task
-                    </button>
-
-                </div>
-
-            </div>
-
-            <div v-if="showViewTaskModal" class="modal-overlay" @click.self="closeViewTaskModal">
-                <div class="task-view-modal">
-
-                    <div class="modal-header">
-                        <h2>
-                            Tasks -
-                            {{ selectedTaskProject?.name }}
-                        </h2>
-
-                        <button class="close-btn" @click="closeViewTaskModal">
-                            ✕
-                        </button>
-                    </div>
-
-                    <div v-if="
-                        !selectedTaskProject?.tasks ||
-                        selectedTaskProject.tasks.length === 0
-                    " class="empty-task">
-                        No tasks created yet.
-                    </div>
-
-                    <div v-else class="task-list-modal">
-
-                        <div class="task-card" v-for="task in selectedTaskProject.tasks" :key="task.id">
-
-                            <div class="task-top">
-
-                                <h3>{{ task.title }}</h3>
-
-                                <span class="priority" :class="task.priority.toLowerCase()">
-                                    {{ task.priority }}
-                                </span>
-
-                            </div>
-
-                            <p>
-                                {{ task.description }}
-                            </p>
-
-                            <div class="task-footer">
-
-                                <span>
-                                    Assigned To:
-                                    {{ task.member?.first_name }}
-                                    {{ task.member?.last_name }}
-                                </span>
-
-                                <span>
-                                    {{ task.status }}
-                                </span>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-            </div>
         </main>
-
     </div>
 </template>
 
@@ -420,19 +274,17 @@ import { useThemeStore } from "../stores/theme";
 
 const theme = useThemeStore();
 const toast = useToast();
+const page = usePage();
 
 const props = defineProps({
-    projects: {
-        type: Array,
-        default: () => [],
-    },
-    teamLeaders: {
-        type: Array,
-        default: () => [],
-    },
+    projects: { type: Array, default: () => [] },
+    teamLeaders: { type: Array, default: () => [] },
 });
 
 const search = ref("");
+const showProfileMenu = ref(false);
+const showCreateProjectModal = ref(false);
+const selectedActiveProjectFilter = ref(null);
 
 const form = reactive({
     name: "",
@@ -442,632 +294,747 @@ const form = reactive({
     team_leader_id: "",
 });
 
+// Detect User Role (Admin gets access to all project members)
+const isAdmin = computed(() => page.props.auth?.user?.role === 'admin' || true);
+
 const projects = computed(() => props.projects || []);
 
 const filteredProjects = computed(() => {
-
-    return projects.value.filter(project =>
-        project.name
-            ?.toLowerCase()
-            .includes(search.value.toLowerCase())
-    );
-
+    return projects.value.filter(project => {
+        const matchesSearch = project.name?.toLowerCase().includes(search.value.toLowerCase());
+        const matchesProjectFilter = selectedActiveProjectFilter.value ? project.id === selectedActiveProjectFilter.value : true;
+        return matchesSearch && matchesProjectFilter;
+    });
 });
 
-const createProject = () => {
+/* Modal Controllers */
+const openCreateProjectModal = () => {
+    showCreateProjectModal.value = true;
+};
 
+const handleCreateProject = () => {
     router.post("/project", form, {
-
         preserveScroll: true,
-
         onSuccess: () => {
-
-            toast.success("Project created successfully");
-
+            toast.success("Project board deployed successfully.");
+            showCreateProjectModal.value = false;
             form.name = "";
             form.status = "Planning";
             form.deadline = "";
             form.description = "";
             form.team_leader_id = "";
         },
-
-        onError: () => {
-            toast.error("Validation failed");
-        },
+        onError: () => { toast.error("Deployment failed. Check fields."); }
     });
 };
 
-const showTaskModal = ref(false);
-const selectedProject = ref(null);
-
-const taskForm = reactive({
-    project_id: "",
-    title: "",
-    description: "",
-    member_id: "",
-    priority: "Medium",
-    deadline: "",
-});
-
-const openTaskModal = (project) => {
-
-    selectedProject.value = project;
-
-    taskForm.project_id = project.id;
-
-    showTaskModal.value = true;
+/* Style Mapping Helpers */
+const getGroupColor = (status) => {
+    switch (status) {
+        case 'In Progress': return '#3b82f6';
+        case 'Completed': return '#00c875';
+        case 'Planning': return '#fbbf24';
+        default: return '#c4c4c4';
+    }
 };
 
-const closeTaskModal = () => {
-
-    showTaskModal.value = false;
-
-    selectedProject.value = null;
-
-    taskForm.project_id = "";
-    taskForm.title = "";
-    taskForm.description = "";
-    taskForm.member_id = "";
-    taskForm.priority = "Medium";
-    taskForm.deadline = "";
+const getStatusLabelClass = (status) => {
+    if (!status) return 'status-todo';
+    return 'status-' + status.toLowerCase().replace(/\s+/g, '-');
 };
 
-const showViewTaskModal = ref(false);
-const selectedTaskProject = ref(null);
-
-const viewTasks = (project) => {
-    selectedTaskProject.value = project;
-    showViewTaskModal.value = true;
+const getPriorityLabelClass = (priority) => {
+    if (!priority) return 'priority-low';
+    return 'priority-' + priority.toLowerCase();
 };
 
-const closeViewTaskModal = () => {
-    showViewTaskModal.value = false;
-    selectedTaskProject.value = null;
+/* Resolves Members Dropdown Based on User Role Context */
+const getProjectScopeMembers = (project) => {
+    if (!project || !project.team_leader) return [];
+    const leader = project.team_leader;
+    const assets = leader.team_members || [];
+
+    if (isAdmin.value) {
+        // Admin gets access to both Team Leader and Team Members in the inline dropdown
+        const managerNode = { id: leader.id, first_name: leader.first_name, last_name: " (TL)" };
+        return [managerNode, ...assets];
+    }
+    return assets;
 };
 
+/* Monday.com Style Inline Table Sync Engine */
+const appendNewEmptyTask = (project) => {
+    const rawPayload = {
+        project_id: project.id,
+        title: "New Item Row",
+        member_id: null,
+        priority: "Medium",
+        status: "Todo",
+        deadline: new Date().toISOString().slice(0, 10),
+    };
+
+    router.post("/task", rawPayload, {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast.success("New task line injected below.");
+        },
+        onError: () => {
+            toast.error("An error occurred trying to initialize task template.");
+        }
+    });
+};
+
+const syncTaskRow = (task) => {
+    // If user clears the text field, provide a fallback title to pass backend string checks
+    if (!task.title || task.title.trim() === '') {
+        task.title = "Untitled Task";
+    }
+
+    const updatePayload = {
+        id: task.id,
+        project_id: task.project_id,
+        title: task.title,
+        member_id: task.member_id,
+        status: task.status,
+        priority: task.priority,
+        deadline: task.deadline
+    };
+
+    router.put(`/task/${task.id}`, updatePayload, {
+        preserveScroll: true,
+        onSuccess: () => { toast.success("Changes auto-saved."); },
+        onError: () => { toast.error("Sync error: Failed to save edits to server."); }
+    });
+};
+
+const removeTaskRow = (taskId, project) => {
+    if (confirm("Are you sure you want to delete this task row?")) {
+        router.delete(`/task/${taskId}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success("Line record purged.");
+                project.tasks = project.tasks.filter(t => t.id !== taskId);
+            },
+            onError: () => { toast.error("Failed to delete task."); }
+        });
+    }
+};
+
+/* Edit Project Settings */
 const showEditModal = ref(false);
 const editingProject = ref(null);
-const editProject = (project) => {
-
+const openEditProjectModal = (project) => {
     editingProject.value = { ...project };
-
     showEditModal.value = true;
 };
 
-const createTask = () => {
-
-    router.post("/task", taskForm, {
-
+const updateProject = () => {
+    router.put(`/project/${editingProject.value.id}`, editingProject.value, {
         preserveScroll: true,
-
         onSuccess: () => {
-
-            toast.success("Task created successfully");
-
-            closeTaskModal();
+            toast.success("Project updated successfully.");
+            showEditModal.value = false;
         },
-
-        onError: () => {
-
-            toast.error("Failed to create task");
-        },
+        onError: () => { toast.error("Failed to update project settings."); }
     });
 };
 
-const projectMembers = computed(() => {
-
-    if (!selectedProject.value?.team_leader?.team_members) {
-        return [];
-    }
-
-    return selectedProject.value.team_leader.team_members;
-});
-
+/* Delete Project Settings */
 const showDeleteModal = ref(false);
 const selectedProjectId = ref(null);
-
 const openDeleteModal = (id) => {
-
     selectedProjectId.value = id;
     showDeleteModal.value = true;
 };
 
-const updateProject = () => {
-
-    router.put(
-        `/project/${editingProject.value.id}`,
-        editingProject.value,
-        {
-            preserveScroll: true,
-
-            onSuccess: () => {
-
-                toast.success(
-                    "Project updated successfully"
-                );
-
-                showEditModal.value = false;
-            },
-        }
-    );
-};
-
 const deleteProject = () => {
-
     router.delete(`/project/${selectedProjectId.value}`, {
-
         preserveScroll: true,
-
         onSuccess: () => {
-
-            toast.success("Project deleted successfully");
-
+            toast.success("Project successfully removed.");
             showDeleteModal.value = false;
             selectedProjectId.value = null;
         },
+        onError: () => { toast.error("Failed to remove project."); }
     });
+};
+
+const logout = () => {
+    router.post('/logout');
 };
 </script>
 
 <style scoped>
+/* Dashboard Base Layout */
 .main-content {
     flex: 1;
-    padding: 25px;
+    padding: 20px;
+    min-height: 100vh;
     overflow-y: auto;
 }
 
-/* FORM */
-
-.project-form-card,
-.projects-table-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 25px;
-    margin-top: 25px;
+.header {
+    padding: 10px 10px;
 }
 
-.section-title,
-.table-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
-}
-
-.save-btn {
-    background: #06b6d4;
-    border: none;
-    padding: 12px 18px;
-    border-radius: 12px;
-    cursor: pointer;
-    color: white;
-}
-
-.form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-}
-
-.form-group label {
-    margin-bottom: 10px;
-    color: var(--subtext);
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-    padding: 14px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--text);
-}
-
-.form-group textarea {
-    min-height: 120px;
-    resize: none;
-}
-
-.full-width {
-    grid-column: span 2;
-}
-
-/* TABLE */
-
-.projects-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.projects-table th {
-    text-align: left;
-    padding: 15px;
-    color: var(--subtext);
-    border-bottom: 1px solid var(--border);
-}
-
-.projects-table td {
-    padding: 18px 15px;
-    border-bottom: 1px solid var(--border);
-}
-
-.project-info h4 {
-    margin-bottom: 6px;
-}
-
-.project-info small {
-    color: var(--subtext);
-}
-
-.badge {
-    padding: 6px 14px;
-    border-radius: 30px;
-    font-size: 13px;
-}
-
-.progress-status {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-}
-
-.completed-status {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
-}
-
-.planning-status {
-    background: rgba(251, 191, 36, 0.2);
-    color: #fbbf24;
-}
-
-/* PROGRESS */
-
-.progress-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.progress-bar {
-    width: 260px;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 20px;
-    overflow: hidden;
-}
-
-.progress {
-    height: 100%;
-    background: linear-gradient(90deg,
-            #06b6d4,
-            #3b82f6);
-}
-
-/* ACTIONS */
-
-.actions {
-    display: flex;
-    gap: 10px;
-}
-
-.edit-btn,
-.delete-btn {
-    border: none;
-    padding: 8px 14px;
-    border-radius: 10px;
-    cursor: pointer;
-}
-
-.edit-btn {
-    background: #3b82f6;
-    color: white;
-}
-
-.delete-btn {
-    background: #ef4444;
-    color: white;
-}
-
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, .6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 999;
-}
-
-.delete-modal {
-    width: 420px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 25px;
-}
-
-.delete-modal h3 {
-    margin-bottom: 10px;
-}
-
-.delete-modal p {
-    color: var(--subtext);
-    margin-bottom: 20px;
-    line-height: 1.5;
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-}
-
-.cancel-btn {
-    padding: 10px 18px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    background: #64748b;
-    color: white;
-}
-
-.delete-confirm-btn {
-    padding: 10px 18px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    background: #ef4444;
-    color: white;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 40px;
-    color: var(--subtext);
-    font-size: 15px;
-}
-
+/* Upper Deck Widget Cards Structure */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-    margin-bottom: 25px;
-    padding-top: 10px;
+    gap: 15px;
+    margin-bottom: 30px;
 }
 
 .stat-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 20px;
+    border-radius: 8px;
+    padding: 18px 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .stat-card h3 {
     color: var(--subtext);
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .stat-card h1 {
-    margin-top: 10px;
-    font-size: 32px;
-}
-
-.projects-grid {
-    display: grid;
-    grid-template-columns:
-        repeat(auto-fill, minmax(350px, 1fr));
-    gap: 20px;
-    margin-top: 25px;
-}
-
-.project-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 20px;
-}
-
-.project-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 20px;
-}
-
-.project-top p {
-    margin-top: 8px;
-    color: var(--subtext);
-}
-
-.project-meta {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.project-meta small {
-    display: block;
-    color: var(--subtext);
-    margin-bottom: 5px;
-}
-
-.progress-section {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.card-actions {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.task-btn {
-    background: #8b5cf6;
-    color: white;
-    border: none;
-    padding: 10px 14px;
-    border-radius: 10px;
-    cursor: pointer;
-}
-
-.task-list {
-    margin-top: 20px;
-    margin-bottom: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.task-item {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px;
-}
-
-.task-item strong {
-    display: block;
-    margin-bottom: 5px;
-}
-
-.task-item small {
-    color: var(--subtext);
-}
-
-.modal {
-    width: 550px;
-    background: var(--card);
-    border-radius: 20px;
-    padding: 25px;
-    border: 1px solid var(--border);
-
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.modal input,
-.modal textarea,
-.modal select {
-    width: 100%;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    background: var(--bg);
+    margin-top: 6px;
+    font-size: 28px;
+    font-weight: 700;
     color: var(--text);
 }
 
-.modal textarea {
-    min-height: 120px;
-}
-
-.modal button {
-    padding: 12px;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-}
-
-.empty-projects {
-    grid-column: 1/-1;
-    text-align: center;
-    padding: 60px;
-    border: 2px dashed var(--border);
-    border-radius: 20px;
-}
-
-.task-view-modal {
-    width: 800px;
-    max-height: 80vh;
-    overflow-y: auto;
-    background: var(--card);
-    border-radius: 20px;
-    padding: 25px;
-    border: 1px solid var(--border);
-}
-
-.modal-header {
+/* Toolbar Controls */
+.global-actions-bar {
     display: flex;
-    justify-content: space-between;
+    gap: 16px;
     align-items: center;
     margin-bottom: 25px;
 }
 
-.close-btn {
-    border: none;
-    background: transparent;
+.project-view-selector {
+    padding: 8px 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
     color: var(--text);
-    font-size: 20px;
+    font-size: 14px;
+    outline: none;
     cursor: pointer;
 }
 
-.task-list-modal {
+/* Monday Buttons Paradigm */
+.monday-btn-primary {
+    background: #0073ea;
+    color: #ffffff;
+    font-weight: 500;
+    font-size: 14px;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.monday-btn-primary:hover {
+    background: #0060c5;
+}
+
+.monday-btn-secondary {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text);
+    font-weight: 500;
+}
+
+.monday-btn-secondary:hover {
+    background: var(--hover);
+}
+
+.monday-btn-danger {
+    background: #df2f4a;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+/* Monday.com Grid Spreadsheet Architecture */
+.monday-board-container {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 40px;
+    margin-top: 15px;
 }
 
-.task-card {
-    background: var(--bg);
+.monday-project-group {
+    background: var(--card);
+    border-radius: 8px;
     border: 1px solid var(--border);
-    border-radius: 15px;
-    padding: 18px;
+    padding: 16px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
-.task-top {
+.monday-group-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
 }
 
-.task-card p {
-    color: var(--subtext);
-    margin-bottom: 15px;
-}
-
-.task-footer {
+.group-title-pane {
     display: flex;
-    justify-content: space-between;
-    font-size: 14px;
+    align-items: center;
+    gap: 12px;
 }
 
-.priority {
-    padding: 5px 12px;
-    border-radius: 20px;
+.collapse-arrow {
+    color: var(--subtext);
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.group-title-pane h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    padding-left: 10px;
+    line-height: 1.2;
+}
+
+.group-status-tag {
+    background: var(--hover);
+    color: var(--subtext);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.group-desc-inline {
+    color: var(--subtext);
+    font-size: 13px;
+    font-style: italic;
+}
+
+.group-control-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.action-icon-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--subtext);
+}
+
+.action-icon-btn:hover {
+    background: var(--hover);
+    color: var(--text);
+}
+
+.action-icon-btn.delete:hover {
+    border-color: #df2f4a;
+    color: #df2f4a;
+    background: rgba(223, 47, 74, 0.1);
+}
+
+/* Inline Spreadsheet Grid */
+.monday-table-wrapper {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.monday-editable-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    table-layout: fixed;
+}
+
+/* Dynamic Alignment Width Allocations */
+.col-task {
+    width: 35%;
+}
+
+.col-member {
+    width: 18%;
+}
+
+.col-status {
+    width: 16%;
+}
+
+.col-priority {
+    width: 14%;
+}
+
+.col-due {
+    width: 14%;
+}
+
+.col-action {
+    width: 3%;
+}
+
+.monday-editable-table th {
+    background: var(--bg);
+    color: var(--subtext);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+}
+
+.monday-editable-table td {
+    padding: 0;
+    border: 1px solid var(--border);
+    vertical-align: middle;
+    height: 38px;
+    background: var(--card);
+}
+
+/* Interactive Table Input Box Controls */
+.monday-input-cell {
+    width: 100%;
+    height: 38px;
+    border: none;
+    background: transparent;
+    padding: 0 12px;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+}
+
+.monday-input-cell:focus {
+    background: var(--bg);
+    box-shadow: inset 0 0 0 2px #0073ea;
+}
+
+/* Member Profile Selector Cells */
+.monday-select-cell {
+    width: 100%;
+    height: 38px;
+    border: none;
+    background: transparent;
+    padding: 0 8px;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+}
+
+.monday-select-cell option {
+    background: var(--bg);
+    color: var(--text);
+}
+
+/* Deadline Calendar Picker Context styles */
+.monday-date-cell {
+    width: 100%;
+    height: 38px;
+    border: none;
+    background: transparent;
+    padding: 0 10px;
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    color-scheme: dark light;
+    /* Ensures native calendar popup respects theme */
+}
+
+/* Monday.com Flag Pickers Core Styles */
+.monday-status-dropdown,
+.monday-priority-dropdown {
+    width: 100%;
+    height: 38px;
+    border: none;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: #ffffff;
+    outline: none;
+    cursor: pointer;
+    text-align-last: center;
+    appearance: none;
+}
+
+.monday-status-dropdown option,
+.monday-priority-dropdown option {
+    background: var(--bg);
+    color: var(--text);
+}
+
+/* Lifecycle status color blocks assignment mappings */
+.cell-status.status-todo .monday-status-dropdown {
+    background: #64748b;
+    color: #ffffff;
+}
+
+.cell-status.status-in-progress .monday-status-dropdown {
+    background: #fd7e14;
+}
+
+.cell-status.status-completed .monday-status-dropdown {
+    background: #00c875;
+}
+
+/* Production priority color assignments configuration values */
+.cell-priority.priority-low .monday-priority-dropdown {
+    background: #579bfc;
+}
+
+.cell-priority.priority-medium .monday-priority-dropdown {
+    background: #a25ddc;
+}
+
+.cell-priority.priority-high .monday-priority-dropdown {
+    background: #e2445c;
+}
+
+/* Task Row State Actions triggers elements layout */
+.task-row-item:hover {
+    background: var(--hover);
+}
+
+.row-remove-trigger {
+    background: transparent;
+    border: none;
+    color: var(--subtext);
+    cursor: pointer;
+    width: 100%;
+    height: 38px;
+    line-height: 38px;
+    text-align: center;
     font-size: 12px;
 }
 
-.priority.low {
-    background: rgba(34, 197, 94, .15);
-    color: #22c55e;
+.row-remove-trigger:hover {
+    color: #df2f4a;
+    background: rgba(223, 47, 74, 0.1);
 }
 
-.priority.medium {
-    background: rgba(251, 191, 36, .15);
-    color: #fbbf24;
-}
-
-.priority.high {
-    background: rgba(239, 68, 68, .15);
-    color: #ef4444;
-}
-
-.empty-task {
-    text-align: center;
-    padding: 40px;
+/* Quick Append Task Rows Triggers Element */
+.add-row-placeholder {
+    padding: 10px 16px;
     color: var(--subtext);
+    font-size: 14px;
+    cursor: pointer;
+    background: var(--card);
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.add-row-placeholder:hover {
+    background: var(--hover);
+    color: var(--text);
+}
+
+.plus-sign {
+    color: #0073ea;
+    font-weight: bold;
+}
+
+/* Popups Modal Formatting Wrapper Layer */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1200;
+    padding: 20px;
+}
+
+.monday-modal {
+    background: var(--card);
+    border-radius: 8px;
+    width: 580px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: background-color 0.3s ease;
+}
+
+.monday-modal.confirmation-variant {
+    width: 440px;
+    padding: 24px;
+    gap: 16px;
+}
+
+.modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+}
+
+.modal-head h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.close-modal-x {
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    color: var(--subtext);
+    cursor: pointer;
+}
+
+.modal-body-form {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    background: var(--card);
+}
+
+.monday-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.monday-field-group.full-row {
+    grid-column: span 2;
+}
+
+.monday-field-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.monday-field-group input,
+.monday-field-group select,
+.monday-field-group textarea {
+    padding: 8px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+    color: var(--text);
+}
+
+.monday-field-group textarea {
+    min-height: 80px;
+    resize: none;
+}
+
+.monday-field-group input:focus,
+.monday-field-group select:focus,
+.monday-field-group textarea:focus {
+    border-color: #0073ea;
+}
+
+.monday-modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    background: var(--bg);
+}
+
+.btn-flat-cancel {
+    background: transparent;
+    border: none;
+    color: var(--subtext);
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 8px 16px;
+}
+
+.btn-flat-cancel:hover {
+    color: var(--text);
+}
+
+.empty-board-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--subtext);
+}
+
+.empty-board-state h3 {
+    margin-bottom: 12px;
+    font-weight: 400;
+}
+
+.profile-container {
+  position: relative;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid var(--card);
+  transition: 0.2s ease;
+}
+
+.avatar:hover {
+  transform: scale(1.05);
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: 58px;
+  right: 0;
+  width: 140px;
+  background: var(--sidebar);
+  border: 1px solid var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  z-index: 100;
+}
+
+.profile-dropdown button {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s ease;
+}
+
+.profile-dropdown button:hover {
+  background: var(--card);
+  color: #ef4444;
 }
 </style>
