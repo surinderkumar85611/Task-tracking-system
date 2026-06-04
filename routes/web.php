@@ -126,6 +126,9 @@ Route::middleware(['auth'])->group(function () {
         [TaskController::class, 'store']
     );
 
+    Route::put('/task/{task}', [TaskController::class, 'update'])->name('task.update');
+    Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
+
     Route::post('/logout', function (Request $request) {
         Auth::logout();
 
