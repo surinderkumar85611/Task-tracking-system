@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Inertia\Inertia;
 use App\Models\Invitation;
+use App\Models\Member;
 
 class AuthController extends Controller
 {
@@ -75,7 +76,7 @@ class AuthController extends Controller
             'email' => $invite->email,
             'role' => $invite->role,
             'department' => $invite->department,
-             'workspace_id' => $invite->workspace_id,
+            'workspace_id' => $invite->workspace_id,
         ]);
     }
     public function completeProfile(Request $request)
@@ -122,7 +123,16 @@ class AuthController extends Controller
             'role' => $invite->role,
             'department' => $invite->department,
         ]);
-
+        Member::create([
+            'workspace_id' => $invite->workspace_id,
+            'first_name'   => $request->name,
+            'last_name'    => '',
+            'email'        => $invite->email,
+            'phone'        => '',
+            'department'   => $invite->department,
+            'role'         => $invite->role,
+            'assigned_to'  => null,
+        ]);
         $invite->update([
             'accepted_at' => now(),
         ]);
@@ -136,7 +146,7 @@ class AuthController extends Controller
             'invite_department',
         ]);
 
-       return redirect('/login')
-    ->with('success', 'Profile completed successfully. Please login.');
+        return redirect('/login')
+            ->with('success', 'Profile completed successfully. Please login.');
     }
 }

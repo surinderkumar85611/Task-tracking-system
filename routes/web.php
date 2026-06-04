@@ -139,8 +139,22 @@ Route::middleware(['auth'])->group(function () {
 
     
 });
+use App\Http\Controllers\SettingsController;
 
+Route::middleware(['auth'])->group(function () {
 
+    Route::get('/settings', [SettingsController::class, 'index'])
+        ->name('settings');
+
+});
+use App\Http\Controllers\TeamController;
+
+Route::get('/teams', [TeamController::class, 'index'])
+    ->name('teams');
+
+use App\Http\Controllers\LeaderDashboardController;
+
+Route::get('/leader/dashboard', [LeaderDashboardController::class, 'dashboard']);   
 Route::post('/invite/generate', [InvitationController::class, 'generate']);
 Route::get('/invite/accept/{token}', [InvitationController::class, 'accept']);
 

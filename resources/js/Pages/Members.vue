@@ -486,8 +486,12 @@ const generateInvite = () => {
             showInviteModal.value = false;
         },
 
-        onError: () => {
-            toast.error("Failed to send invite");
+        onError: (errors) => {
+            console.error("Invite error:", errors);
+
+            const firstError = Object.values(errors)[0];
+
+            toast.error(firstError || "Failed to send invite");
         }
     });
 };
