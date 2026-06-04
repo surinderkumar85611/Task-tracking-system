@@ -19,6 +19,12 @@ class Task extends Model
         'status',
 
         'due_date',
+        'notes',
+    ];
+
+    protected $casts = [
+        'notes' => 'array',
+        'member_id' => 'array',
     ];
 
     public function project()
@@ -26,8 +32,22 @@ class Task extends Model
         return $this->belongsTo(Project::class);
     }
 
-    public function member()
+    public function getMembersAttribute()
     {
-        return $this->belongsTo(Member::class);
+        if (empty($this->member_id) || !is_array($this->member_id)) {
+            return collect();
+        }
+
+        return Member::whereIn('id', $this->member_id)->get();
+    }
+
+    /**
+     * Append this custom attribute to the model's array/JSON output automatically
+     */
+    protected $appends = ['assigned_members'];
+
+    public function getAssignedMembersAttribute()
+    {
+        return $this->members;
     }
 }

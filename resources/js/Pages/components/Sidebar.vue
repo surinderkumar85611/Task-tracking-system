@@ -56,7 +56,7 @@
         </nav>
 
         <div class="collapse-trigger-wrapper">
-            <button class="collapse-toggle-btn" @click="isCollapsed = !isCollapsed">
+            <button class="collapse-toggle-btn" @click="toggleSidebar">
                 {{ isCollapsed ? "▶" : "◀" }}
             </button>
         </div>
@@ -96,7 +96,12 @@ import { ref, reactive } from "vue";
 import { Link, usePage, router } from "@inertiajs/vue3";
 
 const page = usePage();
-const isCollapsed = ref(false);
+
+const isCollapsed = ref(localStorage.getItem("sidebar_collapsed") === "true");
+const toggleSidebar = () => {
+    isCollapsed.value = !isCollapsed.value;
+    localStorage.setItem("sidebar_collapsed", isCollapsed.value);
+};
 
 const workspaces = page.props.workspaces || [];
 const selectedWorkspace = ref(page.props.currentWorkspace || "");

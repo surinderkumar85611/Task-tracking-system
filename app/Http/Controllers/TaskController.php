@@ -12,18 +12,20 @@ class TaskController extends Controller
         $request->validate([
             'project_id' => 'required',
             'title' => 'required',
-            'member_id' => 'nullable', 
+            'member_id' => 'nullable|array',
+            'notes' => 'nullable|string',
         ]);
 
         Task::create([
             'workspace_id' => session('workspace_id'),
             'project_id'   => $request->project_id,
-            'member_id'    => $request->member_id,
+            'member_id'    => !empty($request->member_id) ? $request->member_id : [],
             'title'        => $request->title,
             'description'  => $request->description,
             'priority'     => $request->priority ?? 'Medium',
             'status'       => $request->status ?? 'Todo',
             'due_date'     => $request->deadline,
+            'notes'        => $request->notes ? [['sender' => 'Admin', 'text' => $request->notes, 'created_at' => now()->toIso8601String()]] : [],
         ]);
 
         return back();
@@ -37,7 +39,27 @@ class TaskController extends Controller
             'project_id' => 'required',
             'title'      => 'required',
             'member_id'  => 'nullable',
+            'notes'      => 'nullable|string',
         ]);
+
+        $existingNotes = $task->notes ?? [];
+
+        if ($request->has('notes') && !empty(trim($request->notes))) {
+            $user = auth()->user();
+            $senderName = 'Admin';
+
+            if ($user) {
+                $senderName = $user->first_name ?? $user->name ?? $user->username ?? 'Team Member';
+            }
+
+            $newComment = [
+                'sender'     => $senderName,
+                'text'       => trim($request->notes),
+                'created_at' => now()->toIso8601String(),
+            ];
+
+            array_unshift($existingNotes, $newComment);
+        }
 
         $task->update([
             'project_id'  => $request->project_id,
@@ -46,6 +68,7 @@ class TaskController extends Controller
             'status'      => $request->status,
             'priority'    => $request->priority,
             'due_date'    => $request->deadline,
+            'notes'       => $existingNotes,
         ]);
 
         return back();

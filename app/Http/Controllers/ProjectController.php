@@ -37,10 +37,16 @@ class ProjectController extends Controller
     {
         $projects = Project::with([
             'teamLeader.teamMembers',
-            'tasks.member'
+            'tasks'
         ])
             ->where('workspace_id', session('workspace_id'))
-            ->get();
+            ->get()
+            ->map(function ($project) {
+                $project->tasks->each(function ($task) {
+                    $task->member = $task->assigned_members;
+                });
+                return $project;
+            });
 
         $teamLeaders = Member::where(
             'workspace_id',
