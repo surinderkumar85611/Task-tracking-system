@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Inertia\Inertia;
+use App\Models\Invitation;
 
 class AuthController extends Controller
 {
@@ -52,5 +54,89 @@ class AuthController extends Controller
         return back()->withErrors([
             'email' => 'Invalid credentials',
         ]);
+    }
+    public function showCompleteProfile()
+    {
+        $inviteToken = session('invite_token');
+
+        if (!$inviteToken) {
+            return redirect('/login');
+        }
+
+        $invite = Invitation::where('token', $inviteToken)
+            ->whereNull('accepted_at')
+            ->first();
+
+        if (!$invite) {
+            return redirect('/login');
+        }
+
+        return Inertia::render('Auth/CompleteProfile', [
+            'email' => $invite->email,
+            'role' => $invite->role,
+            'department' => $invite->department,
+             'workspace_id' => $invite->workspace_id,
+        ]);
+    }
+    public function completeProfile(Request $request)
+    {
+        $inviteToken = session('invite_token');
+
+        if (!$inviteToken) {
+            return redirect('/login');
+        }
+
+        $invite = Invitation::where('token', $inviteToken)
+            ->whereNull('accepted_at')
+            ->first();
+
+        if (!$invite) {
+            return redirect('/login');
+        }
+
+        $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:20',
+                'regex:/^[A-Za-z\s]+$/'
+            ],
+
+            'password' => [
+                'required',
+                'min:8',
+                'confirmed',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).+$/'
+            ],
+        ], [
+            'name.regex' => 'Name should only contain letters.',
+            'password.regex' => 'Password must include uppercase, lowercase, number and special character.',
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $invite->email,
+            'password' => Hash::make($request->password),
+
+            'workspace_id' => $invite->workspace_id,
+            'role' => $invite->role,
+            'department' => $invite->department,
+        ]);
+
+        $invite->update([
+            'accepted_at' => now(),
+        ]);
+
+
+        session()->forget([
+            'invite_token',
+            'invite_email',
+            'invite_workspace_id',
+            'invite_role',
+            'invite_department',
+        ]);
+
+       return redirect('/login')
+    ->with('success', 'Profile completed successfully. Please login.');
     }
 }

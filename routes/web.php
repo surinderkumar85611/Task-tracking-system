@@ -13,7 +13,6 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\ProjectController;
-use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\TaskController;
 
 Route::get('/', function () {
@@ -137,12 +136,13 @@ Route::middleware(['auth'])->group(function () {
 
         return redirect('/login');
     })->name('logout');
+
+    
 });
 
 
 Route::post('/invite/generate', [InvitationController::class, 'generate']);
 Route::get('/invite/accept/{token}', [InvitationController::class, 'accept']);
 
-
-Route::get('/auth/google/redirect', [GoogleController::class, 'redirect']);
-Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
+Route::get('/complete-profile', [AuthController::class, 'showCompleteProfile']);
+Route::post('/complete-profile', [AuthController::class, 'completeProfile']);
