@@ -22,10 +22,18 @@
 
                     <!-- Name -->
                     <div class="field-group">
-                        <input type="text" v-model="form.name" placeholder="Full Name"
-                            @blur="validateName(); handleBlur('name')" @input="validateName" />
+                        <input
+                            type="text"
+                            v-model="form.name"
+                            placeholder="Full Name"
+                            @blur="validateName(); handleBlur('name')"
+                            @input="validateName"
+                        />
 
-                        <p v-if="errors.name && touched.name" class="error-text">
+                        <p
+                            v-if="errors.name && touched.name"
+                            class="error-text"
+                        >
                             {{ errors.name }}
                         </p>
                     </div>
@@ -36,7 +44,11 @@
                             Email Address
                         </label>
 
-                        <input type="email" v-model="form.email" readonly />
+                        <input
+                            type="email"
+                            v-model="form.email"
+                            readonly
+                        />
                     </div>
 
                     <!-- Department -->
@@ -45,7 +57,11 @@
                             Department
                         </label>
 
-                        <input type="text" v-model="form.department" readonly />
+                        <input
+                            type="text"
+                            v-model="form.department"
+                            readonly
+                        />
                     </div>
 
                     <!-- Role -->
@@ -54,22 +70,36 @@
                             Role
                         </label>
 
-                        <input type="text" v-model="form.role" readonly />
+                        <input
+                            type="text"
+                            v-model="form.role"
+                            readonly
+                        />
                     </div>
 
                     <!-- Password -->
                     <div class="field-group">
                         <div class="input-wrapper">
-                            <input :type="showPassword ? 'text' : 'password'" v-model="form.password"
-                                placeholder="Password" @blur="validatePassword(); handleBlur('password')"
-                                @input="validatePassword" />
+                            <input
+                                :type="showPassword ? 'text' : 'password'"
+                                v-model="form.password"
+                                placeholder="Password"
+                                @blur="validatePassword(); handleBlur('password')"
+                                @input="validatePassword"
+                            />
 
-                            <span class="toggle-icon" @click="showPassword = !showPassword">
+                            <span
+                                class="toggle-icon"
+                                @click="showPassword = !showPassword"
+                            >
                                 👁️
                             </span>
                         </div>
 
-                        <p v-if="errors.password && touched.password" class="error-text">
+                        <p
+                            v-if="errors.password && touched.password"
+                            class="error-text"
+                        >
                             {{ errors.password }}
                         </p>
                     </div>
@@ -77,24 +107,35 @@
                     <!-- Confirm Password -->
                     <div class="field-group">
                         <div class="input-wrapper">
-                            <input :type="showConfirmPassword ? 'text' : 'password'"
-                                v-model="form.password_confirmation" placeholder="Confirm Password" @blur="
+                            <input
+                                :type="showConfirmPassword ? 'text' : 'password'"
+                                v-model="form.password_confirmation"
+                                placeholder="Confirm Password"
+                                @blur="
                                     validateConfirmPassword();
-                                handleBlur('password_confirmation')
-                                    " @input="validateConfirmPassword" />
+                                    handleBlur('password_confirmation')
+                                "
+                                @input="validateConfirmPassword"
+                            />
 
-                            <span class="toggle-icon" @click="
-                                showConfirmPassword =
-                                !showConfirmPassword
-                                ">
+                            <span
+                                class="toggle-icon"
+                                @click="
+                                    showConfirmPassword =
+                                        !showConfirmPassword
+                                "
+                            >
                                 👁️
                             </span>
                         </div>
 
-                        <p v-if="
-                            errors.password_confirmation &&
-                            touched.password_confirmation
-                        " class="error-text">
+                        <p
+                            v-if="
+                                errors.password_confirmation &&
+                                touched.password_confirmation
+                            "
+                            class="error-text"
+                        >
                             {{ errors.password_confirmation }}
                         </p>
                     </div>
@@ -188,10 +229,8 @@ const validatePassword = () => {
 };
 
 const validateConfirmPassword = () => {
-    if (!form.password_confirmation) {
-        errors.password_confirmation =
-            "Confirm Password is required";
-    } else if (
+    if (
+        form.password_confirmation &&
         form.password !== form.password_confirmation
     ) {
         errors.password_confirmation =
@@ -225,16 +264,12 @@ const completeProfile = () => {
 
             setTimeout(() => {
                 router.visit("/login");
-            }, 2500);
+            }, 1000);
         },
 
-        onError: (errors) => {
-            console.error(errors);
-
-            const firstError = Object.values(errors)[0];
-
+        onError: () => {
             toast.error(
-                firstError || "Please fix validation errors"
+                "Please fix validation errors"
             );
         },
     });
@@ -251,8 +286,10 @@ const completeProfile = () => {
 .left-panel {
     width: 55%;
     background:
-        linear-gradient(rgba(15, 23, 42, 0.85),
-            rgba(15, 23, 42, 0.85)),
+        linear-gradient(
+            rgba(15, 23, 42, 0.85),
+            rgba(15, 23, 42, 0.85)
+        ),
         url("https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070");
 
     background-size: cover;

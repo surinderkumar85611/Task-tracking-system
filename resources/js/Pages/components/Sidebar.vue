@@ -13,8 +13,7 @@
             <button v-if="!isCollapsed" class="workspace-btn" @click="showCreateWorkspaceModal = true">
                 ➕ Create Workspace
             </button>
-            <button v-else class="workspace-btn compact" title="Create Workspace"
-                @click="showCreateWorkspaceModal = true">
+            <button v-else class="workspace-btn compact" title="Create Workspace" @click="showCreateWorkspaceModal = true">
                 ➕
             </button>
 
@@ -24,8 +23,7 @@
                     {{ workspace.name }}
                 </option>
             </select>
-            <div v-else class="workspace-select-icon-trigger" title="Switch Workspace"
-                @click="showSelectWorkspaceModal = true">
+            <div v-else class="workspace-select-icon-trigger" title="Switch Workspace" @click="showSelectWorkspaceModal = true">
                 💼
             </div>
         </div>
@@ -41,18 +39,17 @@
                 <span v-if="!isCollapsed" class="nav-text">Projects</span>
             </Link>
 
-            <Link href="/teams" :class="{ active: isActive('/teams') }">
+            <Link href="/team" :class="{ active: isActive('/team') }" title="Team">
                 <span class="nav-icon">👥</span>
                 <span v-if="!isCollapsed" class="nav-text">Team</span>
             </Link>
-
 
             <Link href="/member" :class="{ active: isActive('/member') }" title="Members">
                 <span class="nav-icon">👤</span>
                 <span v-if="!isCollapsed" class="nav-text">Members</span>
             </Link>
 
-            <Link href="/settings" :class="{ active: isActive('/settings') }" title="Settings">
+            <Link href="/setting" :class="{ active: isActive('/setting') }" title="Settings">
                 <span class="nav-icon">⚙️</span>
                 <span v-if="!isCollapsed" class="nav-text">Settings</span>
             </Link>
@@ -174,18 +171,15 @@ const changeWorkspace = () => {
     align-items: center;
     margin-bottom: 20px;
 }
-
 .logo {
     font-size: 24px;
     font-weight: bold;
     color: var(--text);
     white-space: nowrap;
 }
-
 .logo span {
     color: #06b6d4;
 }
-
 .logo-icon {
     font-size: 22px;
     font-weight: 800;
@@ -193,7 +187,6 @@ const changeWorkspace = () => {
     width: 100%;
     text-align: center;
 }
-
 .logo-icon span {
     color: #06b6d4;
 }
@@ -206,7 +199,6 @@ const changeWorkspace = () => {
     align-items: center;
     width: 100%;
 }
-
 .workspace-btn {
     width: 100%;
     padding: 12px;
@@ -220,11 +212,9 @@ const changeWorkspace = () => {
     white-space: nowrap;
     font-size: 11px;
 }
-
 .workspace-btn:hover {
     background: #0ea5e9;
 }
-
 .workspace-btn.compact {
     padding: 12px 0;
     font-size: 14px;
@@ -247,7 +237,6 @@ const changeWorkspace = () => {
     font-size: 18px;
     transition: background 0.2s;
 }
-
 .workspace-select-icon-trigger:hover {
     background: var(--hover);
 }
@@ -257,7 +246,6 @@ const changeWorkspace = () => {
     margin-top: 10px;
     flex: 1;
 }
-
 .nav-links a {
     display: flex;
     align-items: center;
@@ -269,26 +257,21 @@ const changeWorkspace = () => {
     transition: background 0.3s, padding 0.3s ease;
     white-space: nowrap;
 }
-
 .sidebar.collapsed .nav-links a {
     padding: 12px 0;
     justify-content: center;
 }
-
 .nav-icon {
     font-size: 18px;
     display: inline-block;
 }
-
 .nav-text {
     margin-left: 14px;
     font-size: 15px;
 }
-
 .nav-links a:hover {
     background: var(--hover);
 }
-
 .nav-links a.active {
     background: #06b6d4;
     color: #111827;
@@ -302,7 +285,6 @@ const changeWorkspace = () => {
     justify-content: center;
     width: 100%;
 }
-
 .collapse-toggle-btn {
     width: 36px;
     height: 36px;
@@ -314,10 +296,9 @@ const changeWorkspace = () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     transition: background 0.2s, transform 0.2s;
 }
-
 .collapse-toggle-btn:hover {
     background: var(--hover);
     transform: scale(1.05);
@@ -334,7 +315,6 @@ const changeWorkspace = () => {
     justify-content: center;
     z-index: 2000;
 }
-
 .modal {
     width: 450px;
     background: var(--sidebar);
@@ -342,12 +322,10 @@ const changeWorkspace = () => {
     border-radius: 20px;
     border: 1px solid var(--border);
 }
-
 .modal h2 {
     margin-bottom: 20px;
     color: var(--text);
 }
-
 .modal input,
 .modal textarea {
     width: 100%;
@@ -359,17 +337,14 @@ const changeWorkspace = () => {
     color: var(--text);
     outline: none;
 }
-
 .modal textarea {
     min-height: 120px;
 }
-
 .modal-actions {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
 }
-
 .cancel-btn,
 .create-btn {
     padding: 10px 18px;
@@ -378,12 +353,10 @@ const changeWorkspace = () => {
     cursor: pointer;
     font-weight: 500;
 }
-
 .cancel-btn {
     background: #64748b;
     color: white;
 }
-
 .create-btn {
     background: #06b6d4;
     color: #111827;
@@ -400,12 +373,10 @@ const changeWorkspace = () => {
     cursor: pointer;
     outline: none;
 }
-
 .workspace-select option {
     background: var(--sidebar);
     color: var(--text);
 }
-
 .sticky-modal-select {
     margin-top: 0;
     margin-bottom: 20px;
