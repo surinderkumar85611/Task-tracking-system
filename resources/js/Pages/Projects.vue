@@ -99,11 +99,12 @@
                             <thead>
                                 <tr>
                                     <th class="col-task">Task Name</th>
+                                    <th class="col-updates" style="width: 6%;">Updates</th>
                                     <th class="col-member">Member</th>
                                     <th class="col-status">Status</th>
                                     <th class="col-priority">Priority</th>
                                     <th class="col-due">Due Date</th>
-                                    <th class="col-action"></th>
+                                    <th class="col-action" style="width: 3%;">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -112,16 +113,46 @@
                                         <input type="text" v-model="task.title" placeholder="Type task description..."
                                             @change="syncTaskRow(task)" class="monday-input-cell" />
                                     </td>
-                                    <td class="cell-member">
-                                        <select v-model="task.member_id" @change="syncTaskRow(task)"
-                                            class="monday-select-cell">
-                                            <option :value="null">👤 Unassigned</option>
-                                            <option v-for="member in getProjectScopeMembers(project)" :key="member.id"
-                                                :value="member.id">
-                                                {{ member.first_name }} {{ member.last_name }}
-                                            </option>
-                                        </select>
+                                    <td class="cell-updates" style="text-align: center; vertical-align: middle;">
+                                        <button class="monday-update-icon-btn"
+                                            :class="{ 'has-notes': task.notes && task.notes.length > 0 }"
+                                            @click="openUpdatesSidebar(task, project)" title="Open task updates">
+                                            💬
+                                            <span v-if="task.notes && task.notes.length > 0"
+                                                class="update-indicator-dot"></span>
+                                        </button>
                                     </td>
+                                    <td class="cell-member" style="position: relative; padding: 0 8px;">
+    <div class="multi-assignee-trigger" @click.stop="toggleAssigneeDropdown(task.id)">
+        <div v-if="task.member_id && task.member_id.length > 0" class="avatar-stack-container">
+            <div v-for="mId in task.member_id"
+                 :key="mId"
+                 class="monday-circle-avatar"
+                 :title="getMemberFullName(project, mId)">
+                {{ getMemberInitials(project, mId) }}
+            </div>
+        </div>
+        <div v-else class="avatar-placeholder-empty" title="Assign Team Members">
+            ➕
+        </div>
+    </div>
+
+    <div v-if="activeAssigneeDropdownTaskId === task.id" class="multi-assignee-dropdown-panel" v-click-outside="closeAssigneeDropdown">
+        <div class="dropdown-panel-title">Assign Members</div>
+        <div class="dropdown-options-scroll">
+            <label v-for="member in getProjectScopeMembers(project)" :key="member.id" class="assignee-checkbox-row">
+                <input
+                    type="checkbox"
+                    :value="member.id"
+                    :checked="isMemberAssigned(task, member.id)"
+                    @change="toggleMemberAssignment(task, member.id)"
+                />
+                <span class="dropdown-member-initials">{{ member.first_name?.charAt(0).toUpperCase() || 'M' }}</span>
+                <span class="dropdown-member-name">{{ member.first_name }} {{ member.last_name }}</span>
+            </label>
+        </div>
+    </div>
+</td>
                                     <td class="cell-status" :class="getStatusLabelClass(task.status)">
                                         <select v-model="task.status" @change="syncTaskRow(task)"
                                             class="monday-status-dropdown">
@@ -149,7 +180,7 @@
                                 </tr>
 
                                 <tr class="append-fast-row">
-                                    <td colspan="6">
+                                    <td colspan="7">
                                         <div class="add-row-placeholder" @click="appendNewEmptyTask(project)">
                                             <span class="plus-sign">＋</span> Add a new task to this project...
                                         </div>
@@ -261,6 +292,62 @@
                 </div>
             </div>
 
+            <div class="updates-sidebar-overlay" :class="{ 'open': showUpdatesSidebarPane }"
+                @click="closeUpdatesSidebar">
+                <div class="updates-sidebar-panel" @click.stop>
+                    <div class="sidebar-panel-header">
+                        <div class="panel-header-left">
+                            <span class="panel-task-icon">📋</span>
+                            <div>
+                                <h2>{{ activeTaskForUpdates?.title || 'Task Updates' }}</h2>
+                                <p class="panel-subtitle">Project: {{ activeProjectForUpdates?.name }}</p>
+                            </div>
+                        </div>
+                        <button class="close-panel-btn" @click="closeUpdatesSidebar">✕</button>
+                    </div>
+
+                    <div class="sidebar-panel-body">
+                        <div class="notes-display-box">
+                            <label>📌 Updates Timeline</label>
+
+                            <div v-if="activeTaskForUpdates?.notes && activeTaskForUpdates.notes.length > 0"
+                                class="messages-thread-wrapper">
+
+                                <div v-for="(note, index) in activeTaskForUpdates.notes" :key="index" class="chat-bubble-card">
+    <div class="chat-bubble-meta">
+        <span class="chat-bubble-author">
+            <span class="monday-circle-avatar chat-variant">
+                {{ note.sender ? note.sender.charAt(0).toUpperCase() : 'A' }}
+            </span>
+            <span class="chat-author-name">{{ note.sender || 'System User' }}</span>
+        </span>
+        <span class="chat-bubble-time">{{ formatDate(note.created_at) }}</span>
+    </div>
+    <div class="chat-bubble-body">
+        {{ note.text }}
+    </div>
+</div>
+
+                            </div>
+
+                            <div v-else class="notes-empty">
+                                💬 No updates logged yet. Start the conversation by writing an update below!
+                            </div>
+                        </div>
+
+                        <div class="notes-editor-section">
+                            <label for="task-textarea">Write a new update or modify directions:</label>
+                            <textarea id="task-textarea" v-model="updatesDraftText"
+                                placeholder="Share an update, flag blockers, or drop context for the team..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-panel-footer">
+                        <button class="btn-flat-cancel" @click="closeUpdatesSidebar">Close</button>
+                        <button class="monday-btn-primary" @click="saveTaskNotesUpdate">Update Status Box</button>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 </template>
@@ -293,8 +380,6 @@ const form = reactive({
     description: "",
     team_leader_id: "",
 });
-
-// Detect User Role (Admin gets access to all project members)
 const isAdmin = computed(() => page.props.auth?.user?.role === 'admin' || true);
 
 const projects = computed(() => props.projects || []);
@@ -307,7 +392,6 @@ const filteredProjects = computed(() => {
     });
 });
 
-/* Modal Controllers */
 const openCreateProjectModal = () => {
     showCreateProjectModal.value = true;
 };
@@ -328,7 +412,6 @@ const handleCreateProject = () => {
     });
 };
 
-/* Style Mapping Helpers */
 const getGroupColor = (status) => {
     switch (status) {
         case 'In Progress': return '#3b82f6';
@@ -348,26 +431,23 @@ const getPriorityLabelClass = (priority) => {
     return 'priority-' + priority.toLowerCase();
 };
 
-/* Resolves Members Dropdown Based on User Role Context */
 const getProjectScopeMembers = (project) => {
     if (!project || !project.team_leader) return [];
     const leader = project.team_leader;
     const assets = leader.team_members || [];
 
     if (isAdmin.value) {
-        // Admin gets access to both Team Leader and Team Members in the inline dropdown
         const managerNode = { id: leader.id, first_name: leader.first_name, last_name: " (TL)" };
         return [managerNode, ...assets];
     }
     return assets;
 };
 
-/* Monday.com Style Inline Table Sync Engine */
 const appendNewEmptyTask = (project) => {
     const rawPayload = {
         project_id: project.id,
         title: "New Item Row",
-        member_id: null,
+        member_id: [],
         priority: "Medium",
         status: "Todo",
         deadline: new Date().toISOString().slice(0, 10),
@@ -385,7 +465,6 @@ const appendNewEmptyTask = (project) => {
 };
 
 const syncTaskRow = (task) => {
-    // If user clears the text field, provide a fallback title to pass backend string checks
     if (!task.title || task.title.trim() === '') {
         task.title = "Untitled Task";
     }
@@ -420,7 +499,6 @@ const removeTaskRow = (taskId, project) => {
     }
 };
 
-/* Edit Project Settings */
 const showEditModal = ref(false);
 const editingProject = ref(null);
 const openEditProjectModal = (project) => {
@@ -439,7 +517,6 @@ const updateProject = () => {
     });
 };
 
-/* Delete Project Settings */
 const showDeleteModal = ref(false);
 const selectedProjectId = ref(null);
 const openDeleteModal = (id) => {
@@ -459,13 +536,144 @@ const deleteProject = () => {
     });
 };
 
+const showUpdatesSidebarPane = ref(false);
+const activeTaskForUpdates = ref(null);
+const activeProjectForUpdates = ref(null);
+const updatesDraftText = ref("");
+
+const openUpdatesSidebar = (task, project) => {
+    activeTaskForUpdates.value = task;
+    activeProjectForUpdates.value = project;
+    updatesDraftText.value = "";
+    showUpdatesSidebarPane.value = true;
+};
+
+const closeUpdatesSidebar = () => {
+    showUpdatesSidebarPane.value = false;
+    activeTaskForUpdates.value = null;
+    activeProjectForUpdates.value = null;
+    updatesDraftText.value = "";
+};
+
+const saveTaskNotesUpdate = () => {
+    if (!activeTaskForUpdates.value || !updatesDraftText.value.trim()) return;
+
+    const messageText = updatesDraftText.value.trim();
+
+    const syncPayload = {
+        id: activeTaskForUpdates.value.id,
+        project_id: activeTaskForUpdates.value.project_id,
+        title: activeTaskForUpdates.value.title,
+        member_id: activeTaskForUpdates.value.member_id,
+        status: activeTaskForUpdates.value.status,
+        priority: activeTaskForUpdates.value.priority,
+        deadline: activeTaskForUpdates.value.deadline,
+        notes: messageText
+    };
+
+    router.put(`/task/${activeTaskForUpdates.value.id}`, syncPayload, {
+        preserveScroll: true,
+        onSuccess: () => {
+            const currentUser = page.props.auth?.user;
+            const senderName = currentUser?.first_name || currentUser?.name || 'Admin';
+
+            if (!activeTaskForUpdates.value.notes) {
+                activeTaskForUpdates.value.notes = [];
+            }
+
+            activeTaskForUpdates.value.notes.unshift({
+                sender: senderName,
+                text: messageText,
+                created_at: new Date().toISOString()
+            });
+
+            updatesDraftText.value = "";
+        },
+        onError: () => { toast.error("Failed to post message update."); }
+    });
+};
+
+const formatDate = (isoString) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+// --- Multi-Assignee Interaction Directives & Handlers ---
+const activeAssigneeDropdownTaskId = ref(null);
+
+const toggleAssigneeDropdown = (taskId) => {
+    if (activeAssigneeDropdownTaskId.value === taskId) {
+        activeAssigneeDropdownTaskId.value = null;
+    } else {
+        activeAssigneeDropdownTaskId.value = taskId;
+    }
+};
+
+const closeAssigneeDropdown = () => {
+    activeAssigneeDropdownTaskId.value = null;
+};
+
+// Check if a member is currently assigned inside the array list
+const isMemberAssigned = (task, memberId) => {
+    if (!task.member_id || !Array.isArray(task.member_id)) return false;
+    return task.member_id.includes(memberId);
+};
+
+// Push or pop an assignment item inside the array payload string
+const toggleMemberAssignment = (task, memberId) => {
+    if (!task.member_id || !Array.isArray(task.member_id)) {
+        task.member_id = [];
+    }
+
+    const index = task.member_id.indexOf(memberId);
+    if (index > -1) {
+        task.member_id.splice(index, 1); // unassign
+    } else {
+        task.member_id.push(memberId); // assign
+    }
+
+    // Fire synchronization callback payload instantly back to our server endpoint
+    syncTaskRow(task);
+};
+
+// Helper to look up initials dynamically inside project scopes
+const getMemberInitials = (project, memberId) => {
+    const members = getProjectScopeMembers(project);
+    const found = members.find(m => m.id === memberId);
+    if (!found) return "?";
+    return found.first_name ? found.first_name.charAt(0).toUpperCase() : "M";
+};
+
+// Helper to lookup clean title mappings for hover hints
+const getMemberFullName = (project, memberId) => {
+    const members = getProjectScopeMembers(project);
+    const found = members.find(m => m.id === memberId);
+    if (!found) return "Team Member";
+    return `${found.first_name} ${found.last_name || ''}`;
+};
+
+// CUSTOM CLICK-OUTSIDE DIRECTIVE TO CLOSE DROP-DOWN SAFELY IF CLICKING OFF CELL
+const vClickOutside = {
+    mounted(el, binding) {
+        el.clickOutsideEvent = (event) => {
+            if (!(el === event.target || el.contains(event.target))) {
+                binding.value(event);
+            }
+        };
+        document.addEventListener("click", el.clickOutsideEvent);
+    },
+    unmounted(el) {
+        document.removeEventListener("click", el.clickOutsideEvent);
+    },
+};
+
 const logout = () => {
     router.post('/logout');
 };
 </script>
 
 <style scoped>
-/* Dashboard Base Layout */
 .main-content {
     flex: 1;
     padding: 20px;
@@ -477,7 +685,6 @@ const logout = () => {
     padding: 10px 10px;
 }
 
-/* Upper Deck Widget Cards Structure */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -509,7 +716,6 @@ const logout = () => {
     color: var(--text);
 }
 
-/* Toolbar Controls */
 .global-actions-bar {
     display: flex;
     gap: 16px;
@@ -528,7 +734,6 @@ const logout = () => {
     cursor: pointer;
 }
 
-/* Monday Buttons Paradigm */
 .monday-btn-primary {
     background: #0073ea;
     color: #ffffff;
@@ -571,7 +776,6 @@ const logout = () => {
     font-weight: 500;
 }
 
-/* Monday.com Grid Spreadsheet Architecture */
 .monday-board-container {
     display: flex;
     flex-direction: column;
@@ -657,7 +861,6 @@ const logout = () => {
     background: rgba(223, 47, 74, 0.1);
 }
 
-/* Inline Spreadsheet Grid */
 .monday-table-wrapper {
     overflow-x: auto;
     width: 100%;
@@ -670,29 +873,28 @@ const logout = () => {
     table-layout: fixed;
 }
 
-/* Dynamic Alignment Width Allocations */
 .col-task {
-    width: 35%;
+    width: 20%;
 }
 
 .col-member {
-    width: 18%;
+    width: 12%;
 }
 
 .col-status {
-    width: 16%;
+    width: 14%;
 }
 
 .col-priority {
-    width: 14%;
+    width: 12%;
 }
 
 .col-due {
-    width: 14%;
+    width: 12%;
 }
 
 .col-action {
-    width: 3%;
+    width: 5%;
 }
 
 .monday-editable-table th {
@@ -712,7 +914,6 @@ const logout = () => {
     background: var(--card);
 }
 
-/* Interactive Table Input Box Controls */
 .monday-input-cell {
     width: 100%;
     height: 38px;
@@ -729,7 +930,6 @@ const logout = () => {
     box-shadow: inset 0 0 0 2px #0073ea;
 }
 
-/* Member Profile Selector Cells */
 .monday-select-cell {
     width: 100%;
     height: 38px;
@@ -748,7 +948,6 @@ const logout = () => {
     color: var(--text);
 }
 
-/* Deadline Calendar Picker Context styles */
 .monday-date-cell {
     width: 100%;
     height: 38px;
@@ -759,10 +958,9 @@ const logout = () => {
     color: var(--text);
     outline: none;
     color-scheme: dark light;
-    /* Ensures native calendar popup respects theme */
+
 }
 
-/* Monday.com Flag Pickers Core Styles */
 .monday-status-dropdown,
 .monday-priority-dropdown {
     width: 100%;
@@ -784,7 +982,6 @@ const logout = () => {
     color: var(--text);
 }
 
-/* Lifecycle status color blocks assignment mappings */
 .cell-status.status-todo .monday-status-dropdown {
     background: #64748b;
     color: #ffffff;
@@ -798,7 +995,6 @@ const logout = () => {
     background: #00c875;
 }
 
-/* Production priority color assignments configuration values */
 .cell-priority.priority-low .monday-priority-dropdown {
     background: #579bfc;
 }
@@ -811,7 +1007,6 @@ const logout = () => {
     background: #e2445c;
 }
 
-/* Task Row State Actions triggers elements layout */
 .task-row-item:hover {
     background: var(--hover);
 }
@@ -833,7 +1028,6 @@ const logout = () => {
     background: rgba(223, 47, 74, 0.1);
 }
 
-/* Quick Append Task Rows Triggers Element */
 .add-row-placeholder {
     padding: 10px 16px;
     color: var(--subtext);
@@ -856,7 +1050,6 @@ const logout = () => {
     font-weight: bold;
 }
 
-/* Popups Modal Formatting Wrapper Layer */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -992,49 +1185,458 @@ const logout = () => {
 }
 
 .profile-container {
-  position: relative;
+    position: relative;
 }
 
 .avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  cursor: pointer;
-  border: 2px solid var(--card);
-  transition: 0.2s ease;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid var(--card);
+    transition: 0.2s ease;
 }
 
 .avatar:hover {
-  transform: scale(1.05);
+    transform: scale(1.05);
 }
 
 .profile-dropdown {
-  position: absolute;
-  top: 58px;
-  right: 0;
-  width: 140px;
-  background: var(--sidebar);
-  border: 1px solid var(--card);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
-  z-index: 100;
+    position: absolute;
+    top: 58px;
+    right: 0;
+    width: 140px;
+    background: var(--sidebar);
+    border: 1px solid var(--card);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    z-index: 100;
 }
 
 .profile-dropdown button {
-  width: 100%;
-  padding: 12px 16px;
-  background: transparent;
-  border: none;
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-  font-size: 14px;
-  transition: 0.2s ease;
+    width: 100%;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s ease;
 }
 
 .profile-dropdown button:hover {
-  background: var(--card);
-  color: #ef4444;
+    background: var(--card);
+    color: #ef4444;
+}
+
+.monday-update-icon-btn {
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: background 0.2s;
+}
+
+.monday-update-icon-btn:hover {
+    background: var(--hover);
+}
+
+.monday-update-icon-btn.has-notes {
+    color: #0073ea;
+}
+
+.update-indicator-dot {
+    position: absolute;
+    top: 6px;
+    right: 10px;
+    width: 6px;
+    height: 6px;
+    background: #00c875;
+    border-radius: 50%;
+}
+
+.updates-sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0);
+    backdrop-filter: blur(0px);
+    z-index: 1500;
+    display: flex;
+    justify-content: flex-end;
+    pointer-events: none;
+    transition: background-color 0.3s ease, backdrop-filter 0.3s ease;
+}
+
+.updates-sidebar-overlay.open {
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(2px);
+    pointer-events: auto;
+}
+
+.updates-sidebar-panel {
+    width: 500px;
+    height: 100%;
+    background: var(--card);
+    border-left: 1px solid var(--border);
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.updates-sidebar-overlay.open .updates-sidebar-panel {
+    transform: translateX(0);
+}
+
+.sidebar-panel-header {
+    padding: 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    background: var(--bg);
+}
+
+.panel-header-left {
+    display: flex;
+    gap: 14px;
+}
+
+.panel-task-icon {
+    font-size: 24px;
+    margin-top: 2px;
+}
+
+.sidebar-panel-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+}
+
+.panel-subtitle {
+    font-size: 13px;
+    color: var(--subtext);
+    margin-top: 4px;
+}
+
+.close-panel-btn {
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    color: var(--subtext);
+    cursor: pointer;
+    padding: 4px;
+}
+
+.close-panel-btn:hover {
+    color: var(--text);
+}
+
+.sidebar-panel-body {
+    padding: 24px;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.sidebar-panel-body label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    display: block;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.notes-display-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.notes-content {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 8px;
+}
+
+.notes-meta {
+    font-size: 12px;
+    color: #0073ea;
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+
+.notes-text-body {
+    font-size: 14px;
+    color: var(--text);
+    white-space: pre-wrap;
+    line-height: 1.5;
+}
+
+.notes-editor-section textarea {
+    width: 100%;
+    min-height: 140px;
+    padding: 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.notes-editor-section textarea:focus {
+    border-color: #0073ea;
+}
+
+.sidebar-panel-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* Container Wrapper updates */
+.messages-thread-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 10px;
+    padding-right: 4px;
+}
+
+/* Chat Card Styling */
+.chat-bubble-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.chat-bubble-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 4px;
+}
+
+.chat-bubble-author {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0073ea;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.avatar-mini {
+    font-size: 12px;
+    background: var(--hover);
+    border-radius: 50%;
+    padding: 2px;
+}
+
+.chat-bubble-time {
+    font-size: 11px;
+    color: var(--subtext);
+}
+
+.chat-bubble-body {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Empty Log Frame */
+.notes-empty {
+    color: var(--subtext);
+    font-style: italic;
+    font-size: 13px;
+    text-align: center;
+    padding: 30px 10px;
+    background: var(--bg);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+/* Circular Avatar UI Design Parameters */
+.multi-assignee-trigger {
+    width: 100%;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.avatar-stack-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    padding: 2px;
+}
+
+.monday-circle-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #0073ea;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--card);
+    text-transform: uppercase;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    user-select: none;
+}
+
+/* Give random variations or unique color identifiers back for other avatars */
+.monday-circle-avatar:nth-child(even) {
+    background: #00c875;
+}
+.monday-circle-avatar:nth-child(3n) {
+    background: #a25ddc;
+}
+
+/* Chat bubble avatar adjustments overrides */
+.monday-circle-avatar.chat-variant {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+    background: #fd7e14;
+    border: none;
+}
+
+.avatar-placeholder-empty {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px dashed var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--subtext);
+    transition: all 0.2s;
+}
+.avatar-placeholder-empty:hover {
+    background: var(--hover);
+    border-color: #0073ea;
+}
+
+/* Floating Multi-Select dropdown architecture */
+.multi-assignee-dropdown-panel {
+    position: absolute;
+    top: 42px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 220px;
+    background: var(--sidebar);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    z-index: 1100;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.dropdown-panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--subtext);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    padding-left: 4px;
+}
+
+.dropdown-options-scroll {
+    max-height: 180px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.assignee-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.assignee-checkbox-row:hover {
+    background: var(--card);
+}
+
+.assignee-checkbox-row input[type="checkbox"] {
+    accent-color: #0073ea;
+    cursor: pointer;
+}
+
+.dropdown-member-initials {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--hover);
+    font-size: 9px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+}
+
+.dropdown-member-name {
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-author-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
 }
 </style>
