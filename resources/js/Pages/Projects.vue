@@ -99,12 +99,12 @@
                             <thead>
                                 <tr>
                                     <th class="col-task">Task Name</th>
-                                    <th class="col-updates" style="width: 6%;">Updates</th>
+                                    <th class="col-updates">Updates</th>
                                     <th class="col-member">Member</th>
                                     <th class="col-status">Status</th>
                                     <th class="col-priority">Priority</th>
                                     <th class="col-due">Due Date</th>
-                                    <th class="col-action" style="width: 3%;">Action</th>
+                                    <th class="col-action">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -122,37 +122,90 @@
                                                 class="update-indicator-dot"></span>
                                         </button>
                                     </td>
-                                    <td class="cell-member" style="position: relative; padding: 0 8px;">
-    <div class="multi-assignee-trigger" @click.stop="toggleAssigneeDropdown(task.id)">
-        <div v-if="task.member_id && task.member_id.length > 0" class="avatar-stack-container">
-            <div v-for="mId in task.member_id"
-                 :key="mId"
-                 class="monday-circle-avatar"
-                 :title="getMemberFullName(project, mId)">
-                {{ getMemberInitials(project, mId) }}
-            </div>
-        </div>
-        <div v-else class="avatar-placeholder-empty" title="Assign Team Members">
-            ➕
-        </div>
-    </div>
+                                    <td class="cell-member" style="position: relative; padding: 0;">
+                                        <!-- Clickable Cell Area (Matches image_c2dc86.png cell hover borders) -->
+                                        <div class="monday-owner-cell-trigger"
+                                            @click.stop="toggleAssigneeDropdown(task.id, $event)">
+                                            <div v-if="task.member_id && task.member_id.length > 0"
+                                                class="avatar-overlap-stack">
+                                                <div v-for="(mId, idx) in task.member_id" :key="mId"
+                                                    class="monday-circle-avatar" :style="{ zIndex: 10 - idx }"
+                                                    :title="getMemberFullName(project, mId)">
+                                                    {{ getMemberInitials(project, mId) }}
+                                                </div>
+                                            </div>
+                                            <div v-else class="avatar-placeholder-blank">
+                                                <div class="blank-avatar-icon">👤</div>
+                                            </div>
+                                        </div>
 
-    <div v-if="activeAssigneeDropdownTaskId === task.id" class="multi-assignee-dropdown-panel" v-click-outside="closeAssigneeDropdown">
-        <div class="dropdown-panel-title">Assign Members</div>
-        <div class="dropdown-options-scroll">
-            <label v-for="member in getProjectScopeMembers(project)" :key="member.id" class="assignee-checkbox-row">
-                <input
-                    type="checkbox"
-                    :value="member.id"
-                    :checked="isMemberAssigned(task, member.id)"
-                    @change="toggleMemberAssignment(task, member.id)"
-                />
-                <span class="dropdown-member-initials">{{ member.first_name?.charAt(0).toUpperCase() || 'M' }}</span>
-                <span class="dropdown-member-name">{{ member.first_name }} {{ member.last_name }}</span>
-            </label>
-        </div>
-    </div>
-</td>
+                                        <!-- Premium Custom Flyout Dialog Panel -->
+                                        <div v-if="activeAssigneeDropdownTaskId === task.id"
+                                            class="monday-popup-modal-panel"
+                                            :style="{ top: dropdownPosition.top, left: dropdownPosition.left }"
+                                            v-click-outside="closeAssigneeDropdown">
+
+                                            <!-- Active Selections Row Area -->
+                                            <div class="modal-pills-row">
+                                                <div v-for="mId in task.member_id" :key="mId" class="member-pill-badge">
+                                                    <span class="pill-avatar-dot">{{ getMemberInitials(project, mId)
+                                                    }}</span>
+                                                    <span class="pill-name-text">{{ getMemberFirstNameOnly(project, mId)
+                                                    }}</span>
+                                                    <span class="pill-remove-btn"
+                                                        @click.stop="toggleMemberAssignment(task, mId)">×</span>
+                                                </div>
+                                                <div v-if="!task.member_id || task.member_id.length === 0"
+                                                    class="no-assignees-hint">
+                                                    No owners assigned
+                                                </div>
+                                            </div>
+
+                                            <!-- Search Input Bar Header -->
+                                            <div class="modal-search-wrapper">
+                                                <span class="search-magnifier-icon">🔍</span>
+                                                <input type="text" v-model="memberSearchQuery"
+                                                    placeholder="Search names, roles or teams"
+                                                    class="modal-search-input" @click.stop />
+                                                <span class="search-info-bubble">ℹ️</span>
+                                            </div>
+
+                                            <!-- Filtered Suggested Lists section -->
+                                            <div class="modal-section-title">Suggested people</div>
+                                            <div class="modal-list-scrollway">
+                                                <div v-for="member in filterScopeMembers(project)" :key="member.id"
+                                                    class="modal-user-row-item"
+                                                    :class="{ 'is-already-selected': isMemberAssigned(task, member.id) }"
+                                                    @click.stop="toggleMemberAssignment(task, member.id)">
+
+                                                    <div class="row-user-avatar">
+                                                        {{ member.first_name?.charAt(0).toUpperCase() || 'M' }}
+                                                    </div>
+                                                    <div class="row-user-info">
+                                                        <span class="row-fullname">{{ member.first_name }} {{
+                                                            member.last_name }}</span>
+                                                    </div>
+                                                    <div v-if="isMemberAssigned(task, member.id)"
+                                                        class="row-selection-checkmark">
+                                                        ✓
+                                                    </div>
+                                                </div>
+                                                <div v-if="filterScopeMembers(project).length === 0"
+                                                    class="empty-search-fallback">
+                                                    No matching members found
+                                                </div>
+                                            </div>
+
+                                            <!-- Sticky Interaction Footer Block -->
+                                            <div class="modal-action-footer">
+                                                <div class="footer-notification-info">
+                                                    <span class="footer-bell-icon">🔔</span>
+                                                    <span class="footer-alert-text">Assignees will be notified</span>
+                                                </div>
+                                                <button class="footer-mute-action-btn" @click.stop>Mute</button>
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td class="cell-status" :class="getStatusLabelClass(task.status)">
                                         <select v-model="task.status" @change="syncTaskRow(task)"
                                             class="monday-status-dropdown">
@@ -313,20 +366,21 @@
                             <div v-if="activeTaskForUpdates?.notes && activeTaskForUpdates.notes.length > 0"
                                 class="messages-thread-wrapper">
 
-                                <div v-for="(note, index) in activeTaskForUpdates.notes" :key="index" class="chat-bubble-card">
-    <div class="chat-bubble-meta">
-        <span class="chat-bubble-author">
-            <span class="monday-circle-avatar chat-variant">
-                {{ note.sender ? note.sender.charAt(0).toUpperCase() : 'A' }}
-            </span>
-            <span class="chat-author-name">{{ note.sender || 'System User' }}</span>
-        </span>
-        <span class="chat-bubble-time">{{ formatDate(note.created_at) }}</span>
-    </div>
-    <div class="chat-bubble-body">
-        {{ note.text }}
-    </div>
-</div>
+                                <div v-for="(note, index) in activeTaskForUpdates.notes" :key="index"
+                                    class="chat-bubble-card">
+                                    <div class="chat-bubble-meta">
+                                        <span class="chat-bubble-author">
+                                            <span class="monday-circle-avatar chat-variant">
+                                                {{ note.sender ? note.sender.charAt(0).toUpperCase() : 'A' }}
+                                            </span>
+                                            <span class="chat-author-name">{{ note.sender || 'System User' }}</span>
+                                        </span>
+                                        <span class="chat-bubble-time">{{ formatDate(note.created_at) }}</span>
+                                    </div>
+                                    <div class="chat-bubble-body">
+                                        {{ note.text }}
+                                    </div>
+                                </div>
 
                             </div>
 
@@ -400,7 +454,6 @@ const handleCreateProject = () => {
     router.post("/project", form, {
         preserveScroll: true,
         onSuccess: () => {
-            toast.success("Project board deployed successfully.");
             showCreateProjectModal.value = false;
             form.name = "";
             form.status = "Planning";
@@ -456,7 +509,6 @@ const appendNewEmptyTask = (project) => {
     router.post("/task", rawPayload, {
         preserveScroll: true,
         onSuccess: () => {
-            toast.success("New task line injected below.");
         },
         onError: () => {
             toast.error("An error occurred trying to initialize task template.");
@@ -481,7 +533,6 @@ const syncTaskRow = (task) => {
 
     router.put(`/task/${task.id}`, updatePayload, {
         preserveScroll: true,
-        onSuccess: () => { toast.success("Changes auto-saved."); },
         onError: () => { toast.error("Sync error: Failed to save edits to server."); }
     });
 };
@@ -491,7 +542,6 @@ const removeTaskRow = (taskId, project) => {
         router.delete(`/task/${taskId}`, {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success("Line record purged.");
                 project.tasks = project.tasks.filter(t => t.id !== taskId);
             },
             onError: () => { toast.error("Failed to delete task."); }
@@ -510,7 +560,6 @@ const updateProject = () => {
     router.put(`/project/${editingProject.value.id}`, editingProject.value, {
         preserveScroll: true,
         onSuccess: () => {
-            toast.success("Project updated successfully.");
             showEditModal.value = false;
         },
         onError: () => { toast.error("Failed to update project settings."); }
@@ -528,7 +577,6 @@ const deleteProject = () => {
     router.delete(`/project/${selectedProjectId.value}`, {
         preserveScroll: true,
         onSuccess: () => {
-            toast.success("Project successfully removed.");
             showDeleteModal.value = false;
             selectedProjectId.value = null;
         },
@@ -599,61 +647,6 @@ const formatDate = (isoString) => {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-// --- Multi-Assignee Interaction Directives & Handlers ---
-const activeAssigneeDropdownTaskId = ref(null);
-
-const toggleAssigneeDropdown = (taskId) => {
-    if (activeAssigneeDropdownTaskId.value === taskId) {
-        activeAssigneeDropdownTaskId.value = null;
-    } else {
-        activeAssigneeDropdownTaskId.value = taskId;
-    }
-};
-
-const closeAssigneeDropdown = () => {
-    activeAssigneeDropdownTaskId.value = null;
-};
-
-// Check if a member is currently assigned inside the array list
-const isMemberAssigned = (task, memberId) => {
-    if (!task.member_id || !Array.isArray(task.member_id)) return false;
-    return task.member_id.includes(memberId);
-};
-
-// Push or pop an assignment item inside the array payload string
-const toggleMemberAssignment = (task, memberId) => {
-    if (!task.member_id || !Array.isArray(task.member_id)) {
-        task.member_id = [];
-    }
-
-    const index = task.member_id.indexOf(memberId);
-    if (index > -1) {
-        task.member_id.splice(index, 1); // unassign
-    } else {
-        task.member_id.push(memberId); // assign
-    }
-
-    // Fire synchronization callback payload instantly back to our server endpoint
-    syncTaskRow(task);
-};
-
-// Helper to look up initials dynamically inside project scopes
-const getMemberInitials = (project, memberId) => {
-    const members = getProjectScopeMembers(project);
-    const found = members.find(m => m.id === memberId);
-    if (!found) return "?";
-    return found.first_name ? found.first_name.charAt(0).toUpperCase() : "M";
-};
-
-// Helper to lookup clean title mappings for hover hints
-const getMemberFullName = (project, memberId) => {
-    const members = getProjectScopeMembers(project);
-    const found = members.find(m => m.id === memberId);
-    if (!found) return "Team Member";
-    return `${found.first_name} ${found.last_name || ''}`;
-};
-
-// CUSTOM CLICK-OUTSIDE DIRECTIVE TO CLOSE DROP-DOWN SAFELY IF CLICKING OFF CELL
 const vClickOutside = {
     mounted(el, binding) {
         el.clickOutsideEvent = (event) => {
@@ -666,6 +659,79 @@ const vClickOutside = {
     unmounted(el) {
         document.removeEventListener("click", el.clickOutsideEvent);
     },
+};
+
+const dropdownPosition = ref({ top: '0px', left: '0px' });
+const activeAssigneeDropdownTaskId = ref(null);
+const memberSearchQuery = ref('');
+
+const toggleAssigneeDropdown = (taskId, event) => {
+    if (activeAssigneeDropdownTaskId.value === taskId) {
+        activeAssigneeDropdownTaskId.value = null;
+    } else {
+        memberSearchQuery.value = '';
+        activeAssigneeDropdownTaskId.value = taskId;
+
+        if (event && event.currentTarget) {
+            const rect = event.currentTarget.getBoundingClientRect();
+
+            dropdownPosition.value = {
+                top: `${rect.bottom + window.scrollY + 6}px`,
+                left: `${rect.left + window.scrollX + (rect.width / 2) - 160}px`
+            };
+        }
+    }
+};
+
+const closeAssigneeDropdown = () => {
+    activeAssigneeDropdownTaskId.value = null;
+};
+
+const isMemberAssigned = (task, memberId) => {
+    if (!task.member_id || !Array.isArray(task.member_id)) return false;
+    return task.member_id.includes(memberId);
+};
+
+const toggleMemberAssignment = (task, memberId) => {
+    if (!task.member_id || !Array.isArray(task.member_id)) {
+        task.member_id = [];
+    }
+    const index = task.member_id.indexOf(memberId);
+    if (index > -1) {
+        task.member_id.splice(index, 1);
+    } else {
+        task.member_id.push(memberId);
+    }
+    syncTaskRow(task);
+};
+
+const filterScopeMembers = (project) => {
+    const allMembers = getProjectScopeMembers(project) || [];
+    if (!memberSearchQuery.value.trim()) return allMembers;
+
+    const query = memberSearchQuery.value.toLowerCase();
+    return allMembers.filter(m => {
+        const full = `${m.first_name} ${m.last_name}`.toLowerCase();
+        return full.includes(query);
+    });
+};
+
+const getMemberInitials = (project, memberId) => {
+    const members = getProjectScopeMembers(project) || [];
+    const found = members.find(m => m.id === memberId);
+    return found?.first_name ? found.first_name.charAt(0).toUpperCase() : "?";
+};
+
+const getMemberFirstNameOnly = (project, memberId) => {
+    const members = getProjectScopeMembers(project) || [];
+    const found = members.find(m => m.id === memberId);
+    return found ? found.first_name : "User";
+};
+
+const getMemberFullName = (project, memberId) => {
+    const members = getProjectScopeMembers(project) || [];
+    const found = members.find(m => m.id === memberId);
+    return found ? `${found.first_name} ${found.last_name || ''}` : "Team Member";
 };
 
 const logout = () => {
@@ -875,26 +941,48 @@ const logout = () => {
 
 .col-task {
     width: 20%;
+    text-align: center;
 }
 
 .col-member {
     width: 12%;
+    text-align: center;
 }
 
 .col-status {
     width: 14%;
+    text-align: center;
 }
 
 .col-priority {
     width: 12%;
+    text-align: center;
 }
 
 .col-due {
     width: 12%;
+    text-align: center;
 }
 
 .col-action {
     width: 5%;
+    text-align: center;
+}
+
+.col-updates {
+    width: 8%;
+    text-align: center;
+}
+
+:deep(td.cell-member),
+.cell-member {
+    position: relative !important;
+    overflow: visible !important;
+}
+
+:deep(tr),
+tbody tr {
+    contain: none !important;
 }
 
 .monday-editable-table th {
@@ -1417,7 +1505,6 @@ const logout = () => {
     gap: 12px;
 }
 
-/* Container Wrapper updates */
 .messages-thread-wrapper {
     display: flex;
     flex-direction: column;
@@ -1428,7 +1515,6 @@ const logout = () => {
     padding-right: 4px;
 }
 
-/* Chat Card Styling */
 .chat-bubble-card {
     background: var(--bg);
     border: 1px solid var(--border);
@@ -1437,14 +1523,14 @@ const logout = () => {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .chat-bubble-meta {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     padding-bottom: 4px;
 }
 
@@ -1477,7 +1563,6 @@ const logout = () => {
     word-break: break-word;
 }
 
-/* Empty Log Frame */
 .notes-empty {
     color: var(--subtext);
     font-style: italic;
@@ -1490,7 +1575,6 @@ const logout = () => {
     margin-top: 10px;
 }
 
-/* Circular Avatar UI Design Parameters */
 .multi-assignee-trigger {
     width: 100%;
     height: 38px;
@@ -1522,19 +1606,18 @@ const logout = () => {
     justify-content: center;
     border: 1.5px solid var(--card);
     text-transform: uppercase;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
     user-select: none;
 }
 
-/* Give random variations or unique color identifiers back for other avatars */
 .monday-circle-avatar:nth-child(even) {
     background: #00c875;
 }
+
 .monday-circle-avatar:nth-child(3n) {
     background: #a25ddc;
 }
 
-/* Chat bubble avatar adjustments overrides */
 .monday-circle-avatar.chat-variant {
     width: 32px;
     height: 32px;
@@ -1555,83 +1638,304 @@ const logout = () => {
     color: var(--subtext);
     transition: all 0.2s;
 }
+
 .avatar-placeholder-empty:hover {
     background: var(--hover);
     border-color: #0073ea;
 }
 
-/* Floating Multi-Select dropdown architecture */
-.multi-assignee-dropdown-panel {
-    position: absolute;
-    top: 42px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 220px;
-    background: var(--sidebar);
-    border: 1px solid var(--border);
+.monday-owner-cell-trigger {
+    width: 100%;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+    padding: 4px;
+}
+
+.monday-owner-cell-trigger:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    outline: 1px solid #0073ea;
+}
+
+.avatar-overlap-stack {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible !important;
+}
+
+.avatar-overlap-stack .monday-circle-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #0073ea;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #1e222d;
+    margin-left: -6px;
+    transition: transform 0.15s ease;
+    text-transform: uppercase;
+}
+
+.avatar-overlap-stack .monday-circle-avatar:first-child {
+    margin-left: 0;
+}
+
+.avatar-overlap-stack:hover .monday-circle-avatar {
+    transform: scale(1.05);
+}
+
+.avatar-overlap-stack .monday-circle-avatar:nth-child(even) {
+    background-color: #00c875;
+}
+
+.avatar-overlap-stack .monday-circle-avatar:nth-child(3n) {
+    background-color: #ffcb00;
+    color: #333;
+}
+
+.avatar-overlap-stack .monday-circle-avatar:nth-child(4n) {
+    background-color: #a25ddc;
+}
+
+.avatar-placeholder-blank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    color: #818594;
+}
+
+.monday-owner-cell-trigger:hover .blank-avatar-icon {
+    color: #0073ea;
+    transform: scale(1.1);
+}
+
+.monday-popup-modal-panel {
+    position: fixed !important;
+    width: 320px;
+    background-color: #292c3a;
     border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    z-index: 1100;
-    padding: 10px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 1px solid #3f4254;
+    z-index: 999999 !important;
+    padding: 16px 14px;
     display: flex;
     flex-direction: column;
+    text-align: left;
+    transform: none !important;
 }
 
-.dropdown-panel-title {
+.modal-pills-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+    max-height: 65px;
+    overflow-y: auto;
+}
+
+.member-pill-badge {
+    display: inline-flex;
+    align-items: center;
+    background-color: rgba(0, 115, 234, 0.2);
+    border: 1px solid rgba(0, 115, 234, 0.4);
+    padding: 2px 6px;
+    border-radius: 4px;
+    gap: 5px;
+}
+
+.pill-avatar-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: #0073ea;
+    font-size: 8px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pill-name-text {
+    font-size: 12px;
+    color: #e1e3e7;
+    font-weight: 500;
+}
+
+.pill-remove-btn {
+    font-size: 14px;
+    color: #a1a5b7;
+    cursor: pointer;
+    font-weight: bold;
+    padding-left: 2px;
+}
+
+.pill-remove-btn:hover {
+    color: #ff4d4d;
+}
+
+.no-assignees-hint {
+    font-size: 12px;
+    color: #7e8299;
+    font-style: italic;
+    padding: 2px 4px;
+}
+
+.modal-search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.search-magnifier-icon {
+    position: absolute;
+    left: 10px;
+    font-size: 12px;
+    color: #7e8299;
+}
+
+.modal-search-input {
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid #4a4e69;
+    border-radius: 6px;
+    padding: 8px 32px;
+    color: #ffffff;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.modal-search-input:focus {
+    border-color: #0073ea;
+    background-color: transparent;
+}
+
+.search-info-bubble {
+    position: absolute;
+    right: 10px;
+    font-size: 12px;
+    color: #7e8299;
+    cursor: help;
+}
+
+.modal-section-title {
     font-size: 11px;
-    font-weight: 700;
-    color: var(--subtext);
+    font-weight: 600;
+    color: #ffcb00;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
     margin-bottom: 8px;
-    padding-left: 4px;
 }
 
-.dropdown-options-scroll {
-    max-height: 180px;
+.modal-list-scrollway {
+    max-height: 160px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
+    margin-bottom: 12px;
 }
 
-.assignee-checkbox-row {
+.modal-user-row-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: 4px;
+    padding: 8px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background 0.2s;
-}
-.assignee-checkbox-row:hover {
-    background: var(--card);
+    transition: background-color 0.15s;
+    gap: 10px;
 }
 
-.assignee-checkbox-row input[type="checkbox"] {
-    accent-color: #0073ea;
-    cursor: pointer;
+.modal-user-row-item:hover {
+    background-color: rgba(255, 255, 255, 0.06);
 }
 
-.dropdown-member-initials {
-    width: 18px;
-    height: 18px;
+.modal-user-row-item.is-already-selected {
+    background-color: rgba(0, 113, 234, 0.08);
+}
+
+.row-user-avatar {
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    background: var(--hover);
-    font-size: 9px;
+    background-color: #565b73;
+    color: white;
+    font-size: 11px;
     font-weight: bold;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text);
 }
 
-.dropdown-member-name {
+.row-fullname {
     font-size: 13px;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    color: #d1d3d9;
+}
+
+.row-selection-checkmark {
+    margin-left: auto;
+    color: #00c875;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.empty-search-fallback {
+    font-size: 12px;
+    color: #7e8299;
+    text-align: center;
+    padding: 12px 0;
+}
+
+.modal-action-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid #3f4254;
+    padding-top: 12px;
+    margin-top: auto;
+}
+
+.footer-notification-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.footer-bell-icon {
+    font-size: 13px;
+}
+
+.footer-alert-text {
+    font-size: 11px;
+    color: #989ba0;
+}
+
+.footer-mute-action-btn {
+    background: transparent;
+    border: 1px solid #4a4e69;
+    color: #ffffff;
+    padding: 4px 12px;
+    font-size: 11px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.footer-mute-action-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: #e1e3e7;
 }
 
 .chat-author-name {
