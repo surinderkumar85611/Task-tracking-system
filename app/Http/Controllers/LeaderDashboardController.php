@@ -2,86 +2,87 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\Member;
+use App\Models\Project;
+use Inertia\Inertia;
 
 class LeaderDashboardController extends Controller
 {
-    public function dashboard()
+    public function index()
     {
-        return response()->json([
-            'teams' => 4,
-            'projects' => 6,
-            'tasks' => 18,
-            'pendingTasks' => 5,
-        ]);
-    }
+        $user = auth()->user();
 
-    public function teams()
-    {
-        return response()->json([
-            [
-                'id' => 1,
-                'name' => 'Frontend Team',
-                'members' => 5,
-                'status' => 'active'
-            ],
-            [
-                'id' => 2,
-                'name' => 'Backend Team',
-                'members' => 4,
-                'status' => 'active'
-            ],
-            [
-                'id' => 3,
-                'name' => 'Design Team',
-                'members' => 3,
-                'status' => 'active'
-            ]
-        ]);
-    }
+        // TEMPORARY BYPASS
+        $leader = Member::where(
+            'email',
+            $user->email
+        )->first();
 
-    public function projects()
-    {
-        return response()->json([
-            [
-                'id' => 1,
-                'name' => 'CRM Dashboard',
-                'progress' => 75
-            ],
-            [
-                'id' => 2,
-                'name' => 'Mobile App',
-                'progress' => 40
-            ],
-            [
-                'id' => 3,
-                'name' => 'Marketing System',
-                'progress' => 90
-            ]
-        ]);
-    }
+        // If logged-in user is not a member yet,
+        // just use the first available member record.
+        if (!$leader) {
+            $leader = Member::first();
+        }
 
-    public function tasks()
-    {
-        return response()->json([
+        $projects = Project::with([
+            'tasks',
+            'teamLeader.teamMembers'
+        ])
+        ->where('workspace_id', session('workspace_id'))
+        ->get();
+
+        $teamMembers = $leader
+            ? $leader->teamMembers
+            : collect();
+
+        $allTasks = collect();
+
+        foreach ($projects as $project) {
+            $allTasks = $allTasks->merge(
+                $project->tasks
+            );
+        }
+
+        $completedTasks = $allTasks
+            ->where('status', 'Completed')
+            ->count();
+
+        $pendingTasks = $allTasks
+            ->where('status', '!=', 'Completed')
+            ->count();
+
+        $statusBreakdown = [
+            'Todo' => $allTasks
+                ->where('status', 'Todo')
+                ->count(),
+
+            'In Progress' => $allTasks
+                ->where('status', 'In Progress')
+                ->count(),
+
+            'Completed' => $allTasks
+                ->where('status', 'Completed')
+                ->count(),
+        ];
+
+        return Inertia::render(
+            'LeaderDashboard',
             [
-                'id' => 1,
-                'title' => 'Build Login Page',
-                'assignee' => 'Sarah',
-                'status' => 'in_progress'
-            ],
-            [
-                'id' => 2,
-                'title' => 'API Integration',
-                'assignee' => 'David',
-                'status' => 'pending'
-            ],
-            [
-                'id' => 3,
-                'title' => 'UI Fixes',
-                'assignee' => 'Emma',
-                'status' => 'completed'
+                'leader' => $leader,
+
+                'projects' => $projects,
+
+                'teamMembers' => $teamMembers,
+
+                'stats' => [
+                    'projects' => $projects->count(),
+                    'tasks' => $allTasks->count(),
+                    'completed' => $completedTasks,
+                    'pending' => $pendingTasks,
+                ],
+
+                'statusBreakdown' => $statusBreakdown,
             ]
-        ]);
+        );
     }
 }

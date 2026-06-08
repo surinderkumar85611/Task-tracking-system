@@ -154,7 +154,12 @@ Route::get('/teams', [TeamController::class, 'index'])
 
 use App\Http\Controllers\LeaderDashboardController;
 
-Route::get('/leader/dashboard', [LeaderDashboardController::class, 'dashboard']);   
+Route::get(
+    '/leader-dashboard',
+    [LeaderDashboardController::class, 'index']
+)->middleware('auth');
+
+
 Route::post('/invite/generate', [InvitationController::class, 'generate']);
 Route::get('/invite/accept/{token}', [InvitationController::class, 'accept']);
 
