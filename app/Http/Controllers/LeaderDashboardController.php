@@ -2,35 +2,87 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Team;
+use App\Models\Member;
 use App\Models\Project;
-use App\Models\Task;
-use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class LeaderDashboardController extends Controller
 {
-    public function dashboard()
+    public function index()
     {
-        return response()->json([
-            'teams' => Team::count(),
-            'projects' => Project::count(),
-            'tasks' => Task::count(),
-            'pendingTasks' => Task::where('status', 'pending')->count(),
-        ]);
-    }
+        $user = auth()->user();
 
-    public function teams()
-    {
-        return Team::all();
-    }
+        // TEMPORARY BYPASS
+        $leader = Member::where(
+            'email',
+            $user->email
+        )->first();
 
-    public function projects()
-    {
-        return Project::all();
-    }
+        // If logged-in user is not a member yet,
+        // just use the first available member record.
+        if (!$leader) {
+            $leader = Member::first();
+        }
 
-    public function tasks()
-    {
-        return Task::all();
+        $projects = Project::with([
+            'tasks',
+            'teamLeader.teamMembers'
+        ])
+        ->where('workspace_id', session('workspace_id'))
+        ->get();
+
+        $teamMembers = $leader
+            ? $leader->teamMembers
+            : collect();
+
+        $allTasks = collect();
+
+        foreach ($projects as $project) {
+            $allTasks = $allTasks->merge(
+                $project->tasks
+            );
+        }
+
+        $completedTasks = $allTasks
+            ->where('status', 'Completed')
+            ->count();
+
+        $pendingTasks = $allTasks
+            ->where('status', '!=', 'Completed')
+            ->count();
+
+        $statusBreakdown = [
+            'Todo' => $allTasks
+                ->where('status', 'Todo')
+                ->count(),
+
+            'In Progress' => $allTasks
+                ->where('status', 'In Progress')
+                ->count(),
+
+            'Completed' => $allTasks
+                ->where('status', 'Completed')
+                ->count(),
+        ];
+
+        return Inertia::render(
+            'LeaderDashboard',
+            [
+                'leader' => $leader,
+
+                'projects' => $projects,
+
+                'teamMembers' => $teamMembers,
+
+                'stats' => [
+                    'projects' => $projects->count(),
+                    'tasks' => $allTasks->count(),
+                    'completed' => $completedTasks,
+                    'pending' => $pendingTasks,
+                ],
+
+                'statusBreakdown' => $statusBreakdown,
+            ]
+        );
     }
 }
