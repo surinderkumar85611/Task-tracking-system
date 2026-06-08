@@ -62,8 +62,13 @@
                         <div class="form-row-split">
                             <div class="input-group-wrapper">
                                 <label>Email Address</label>
-                                <input type="email" v-model="form.email" placeholder="Enter email address"
-                                    @blur="validateEmail(); handleBlur('email')" @input="validateEmail" />
+                                <input 
+                                    type="email" 
+                                    v-model="form.email" 
+                                    placeholder="Enter email address"
+                                    @blur="validateEmail(); handleBlur('email')" 
+                                    @input="validateEmail" 
+                                />
                                 <small v-if="errors.email" class="error-text">{{ errors.email }}</small>
                             </div>
                             <div class="input-group-wrapper">
@@ -120,6 +125,62 @@
                         <button class="action-cyan-btn" @click="showInviteModal = true">
                             ✨ Invite via Link Workflow
                         </button>
+                       <Transition name="modal-fade">
+    <div v-if="showInviteModal" class="modal-backdrop-blur-overlay" @click.self="showInviteModal = false">
+
+        <div class="professional-modal-window">
+
+            <div class="modal-custom-header">
+                <h3>Invite Workspace Member</h3>
+                <button class="modal-close-cross-btn" @click="showInviteModal = false">✕</button>
+            </div>
+
+            <div class="modal-custom-body">
+
+                <div class="input-group-wrapper">
+                    <label>Email Address</label>
+                    <input v-model="inviteForm.email" type="email" placeholder="john@gmail.com" />
+                    <small v-if="inviteErrors.email" class="error-text">
+                        {{ inviteErrors.email }}
+                    </small>
+                </div>
+
+                <div class="input-group-wrapper">
+                    <label>Default Role</label>
+                    <select v-model="inviteForm.role">
+                        <option value="Member">Team Member</option>
+                        <option value="TL">Team Leader</option>
+                    </select>
+                    <small v-if="inviteErrors.role" class="error-text">
+                        {{ inviteErrors.role }}
+                    </small>
+                </div>
+
+                <div class="input-group-wrapper">
+                    <label>Department</label>
+                    <input v-model="inviteForm.department" placeholder="Development" />
+                    <small v-if="inviteErrors.department" class="error-text">
+                        {{ inviteErrors.department }}
+                    </small>
+                </div>
+
+                <button class="action-primary-btn" @click="generateInvite">
+                    ✨ Generate Invite Link
+                </button>
+
+                <div v-if="generatedInviteLink" class="invite-link-copy-wrapper">
+                    <input class="copy-link-input-field" :value="generatedInviteLink" readonly />
+                    <button class="action-copy-trigger-btn" @click="copyToClipboard">
+                        Copy
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+</Transition>
                     </div>
                 </section>
             </div>
@@ -141,13 +202,20 @@
                                 @dragover.prevent @drop="dropMember(leader.id)">
 
                                 <div class="tl-card-info-header">
-                                    <div class="avatar-circle-initials">
+                                    <div class="avatar-circle-initials" @click="openEditModal(leader)"
+                                        style="cursor:pointer">
                                         {{ getInitials(leader.first_name, leader.last_name) }}
                                     </div>
+
+                                   
                                     <div class="tl-details-column">
-                                        <h3>{{ leader.first_name }} {{ leader.last_name }}</h3>
-                                        <span class="role-pill-tag tl-badge">Team Leader</span>
+                                        <h3>{{ leader.role === 'TL' ? 'Team Leader' : 'Team Member' }}</h3>
+                                        
+                                        <span class="role-pill-tag tl-badge">
+                                            {{ leader.department }}
+                                        </span>
                                     </div>
+
                                     <div class="tl-meta-right">
                                         <span class="count-badge">{{ leader.team_members.length }} Members</span>
                                     </div>
@@ -159,14 +227,12 @@
                                         <div v-for="member in leader.team_members || []" :key="member.id"
                                             class="member-sub-pill-row" draggable="true"
                                             @dragstart="dragMember(member)">
-                                            <div class="mini-avatar-dot">
+                                            <div class="mini-avatar-dot" @click.stop="openEditModal(member)"
+                                                style="cursor:pointer">
                                                 {{ getInitials(member.first_name, member.last_name) }}
                                             </div>
-                                            <div class="member-sub-meta">
-                                                <span class="sub-name">{{ member.first_name }} {{ member.last_name
-                                                    }}</span>
-                                                <span class="sub-email">Developer</span>
-                                            </div>
+
+
                                         </div>
                                     </div>
                                     <div v-else class="empty-subordinates-state">
@@ -195,7 +261,8 @@
                         <template v-if="unassignedMembers.length">
                             <div class="member-sub-pill-row grab-cursor" v-for="member in unassignedMembers"
                                 :key="member.id" draggable="true" @dragstart="dragMember(member)">
-                                <div class="avatar-circle-initials badge-cyan-bg">
+                                <div class="avatar-circle-initials badge-cyan-bg" @click.stop="openEditModal(member)"
+                                    style="cursor:pointer">
                                     {{ getInitials(member.first_name, member.last_name) }}
                                 </div>
                                 <div class="member-sub-meta">
@@ -213,44 +280,125 @@
 
             </section>
 
+
             <Transition name="modal-fade">
-                <div v-if="showInviteModal" class="modal-backdrop-blur-overlay" @click.self="showInviteModal = false">
+                <div v-if="showEditModal" class="modal-backdrop-blur-overlay" @click.self="showEditModal = false">
                     <div class="professional-modal-window">
 
                         <div class="modal-custom-header">
-                            <h3>Invite Workspace Member</h3>
-                            <button class="modal-close-cross-btn" @click="showInviteModal = false">✕</button>
+                            <h3>Edit Member</h3>
+
+                            <button class="modal-close-cross-btn" @click="showEditModal = false">
+                                ✕
+                            </button>
                         </div>
 
                         <div class="modal-custom-body">
+
                             <div class="input-group-wrapper">
-                                <label>Email Address</label>
-                                <input v-model="inviteForm.email" type="email" placeholder="john@gmail.com" />
+                                <label>First Name</label>
+                                <input v-model="editMember.first_name" type="text" />
                             </div>
 
                             <div class="input-group-wrapper">
-                                <label>Default Workspace Role</label>
-                                <select v-model="inviteForm.role">
-                                    <option value="Member">Team Member</option>
-                                    <option value="TL">Team Leader</option>
-                                </select>
+                                <label>Last Name</label>
+                                <input v-model="editMember.last_name" type="text" />
                             </div>
 
                             <div class="input-group-wrapper">
-                                <label>Department Assignment</label>
-                                <input v-model="inviteForm.department" placeholder="Development" />
+                                <label>Email</label>
+                                <input v-model="editMember.email" type="email" />
                             </div>
 
-                            <button class="action-cyan-btn margin-top-sm" @click="generateInvite">
-                                ⚡ Generate Active Registration Link
+                            <div class="input-group-wrapper">
+                                <label>Phone</label>
+                                <input v-model="editMember.phone" type="text" />
+                            </div>
+
+                            <div class="input-group-wrapper">
+                                <label>Department</label>
+                                <input v-model="editMember.department" type="text" />
+                            </div>
+
+                            <button class="action-primary-btn" @click="updateMember">
+                                Save Changes
                             </button>
 
-                            <div v-if="generatedInviteLink" class="invite-link-copy-wrapper">
-                                <input readonly :value="generatedInviteLink" class="copy-link-input-field" />
-                                <button @click="copyToClipboard" class="action-copy-trigger-btn">
-                                    Copy Link
-                                </button>
+                        </div>
+
+                    </div>
+                </div>
+            </Transition>
+            <Transition name="modal-fade">
+                <div v-if="showEditModal" class="modal-backdrop-blur-overlay" @click.self="showEditModal = false">
+                    <div class="professional-modal-window">
+
+                        <div class="modal-custom-header">
+                            <h3>Edit Member</h3>
+                            <button class="modal-close-cross-btn" @click="showEditModal = false">
+                                ✕
+                            </button>
+                        </div>
+
+                        <div class="modal-custom-body">
+
+                            <div class="input-group-wrapper">
+                                <label>First Name</label>
+                                <input v-model="editForm.first_name" type="text" />
+                                <small v-if="editErrors.first_name" class="error-text">
+                                    {{ editErrors.first_name }}
+                                </small>
                             </div>
+
+                            <div class="input-group-wrapper">
+                                <label>Last Name</label>
+                                <input v-model="editForm.last_name" type="text" />
+                                <small v-if="editErrors.last_name" class="error-text">
+                                    {{ editErrors.last_name }}
+                                </small>
+                            </div>
+
+                            <div class="input-group-wrapper">
+                                <label>Email Address</label>
+                                <div class="readonly-field">
+                                    {{ selectedMember?.email }}
+                                </div>
+                            </div>
+
+                            <div class="input-group-wrapper">
+                                <label>Phone Number</label>
+                                <input v-model="editForm.phone" type="text" maxlength="10"
+                                    @input="editForm.phone = editForm.phone.replace(/\D/g, '').slice(0, 10)" />
+
+                                <small v-if="editErrors.phone" class="error-text">
+                                    {{ editErrors.phone }}
+                                </small>
+                            </div>
+
+                            <div class="input-group-wrapper">
+                                <label>Department</label>
+                                <input v-model="editForm.department" type="text" />
+
+                                <small v-if="editErrors.department" class="error-text">
+                                    {{ editErrors.department }}
+                                </small>
+                            </div>
+
+                            <div class="input-group-wrapper">
+                                <label>Role</label>
+                                <div class="readonly-field">
+                                    {{
+                                        selectedMember?.role === 'TL'
+                                            ? 'Team Leader'
+                                            : 'Team Member'
+                                    }}
+                                </div>
+                            </div>
+
+                            <button class="action-primary-btn" @click="updateMember">
+                                Save Changes
+                            </button>
+
                         </div>
 
                     </div>
@@ -275,6 +423,27 @@ const page = usePage();
 const draggedMember = ref(null);
 const showInviteModal = ref(false);
 const showProfileMenu = ref(false);
+const showEditModal = ref(false);
+const selectedMember = ref(null);
+
+const editMember = reactive({
+    id: null,
+    first_name: "",
+    last_name: "",
+
+    phone: "",
+    department: "",
+});
+const openEditMember = (member) => {
+    editMember.id = member.id;
+    editMember.first_name = member.first_name;
+    editMember.last_name = member.last_name;
+
+    editMember.phone = member.phone || "";
+    editMember.department = member.department || "";
+
+    showEditModal.value = true;
+};
 
 const inviteForm = reactive({
     email: "",
@@ -282,6 +451,39 @@ const inviteForm = reactive({
     department: "",
     workspace_id: null,
 });
+const inviteErrors = reactive({
+    email: "",
+    role: "",
+    department: "",
+});
+
+const validateInviteForm = () => {
+    let valid = true;
+
+    inviteErrors.email = "";
+    inviteErrors.role = "";
+    inviteErrors.department = "";
+
+    if (!inviteForm.email) {
+        inviteErrors.email = "Email is required";
+        valid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteForm.email)) {
+        inviteErrors.email = "Invalid email format";
+        valid = false;
+    }
+
+    if (!inviteForm.role) {
+        inviteErrors.role = "Role is required";
+        valid = false;
+    }
+
+    if (!inviteForm.department) {
+        inviteErrors.department = "Department is required";
+        valid = false;
+    }
+
+    return valid;
+};
 const generatedInviteLink = ref("");
 
 const form = reactive({
@@ -292,7 +494,20 @@ const form = reactive({
     department: "",
     role: "Member",
 });
-
+const editForm = reactive({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    department: "",
+    role: "",
+});
+const editErrors = reactive({
+    first_name: "",
+    last_name: "",
+    phone: "",
+    department: "",
+});
 const errors = reactive({
     firstName: "",
     lastName: "",
@@ -335,7 +550,25 @@ const unassignedMembers = computed(() =>
 const getInitials = (firstName, lastName) => {
     return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase();
 };
+const originalMemberData = ref({});
+const openEditModal = (member) => {
+    selectedMember.value = member;
 
+    editForm.first_name = member.first_name;
+    editForm.last_name = member.last_name;
+    editForm.email = member.email;
+    editForm.phone = member.phone || "";
+    editForm.department = member.department || "";
+
+    originalMemberData.value = {
+        first_name: member.first_name,
+        last_name: member.last_name,
+        phone: member.phone || "",
+        department: member.department || "",
+    };
+
+    showEditModal.value = true;
+};
 const validateFirstName = () => {
     if (!form.firstName) {
         errors.firstName = "First name is required";
@@ -447,20 +680,32 @@ const createMember = () => {
                     errors[key] = err[key];
                 }
             });
-            toast.error("Please fix validation errors");
         },
     });
 };
 
 const generateInvite = () => {
+    if (!validateInviteForm()) {
+        toast.error("Please fix invite form errors");
+        return;
+    }
+
     router.post("/invite/generate", inviteForm, {
         preserveScroll: true,
         onSuccess: (page) => {
-            toast.success(page.props.flash?.success || "Invite sent");
-            generatedInviteLink.value = page.props.flash?.invite_link;
+            toast.success(page.props.flash?.success || "Invite created");
+
+            generatedInviteLink.value =
+                page.props.flash?.invite_link ||
+                page.props.flash?.data?.invite_link ||
+                "";
+
+            inviteForm.email = "";
+            inviteForm.role = "Member";
+            inviteForm.department = "";
+            showInviteModal.value = false;
         },
         onError: (errors) => {
-            console.error("Invite error:", errors);
             const firstError = Object.values(errors)[0];
             toast.error(firstError || "Failed to send invite");
         }
@@ -492,7 +737,91 @@ const dropMember = (leaderId) => {
     );
     draggedMember.value = null;
 };
+const validateEditForm = () => {
 
+    editErrors.first_name = "";
+    editErrors.last_name = "";
+    editErrors.phone = "";
+    editErrors.department = "";
+
+    let valid = true;
+
+    if (!editForm.first_name.trim()) {
+        editErrors.first_name = "First name is required";
+        valid = false;
+    } else if (!/^[A-Za-z]+$/.test(editForm.first_name)) {
+        editErrors.first_name = "Only letters are allowed";
+        valid = false;
+    }
+
+    if (!editForm.last_name.trim()) {
+        editErrors.last_name = "Last name is required";
+        valid = false;
+    } else if (!/^[A-Za-z]+$/.test(editForm.last_name)) {
+        editErrors.last_name = "Only letters are allowed";
+        valid = false;
+    }
+
+    if (!editForm.phone.trim()) {
+        editErrors.phone = "Phone number is required";
+        valid = false;
+    } else if (!/^[0-9]{10}$/.test(editForm.phone)) {
+        editErrors.phone = "Phone number must be 10 digits";
+        valid = false;
+    }
+
+    if (!editForm.department.trim()) {
+        editErrors.department = "Department is required";
+        valid = false;
+    }
+
+    return valid;
+};
+const updateMember = () => {
+
+    const isValid = validateEditForm();
+
+    if (!isValid) {
+        return;
+    }
+
+    const noChanges =
+        editForm.first_name === originalMemberData.value.first_name &&
+        editForm.last_name === originalMemberData.value.last_name &&
+        editForm.phone === originalMemberData.value.phone &&
+        editForm.department === originalMemberData.value.department;
+
+    if (noChanges) {
+        toast.info("Nothing to update");
+        showEditModal.value = false;
+        return;
+    }
+
+    router.put(
+        `/member/${selectedMember.value.id}`,
+        {
+            first_name: editForm.first_name,
+            last_name: editForm.last_name,
+            email: selectedMember.value.email,
+            phone: editForm.phone,
+            department: editForm.department,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success("Member updated successfully");
+                showEditModal.value = false;
+            },
+            onError: (errors) => {
+                Object.keys(errors).forEach(key => {
+                    if (editErrors[key] !== undefined) {
+                        editErrors[key] = errors[key];
+                    }
+                });
+            }
+        }
+    );
+};
 const logout = () => {
     router.post('/logout');
 };
@@ -509,7 +838,6 @@ onBeforeUnmount(() => {
     overflow-y: auto;
 }
 
-/* HEADER STYLE RULES */
 .header {
     display: flex;
     justify-content: space-between;
@@ -568,7 +896,6 @@ onBeforeUnmount(() => {
     margin: 0;
 }
 
-/* Premium Card Panels layout definitions */
 .panel-card-container {
     background-color: var(--sidebar);
     border: 1px solid var(--border);
@@ -687,7 +1014,6 @@ onBeforeUnmount(() => {
     margin-top: 2px;
 }
 
-/* Dynamic Panel Action Buttons */
 .action-primary-btn {
     background-color: #0073ea;
     color: #ffffff;
@@ -816,25 +1142,29 @@ onBeforeUnmount(() => {
     border-radius: 20px;
 }
 
-/* Inner Assigned Drag list components */
 .subordinates-list-segment {
     padding: 14px;
 }
 
 .subordinates-flex-grid {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    flex-wrap: wrap;
+    gap: 10px;
 }
-
 .member-sub-pill-row {
     display: flex;
     align-items: center;
     background-color: var(--sidebar);
     border: 1px solid var(--border);
     padding: 10px 14px;
-    border-radius: 6px;
-    gap: 12px;
+    border-radius: 8px;
+    gap: 10px;
+
+    width: fit-content;
+    min-width: 120px;
+    max-width: 180px;
+
+    flex: 0 0 auto;
     transition: transform 0.15s ease;
 }
 
@@ -866,7 +1196,6 @@ onBeforeUnmount(() => {
 .member-sub-meta {
     display: flex;
     flex-direction: column;
-    flex: 1;
 }
 
 .sub-name {
@@ -895,7 +1224,6 @@ onBeforeUnmount(() => {
     border-radius: 6px;
 }
 
-/* User Profile Dropdowns */
 .avatar {
     width: 44px;
     height: 44px;
@@ -1037,5 +1365,30 @@ onBeforeUnmount(() => {
 .modal-fade-enter-from,
 .modal-fade-leave-to {
     opacity: 0;
+}
+
+.clickable-avatar {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clickable-avatar:hover {
+    transform: scale(1.1);
+}
+
+.readonly-field {
+    background-color: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--subtext);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+:deep(.Toastify__toast-container) {
+    z-index: 9999 !important;
+}
+:deep(.Toastify__toast-container) {
+    z-index: 100000 !important;
 }
 </style>

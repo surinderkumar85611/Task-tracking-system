@@ -7,6 +7,7 @@ use App\Models\Member;
 use App\Models\Workspace;
 
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class MemberController extends Controller
 {
@@ -98,4 +99,39 @@ class MemberController extends Controller
 
         return back();
     }
+    public function update(Request $request, Member $member)
+{
+    $validated = $request->validate([
+        'first_name' => 'required|string|max:255',
+        'last_name' => 'required|string|max:255',
+        'phone' => 'nullable|string|max:20',
+        'department' => 'nullable|string|max:255',
+    ]);
+
+    $member->update($validated);
+
+    return back()->with('success', 'Member updated successfully');
+}
+
+
+public function me()
+{
+    $workspaceId = session('workspace_id');
+
+    $member = Member::where('workspace_id', $workspaceId)
+        ->where('email', Auth::user()->email)
+        ->first();
+
+    if (!$member) {
+        return response()->json([
+            'role' => '',
+            'department' => ''
+        ]);
+    }
+
+    return response()->json([
+        'role' => $member->role,
+        'department' => $member->department
+    ]);
+}
 }

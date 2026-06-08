@@ -159,9 +159,26 @@ Route::get(
     [LeaderDashboardController::class, 'index']
 )->middleware('auth');
 
+use App\Http\Controllers\UserController;
 
+Route::post(
+    '/user/change-password',
+    [UserController::class, 'changePassword']
+);
+
+
+Route::get(
+    '/user/profile',
+    [UserController::class, 'profile']
+);
+Route::get('/member/me', [MemberController::class, 'me']);
+Route::put('/member/{member}', [MemberController::class, 'update']);
 Route::post('/invite/generate', [InvitationController::class, 'generate']);
 Route::get('/invite/accept/{token}', [InvitationController::class, 'accept']);
 
 Route::get('/complete-profile', [AuthController::class, 'showCompleteProfile']);
 Route::post('/complete-profile', [AuthController::class, 'completeProfile']);
+Route::get('/workspaces', [WorkspaceController::class, 'index']);
+Route::get('/workspaces/{workspace}', [WorkspaceController::class, 'show']);
+Route::put('/workspaces/{workspace}', [WorkspaceController::class, 'update']);
+Route::delete('/workspaces/{workspace}', [WorkspaceController::class, 'destroy']);
