@@ -18,7 +18,40 @@
 
                     <input type="text" placeholder="Search boards..." v-model="search" />
 
-                    <button class="icon-btn">🔔</button>
+                    <div class="notification-bell-container"
+                        v-click-outside="() => notificationStore.showBellDropdown = false">
+                        <button class="icon-btn"
+                            @click="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
+                            🔔
+                            <span v-if="notificationStore.activeUrgentTasks.length > 0" class="bell-alert-badge-dot">
+                                {{ notificationStore.activeUrgentTasks.length }}
+                            </span>
+                        </button>
+
+                        <div v-if="notificationStore.showBellDropdown" class="notification-dropdown-panel">
+                            <div class="notification-dropdown-header">
+                                <h3>Urgent Task Alerts</h3>
+                            </div>
+                            <div class="notification-dropdown-body">
+                                <div v-for="task in notificationStore.activeUrgentTasks" :key="task.id"
+                                    class="notification-alert-item">
+                                    <div class="alert-item-indicator">⚠️</div>
+                                    <div class="alert-item-details">
+                                        <p class="alert-task-title">{{ task.title }}</p>
+                                        <p class="alert-task-time-left"
+                                            :style="{ color: notificationStore.getLiveTaskMetrics(task).color }">
+                                            Only {{ notificationStore.getLiveTaskMetrics(task).string }} left!
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div v-if="notificationStore.activeUrgentTasks.length === 0"
+                                    class="notification-empty-state">
+                                    🎉 No urgent deadlines right now. Everything is under control!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="profile-container">
                         <img src="https://i.pravatar.cc/100" class="avatar"
@@ -59,12 +92,12 @@
                     <span class="icon">＋</span> New Project
                 </button>
 
-                <select v-model="selectedActiveProjectFilter" class="project-view-selector">
+                <!-- <select v-model="selectedActiveProjectFilter" class="project-view-selector">
                     <option :value="null">📁 All Project Folders</option>
                     <option v-for="project in projects" :key="project.id" :value="project.id">
                         {{ project.name }}
                     </option>
-                </select>
+                </select> -->
             </div>
 
             <div class="monday-board-container">
@@ -103,6 +136,8 @@
                                     <th class="col-member">Member</th>
                                     <th class="col-status">Status</th>
                                     <th class="col-priority">Priority</th>
+                                    <th class="col-duration">Allocated Duration</th>
+                                    <th class="col-timer-started">Start Time</th>
                                     <th class="col-due">Due Date</th>
                                     <th class="col-action">Action</th>
                                 </tr>
@@ -149,9 +184,9 @@
                                             <div class="modal-pills-row">
                                                 <div v-for="mId in task.member_id" :key="mId" class="member-pill-badge">
                                                     <span class="pill-avatar-dot">{{ getMemberInitials(project, mId)
-                                                    }}</span>
+                                                        }}</span>
                                                     <span class="pill-name-text">{{ getMemberFirstNameOnly(project, mId)
-                                                    }}</span>
+                                                        }}</span>
                                                     <span class="pill-remove-btn"
                                                         @click.stop="toggleMemberAssignment(task, mId)">×</span>
                                                 </div>
@@ -222,8 +257,41 @@
                                             <option value="High">High</option>
                                         </select>
                                     </td>
+                                    <td class="cell-duration">
+                                        <select v-model="task.allocated_duration"
+                                            @change="handleTimerDurationChange(task)" class="table-duration-dropdown">
+                                            <option :value="null">None</option>
+                                            <option :value="1">1 Min (Test)</option>
+                                            <option :value="30">30 Mins</option>
+                                            <option :value="60">1 Hour</option>
+                                            <option :value="120">2 Hours</option>
+                                            <option :value="240">4 Hours</option>
+                                            <option :value="480">8 Hours</option>
+                                        </select>
+                                    </td>
+                                    <td class="cell-start">
+                                        <div class="timer-cell-wrapper">
+                                            <div v-if="task.allocated_duration && task.timer_started_at"
+                                                class="timer-active-container">
+                                                <div class="table-progress-track">
+                                                    <div class="table-progress-fill" :style="{
+                                                        width: getTimerMetrics(task).percentage + '%',
+                                                        backgroundColor: getTimerMetrics(task).color
+                                                    }"></div>
+                                                </div>
+                                                <span class="table-countdown-text"
+                                                    :style="{ color: getTimerMetrics(task).color }">
+                                                    ⏳ {{ getTimerMetrics(task).string }}
+                                                </span>
+                                            </div>
+                                            <div v-else class="timer-empty-label">
+                                                —
+                                            </div>
+                                        </div>
+                                    </td>
+
                                     <td class="cell-due">
-                                        <input type="date" v-model="task.deadline" @change="syncTaskRow(task)"
+                                        <input type="date" v-model="task.due_date" @change="syncTaskRow(task)"
                                             class="monday-date-cell" />
                                     </td>
                                     <td class="cell-action">
@@ -233,7 +301,7 @@
                                 </tr>
 
                                 <tr class="append-fast-row">
-                                    <td colspan="7">
+                                    <td colspan="9">
                                         <div class="add-row-placeholder" @click="appendNewEmptyTask(project)">
                                             <span class="plus-sign">＋</span> Add a new task to this project...
                                         </div>
@@ -407,15 +475,17 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed } from "vue";
+import { reactive, ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 import Sidebar from "./components/Sidebar.vue";
 import { useThemeStore } from "../stores/theme";
+import { useNotificationStore } from '@/stores/notificationStore';
 
 const theme = useThemeStore();
 const toast = useToast();
 const page = usePage();
+const notificationStore = useNotificationStore();
 
 const props = defineProps({
     projects: { type: Array, default: () => [] },
@@ -426,6 +496,7 @@ const search = ref("");
 const showProfileMenu = ref(false);
 const showCreateProjectModal = ref(false);
 const selectedActiveProjectFilter = ref(null);
+const currentTimeLiveTick = ref(Date.now());
 
 const form = reactive({
     name: "",
@@ -434,17 +505,36 @@ const form = reactive({
     description: "",
     team_leader_id: "",
 });
+
 const isAdmin = computed(() => page.props.auth?.user?.role === 'admin' || true);
 
-const projects = computed(() => props.projects || []);
+const projectsData = computed(() => props.projects || []);
 
 const filteredProjects = computed(() => {
-    return projects.value.filter(project => {
+    return projectsData.value.filter(project => {
         const matchesSearch = project.name?.toLowerCase().includes(search.value.toLowerCase());
         const matchesProjectFilter = selectedActiveProjectFilter.value ? project.id === selectedActiveProjectFilter.value : true;
         return matchesSearch && matchesProjectFilter;
     });
 });
+
+let clockInterval = null;
+
+onMounted(() => {
+    clockInterval = setInterval(() => {
+        currentTimeLiveTick.value = Date.now();
+    }, 1000);
+
+    notificationStore.setProjectsSource(projectsData.value);
+});
+
+onBeforeUnmount(() => {
+    if (clockInterval) clearInterval(clockInterval);
+});
+
+watch(() => projectsData.value, (newVal) => {
+    notificationStore.setProjectsSource(newVal);
+}, { deep: true });
 
 const openCreateProjectModal = () => {
     showCreateProjectModal.value = true;
@@ -504,12 +594,13 @@ const appendNewEmptyTask = (project) => {
         priority: "Medium",
         status: "Todo",
         deadline: new Date().toISOString().slice(0, 10),
+        allocated_duration: null,
+        timer_started_at: null,
     };
 
     router.post("/task", rawPayload, {
         preserveScroll: true,
-        onSuccess: () => {
-        },
+        onSuccess: () => { },
         onError: () => {
             toast.error("An error occurred trying to initialize task template.");
         }
@@ -528,7 +619,9 @@ const syncTaskRow = (task) => {
         member_id: task.member_id,
         status: task.status,
         priority: task.priority,
-        deadline: task.deadline
+        deadline: task.due_date,
+        allocated_duration: task.allocated_duration,
+        timer_started_at: task.timer_started_at
     };
 
     router.put(`/task/${task.id}`, updatePayload, {
@@ -538,15 +631,73 @@ const syncTaskRow = (task) => {
 };
 
 const removeTaskRow = (taskId, project) => {
-    if (confirm("Are you sure you want to delete this task row?")) {
-        router.delete(`/task/${taskId}`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                project.tasks = project.tasks.filter(t => t.id !== taskId);
-            },
-            onError: () => { toast.error("Failed to delete task."); }
-        });
+    router.delete(`/task/${taskId}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            project.tasks = project.tasks.filter(t => t.id !== taskId);
+        },
+        onError: () => { toast.error("Failed to delete task."); }
+    });
+};
+
+const handleTimerDurationChange = (task) => {
+    if (!task.allocated_duration) {
+        task.timer_started_at = null;
+    } else {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+
+        task.timer_started_at = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     }
+    syncTaskRow(task);
+};
+
+const getTimerMetrics = (task) => {
+    if (!task.allocated_duration || !task.timer_started_at) {
+        return { percentage: 0, string: "00:00", color: "#7e8299" };
+    }
+
+    const startTimestamp = new Date(task.timer_started_at).getTime();
+    const totalDurationMs = task.allocated_duration * 60 * 1000;
+    const endTimestamp = startTimestamp + totalDurationMs;
+
+    const remainingMs = endTimestamp - currentTimeLiveTick.value;
+
+    if (remainingMs <= 0) {
+        return { percentage: 100, string: "Done", color: "#ef4444" };
+    }
+
+    const elapsedMs = currentTimeLiveTick.value - startTimestamp;
+    const progressPercent = Math.min((elapsedMs / totalDurationMs) * 100, 100);
+
+    const totalSeconds = Math.floor(remainingMs / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    let displayString = "";
+    if (hours > 0) displayString += `${hours}h `;
+    displayString += `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+    let barColor = "#00c875";
+    const fifteenMinutesMs = 15 * 60 * 1000;
+
+    if (remainingMs <= fifteenMinutesMs) {
+        barColor = "#ef4444";
+    } else if (progressPercent > 50) {
+        barColor = "#fbbf24";
+    }
+
+    return {
+        percentage: progressPercent,
+        string: displayString,
+        color: barColor
+    };
 };
 
 const showEditModal = ref(false);
@@ -647,6 +798,7 @@ const formatDate = (isoString) => {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+
 const vClickOutside = {
     mounted(el, binding) {
         el.clickOutsideEvent = (event) => {
@@ -668,19 +820,39 @@ const memberSearchQuery = ref('');
 const toggleAssigneeDropdown = (taskId, event) => {
     if (activeAssigneeDropdownTaskId.value === taskId) {
         activeAssigneeDropdownTaskId.value = null;
-    } else {
-        memberSearchQuery.value = '';
-        activeAssigneeDropdownTaskId.value = taskId;
-
-        if (event && event.currentTarget) {
-            const rect = event.currentTarget.getBoundingClientRect();
-
-            dropdownPosition.value = {
-                top: `${rect.bottom + window.scrollY + 6}px`,
-                left: `${rect.left + window.scrollX + (rect.width / 2) - 160}px`
-            };
-        }
+        return;
     }
+
+    memberSearchQuery.value = '';
+    activeAssigneeDropdownTaskId.value = taskId;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const popupHeight = 280;
+    const popupWidth = 320;
+
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    let top;
+    let left;
+
+    if (spaceBelow < popupHeight && spaceAbove > popupHeight) {
+        top = rect.top - popupHeight - 8;
+    } else {
+        top = rect.bottom + 8;
+    }
+
+    left = rect.left + rect.width / 2 - popupWidth / 2;
+
+    if (left < 10) left = 10;
+    if (left + popupWidth > window.innerWidth - 10) {
+        left = window.innerWidth - popupWidth - 10;
+    }
+
+    dropdownPosition.value = {
+        top: `${top}px`,
+        left: `${left}px`
+    };
 };
 
 const closeAssigneeDropdown = () => {
@@ -960,7 +1132,7 @@ const logout = () => {
 }
 
 .col-due {
-    width: 12%;
+    width: 10%;
     text-align: center;
 }
 
@@ -971,6 +1143,16 @@ const logout = () => {
 
 .col-updates {
     width: 8%;
+    text-align: center;
+}
+
+.col-duration {
+    width: 10%;
+    text-align: center;
+}
+
+.col-timer-started {
+    width: 9%;
     text-align: center;
 }
 
@@ -1941,6 +2123,67 @@ tbody tr {
 .chat-author-name {
     font-size: 13px;
     font-weight: 600;
+    color: var(--text);
+}
+
+.timer-cell-wrapper {
+    padding: 4px 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 34px;
+}
+
+.timer-active-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.table-progress-track {
+    width: 100%;
+    height: 4px;
+    background-color: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.table-progress-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 4px;
+    transition: width 1s linear, background-color 0.4s ease;
+}
+
+.table-countdown-text {
+    font-size: 11px;
+    font-weight: 600;
+    font-family: monospace;
+    text-align: center;
+}
+
+.timer-empty-label {
+    color: var(--subtext);
+    font-size: 13px;
+}
+
+.table-duration-dropdown {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    padding: 8px;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+    text-align: center;
+}
+
+.table-duration-dropdown option {
+    background-color: var(--sidebar);
     color: var(--text);
 }
 </style>

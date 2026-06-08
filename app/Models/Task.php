@@ -20,6 +20,8 @@ class Task extends Model
 
         'due_date',
         'notes',
+        'allocated_duration',
+        'timer_started_at',
     ];
 
     protected $casts = [
