@@ -14,6 +14,8 @@ use App\Http\Controllers\MemberController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\Leader\LprojectController;
+use App\Http\Controllers\Leader\TeamController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -147,17 +149,25 @@ Route::middleware(['auth'])->group(function () {
         ->name('settings');
 
 });
-use App\Http\Controllers\TeamController;
 
-Route::get('/teams', [TeamController::class, 'index'])
-    ->name('teams');
 
 use App\Http\Controllers\LeaderDashboardController;
-
 Route::get(
     '/leader-dashboard',
     [LeaderDashboardController::class, 'index']
-)->middleware('auth');
+)->middleware([
+    'auth',
+    'tl'
+]);
+Route::get('/leader/projects', function () {
+    return Inertia::render('Leader/Projects');
+})->middleware(['auth', 'tl']);
+
+
+Route::get('/leader/settings', function () {
+    return Inertia::render('Leader/Settings');
+})->middleware(['auth', 'tl']);
+
 
 use App\Http\Controllers\UserController;
 
@@ -182,3 +192,13 @@ Route::get('/workspaces', [WorkspaceController::class, 'index']);
 Route::get('/workspaces/{workspace}', [WorkspaceController::class, 'show']);
 Route::put('/workspaces/{workspace}', [WorkspaceController::class, 'update']);
 Route::delete('/workspaces/{workspace}', [WorkspaceController::class, 'destroy']);
+
+
+Route::get('/leader/projects', [LProjectController::class, 'index'])
+    ->middleware(['auth', 'tl'])
+    ->name('leader.projects');
+
+Route::middleware(['auth', 'tl'])->group(function () {
+    Route::get('/leader/team', [TeamController::class, 'index'])
+        ->name('leader.team');
+});

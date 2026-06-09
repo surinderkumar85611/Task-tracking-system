@@ -10,27 +10,23 @@
     <!-- NAV LINKS -->
     <nav class="nav">
 
+      <!-- Dashboard -->
       <Link href="/leader-dashboard" class="nav-item">
         📊 Dashboard
       </Link>
 
-      <Link href="/project" class="nav-item">
+      <!-- Projects -->
+      <Link href="/leader/projects" class="nav-item">
         📁 Projects
       </Link>
 
-      <Link href="/member" class="nav-item">
+      <!-- Team Members -->
+      <Link href="/leader/team" class="nav-item">
         👥 Team Members
       </Link>
 
-      <Link href="/teams" class="nav-item">
-        🧩 Teams
-      </Link>
-
-      <Link href="/task" class="nav-item">
-        ✅ Task Board
-      </Link>
-
-      <Link href="/settings" class="nav-item">
+      <!-- Settings -->
+      <Link href="/leader/settings" class="nav-item">
         ⚙️ Settings
       </Link>
 

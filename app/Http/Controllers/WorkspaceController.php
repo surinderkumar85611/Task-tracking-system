@@ -21,7 +21,7 @@ class WorkspaceController extends Controller
 
         session(['workspace_id' => $workspace->id]);
 
-        return response()->json($workspace);
+       return back()->with('success', 'Workspace created successfully');
     }
 
     public function select(Request $request)

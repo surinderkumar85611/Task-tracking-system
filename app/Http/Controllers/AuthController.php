@@ -45,10 +45,20 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($credentials)) {
+
             $request->session()->regenerate();
 
-            //    return back()->with('success', 'Login successful');
             session()->forget('workspace_id');
+
+            $member = Member::where(
+                'email',
+                auth()->user()->email
+            )->first();
+
+            if ($member && $member->role === 'TL') {
+                return redirect('/leader-dashboard');
+            }
+
             return redirect('/dashboard');
         }
 
