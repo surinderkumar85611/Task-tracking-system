@@ -16,20 +16,23 @@ class TaskController extends Controller
             'notes'                 => 'nullable|string',
             'allocated_duration'    => 'nullable|string',
             'timer_started_at'      => 'nullable|string',
+            'review'                => 'nullable|string',
         ]);
 
         Task::create([
-            'workspace_id'          => session('workspace_id'),
-            'project_id'            => $request->project_id,
-            'member_id'             => !empty($request->member_id) ? $request->member_id : [],
-            'title'                 => $request->title,
-            'description'           => $request->description,
-            'priority'              => $request->priority ?? 'Medium',
-            'status'                => $request->status ?? 'Todo',
-            'due_date'              => $request->deadline,
-            'allocated_duration'    => $request->allocated_duration,
-            'timer_started_at'      => $request->timer_started_at,
-            'notes'                 => $request->notes ? [['sender' => 'Admin', 'text' => $request->notes, 'created_at' => now()->toIso8601String()]] : [],
+            'workspace_id'         => session('workspace_id'),
+            'project_id'           => $request->project_id,
+            // 'member_id'            => !empty($request->member_id) ? $request->member_id : [],
+            'member_id'            => $request->member_id ?: null,
+            'title'                => $request->title,
+            'description'          => $request->description,
+            'priority'             => $request->priority ?? 'Medium',
+            'status'               => $request->status ?? 'Todo',
+            'due_date'             => $request->deadline,
+            'allocated_duration'   => $request->allocated_duration,
+            'timer_started_at'     => $request->timer_started_at,
+            'notes'                => $request->notes ? [['sender' => 'Admin', 'text' => $request->notes, 'created_at' => now()->toIso8601String()]] : [],
+            'review'               => $request->review,
         ]);
 
         return back();
@@ -66,15 +69,16 @@ class TaskController extends Controller
         }
 
         $task->update([
-            'project_id'            => $request->project_id,
-            'member_id'             => $request->member_id,
-            'title'                 => $request->title,
-            'status'                => $request->status,
-            'priority'              => $request->priority,
-            'due_date'              => $request->deadline,
-            'allocated_duration'    => $request->allocated_duration,
-            'timer_started_at'      => $request->timer_started_at,
-            'notes'                 => $existingNotes,
+            'project_id'          => $request->project_id,
+            'member_id'           => $request->member_id,
+            'title'               => $request->title,
+            'status'              => $request->status,
+            'priority'            => $request->priority,
+            'due_date'            => $request->deadline,
+            'allocated_duration'  => $request->allocated_duration,
+            'timer_started_at'    => $request->timer_started_at,
+            'notes'               => $existingNotes,
+            'review'              => $request->review,
         ]);
 
         return back();
