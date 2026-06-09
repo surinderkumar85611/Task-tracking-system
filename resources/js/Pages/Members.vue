@@ -18,7 +18,35 @@
 
                     <input type="text" placeholder="Search member..." class="header-search-bar" />
 
-                    <button class="icon-btn">🔔</button>
+                    <div class="notification-bell-container" v-click-outside="() => notificationStore.showBellDropdown = false">
+    <button class="icon-btn" @click="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
+        🔔
+        <span v-if="notificationStore.activeUrgentTasks.length > 0" class="bell-alert-badge-dot">
+            {{ notificationStore.activeUrgentTasks.length }}
+        </span>
+    </button>
+
+    <div v-if="notificationStore.showBellDropdown" class="notification-dropdown-panel">
+        <div class="notification-dropdown-header">
+            <h3>Urgent Task Alerts</h3>
+        </div>
+        <div class="notification-dropdown-body">
+            <div v-for="task in notificationStore.activeUrgentTasks" :key="task.id" class="notification-alert-item">
+                <div class="alert-item-indicator">⚠️</div>
+                <div class="alert-item-details">
+                    <p class="alert-task-title">{{ task.title }}</p>
+                    <p class="alert-task-time-left" :style="{ color: notificationStore.getLiveTaskMetrics(task).color }">
+                        Only {{ notificationStore.getLiveTaskMetrics(task).string }} left!
+                    </p>
+                </div>
+            </div>
+
+            <div v-if="notificationStore.activeUrgentTasks.length === 0" class="notification-empty-state">
+                🎉 No urgent deadlines right now. Everything is under control!
+            </div>
+        </div>
+    </div>
+</div>
 
                     <div class="profile-container">
                         <img src="https://i.pravatar.cc/100" class="avatar"
@@ -268,6 +296,9 @@ import Sidebar from "./components/Sidebar.vue";
 import { useThemeStore } from "../stores/theme";
 import { router, usePage } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
+import { useNotificationStore } from "../stores/notificationStore";
+
+const notificationStore = useNotificationStore();
 
 const toast = useToast();
 const theme = useThemeStore();
@@ -500,6 +531,20 @@ const logout = () => {
 onBeforeUnmount(() => {
     document.removeEventListener("click", handleClickOutside);
 });
+
+const vClickOutside = {
+    mounted(el, binding) {
+        el.clickOutsideEvent = (event) => {
+            if (!(el === event.target || el.contains(event.target))) {
+                binding.value(event);
+            }
+        };
+        document.addEventListener("click", el.clickOutsideEvent);
+    },
+    unmounted(el) {
+        document.removeEventListener("click", el.clickOutsideEvent);
+    },
+};
 </script>
 
 <style scoped>
@@ -836,6 +881,7 @@ onBeforeUnmount(() => {
     border-radius: 6px;
     gap: 12px;
     transition: transform 0.15s ease;
+    cursor: grab;
 }
 
 .member-sub-pill-row:active {

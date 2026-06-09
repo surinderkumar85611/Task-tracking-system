@@ -148,7 +148,6 @@ const changeWorkspace = () => {
 </script>
 
 <style scoped>
-/* Sidebar Parent Structure */
 .sidebar {
     width: 15%;
     background: var(--sidebar);
@@ -161,13 +160,11 @@ const changeWorkspace = () => {
     border-right: 1px solid var(--border);
 }
 
-/* Collapsed Width Re-allocations Override */
 .sidebar.collapsed {
     width: 78px;
     padding: 20px 12px;
 }
 
-/* Header Logo Layouts */
 .logo-container {
     height: 40px;
     display: flex;
@@ -198,7 +195,6 @@ const changeWorkspace = () => {
     color: #06b6d4;
 }
 
-/* Workspace Sections Adaptations */
 .workspace-section {
     margin-bottom: 25px;
     display: flex;
@@ -252,7 +248,6 @@ const changeWorkspace = () => {
     background: var(--hover);
 }
 
-/* Navigation System Links */
 .nav-links {
     margin-top: 10px;
     flex: 1;
@@ -294,7 +289,6 @@ const changeWorkspace = () => {
     color: #111827;
 }
 
-/* Footer Collapse Control Trigger */
 .collapse-trigger-wrapper {
     margin-top: auto;
     padding-top: 15px;
@@ -323,7 +317,6 @@ const changeWorkspace = () => {
     transform: scale(1.05);
 }
 
-/* Shared Modal Elements Overlay */
 .modal-overlay {
     position: fixed;
     inset: 0;
