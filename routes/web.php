@@ -139,7 +139,7 @@ Route::middleware(['auth'])->group(function () {
         return redirect('/login');
     })->name('logout');
 
-    
+
 });
 use App\Http\Controllers\SettingsController;
 
@@ -202,3 +202,7 @@ Route::middleware(['auth', 'tl'])->group(function () {
     Route::get('/leader/team', [TeamController::class, 'index'])
         ->name('leader.team');
 });
+
+Route::get('/task-fields', [TaskController::class, 'getTaskFields']);
+Route::post('/task/import', [TaskController::class, 'import'])
+    ->name('task.import');
