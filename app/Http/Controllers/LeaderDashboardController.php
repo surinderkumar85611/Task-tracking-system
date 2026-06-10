@@ -18,19 +18,18 @@ class LeaderDashboardController extends Controller
             $user->email
         )->first();
 
-        // If logged-in user is not a member yet,
-        // just use the first available member record.
-        if (!$leader) {
-            $leader = Member::first();
+        if (!$leader || $leader->role !== 'TL') {
+            abort(403, 'Access Denied');
         }
-
         $projects = Project::with([
             'tasks',
-            'teamLeader.teamMembers'
+            'teamLeader',
         ])
-        ->where('workspace_id', session('workspace_id'))
-        ->get();
-
+            ->when(session('workspace_id'), function ($query) {
+                $query->where('workspace_id', session('workspace_id'));
+            })
+            ->where('team_leader_id', $leader->id)
+            ->get();
         $teamMembers = $leader
             ? $leader->teamMembers
             : collect();
@@ -66,7 +65,7 @@ class LeaderDashboardController extends Controller
         ];
 
         return Inertia::render(
-            'LeaderDashboard',
+            'Leader/Dashboard',
             [
                 'leader' => $leader,
 

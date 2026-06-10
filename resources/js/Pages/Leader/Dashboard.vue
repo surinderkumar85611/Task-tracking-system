@@ -19,32 +19,17 @@
 
         <div class="header-right">
 
-          <input
-            v-model="search"
-            type="text"
-            placeholder="Search projects..."
-            class="search-box"
-          />
+          <input v-model="search" type="text" placeholder="Search projects..." class="search-box" />
 
-          <button
-            class="theme-btn"
-            @click="theme.toggleTheme"
-          >
+          <button class="theme-btn" @click="theme.toggleTheme">
             {{ theme.isDark ? '☀️' : '🌙' }}
           </button>
 
           <div class="profile-container">
 
-            <img
-              src="https://i.pravatar.cc/100"
-              class="avatar"
-              @click.stop="showProfileMenu=!showProfileMenu"
-            />
+            <img src="https://i.pravatar.cc/100" class="avatar" @click.stop="showProfileMenu = !showProfileMenu" />
 
-            <div
-              v-if="showProfileMenu"
-              class="profile-dropdown"
-            >
+            <div v-if="showProfileMenu" class="profile-dropdown">
               <button @click="logout">
                 Logout
               </button>
@@ -105,10 +90,6 @@
             Assign Task
           </button>
 
-          <button class="quick-btn warning">
-            Export Report
-          </button>
-
         </div>
 
       </section>
@@ -123,11 +104,7 @@
             <h2>Project Progress</h2>
           </div>
 
-          <div
-            v-for="project in filteredProjects"
-            :key="project.id"
-            class="project-progress-card"
-          >
+          <div v-for="project in filteredProjects" :key="project.id" class="project-progress-card">
 
             <div class="project-progress-header">
 
@@ -135,7 +112,7 @@
                 <h3>{{ project.name }}</h3>
 
                 <small>
-                  Deadline:
+                  Due Date:
                   {{ project.deadline }}
                 </small>
               </div>
@@ -147,12 +124,9 @@
             </div>
 
             <div class="progress-bar">
-              <div
-                class="progress-fill"
-                :style="{
-                  width: (project.progress || 0) + '%'
-                }"
-              ></div>
+              <div class="progress-fill" :style="{
+                width: (project.progress || 0) + '%'
+              }"></div>
             </div>
 
           </div>
@@ -166,17 +140,13 @@
             <h2>Team Members</h2>
           </div>
 
-          <div
-            v-for="member in teamMembers"
-            :key="member.id"
-            class="member-card"
-          >
+          <div v-for="member in teamMembers" :key="member.id" class="member-card">
 
             <div class="member-avatar">
               {{
                 member.first_name
-                ?.charAt(0)
-                .toUpperCase()
+                  ?.charAt(0)
+                  .toUpperCase()
               }}
             </div>
 
@@ -208,11 +178,7 @@
 
         <div class="workload-grid">
 
-          <div
-            v-for="member in teamWorkload"
-            :key="member.id"
-            class="workload-card"
-          >
+          <div v-for="member in teamWorkload" :key="member.id" class="workload-card">
 
             <div class="member-avatar">
               {{
@@ -240,7 +206,7 @@
         </div>
 
       </section>
-            <!-- RECENT ACTIVITY -->
+      <!-- RECENT ACTIVITY -->
       <section class="dashboard-card">
 
         <div class="card-header">
@@ -249,16 +215,9 @@
 
         <div class="activity-feed">
 
-          <template
-            v-for="project in projects"
-            :key="project.id"
-          >
+          <template v-for="project in projects" :key="project.id">
 
-            <div
-              v-for="task in project.tasks"
-              :key="task.id"
-              class="activity-item"
-            >
+            <div v-for="task in project.tasks" :key="task.id" class="activity-item">
 
               <div class="activity-dot"></div>
 
@@ -295,82 +254,114 @@
 
             <thead>
               <tr>
-                <th>Task</th>
+                <th>Task Name</th>
+                <th>Updates</th>
+                <th>Member</th>
                 <th>Status</th>
                 <th>Priority</th>
-                <th>Deadline</th>
+                <th>Allocated Duration</th>
+                <th>Start Time</th>
+                <th>Due Date</th>
                 <th>Action</th>
               </tr>
             </thead>
 
             <tbody>
 
-              <template
-                v-for="project in filteredProjects"
-                :key="project.id"
-              >
+              <template v-for="project in filteredProjects" :key="project.id">
 
+                <!-- PROJECT ROW -->
                 <tr class="project-row">
-                  <td colspan="5">
+                  <td colspan="9">
                     {{ project.name }}
                   </td>
                 </tr>
 
-                <tr
-                  v-for="task in project.tasks"
-                  :key="task.id"
-                >
+                <!-- TASK ROWS -->
+                <tr v-for="task in project.tasks" :key="task.id">
 
+                  <!-- Task Name -->
                   <td>
                     {{ task.title }}
                   </td>
 
+                  <!-- Updates -->
                   <td>
+                    <button class="update-btn" @click="openUpdatesSidebar(task, project)">
+                      💬 Updates
+                    </button>
+                  </td>
 
-                    <select
-                      v-model="task.status"
-                      @change="syncTask(task)"
-                    >
+                  <!-- Member -->
+                  <td>
+                    <select @change="assignMember(task, $event.target.value)" :value="task.member_id?.[0] || ''">
+                      <option value="">Assign Member</option>
+
+                      <option v-for="member in teamMembers" :key="member.id" :value="member.id">
+                        {{ member.first_name }} {{ member.last_name }}
+                      </option>
+                    </select>
+                  </td>
+
+                  <!-- Status -->
+                  <td>
+                    <select v-model="task.status" @change="syncTask(task)">
                       <option>Todo</option>
                       <option>In Progress</option>
                       <option>Completed</option>
                     </select>
-
                   </td>
 
+                  <!-- Priority -->
                   <td>
-
-                    <span
-                      class="priority-badge"
-                      :class="{
-                        low: task.priority === 'Low',
-                        medium: task.priority === 'Medium',
-                        high: task.priority === 'High'
-                      }"
-                    >
-                      {{ task.priority }}
-                    </span>
-
+                    <select v-model="task.priority" @change="syncTask(task)">
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                    </select>
                   </td>
 
+                  <!-- Duration -->
                   <td>
-                    {{ task.due_date }}
+                    <select v-model="task.allocated_duration" @change="handleTimerDurationChange(task)">
+                      <option :value="null">None</option>
+                      <option :value="1">1 Min</option>
+                      <option :value="30">30 Mins</option>
+                      <option :value="60">1 Hour</option>
+                      <option :value="120">2 Hours</option>
+                      <option :value="240">4 Hours</option>
+                      <option :value="480">8 Hours</option>
+                    </select>
                   </td>
 
+                  <!-- Start Time (FIXED — MUST BE TD) -->
                   <td>
+                    <div v-if="task.allocated_duration && task.timer_started_at">
+                      <div class="progress-bar">
+                        <div class="progress-fill" :style="{
+                          width: getTimerMetrics(task).percentage + '%',
+                          background: getTimerMetrics(task).color
+                        }"></div>
+                      </div>
 
-                    <button
-                      class="update-btn"
-                      @click="
-                        openUpdatesSidebar(
-                          task,
-                          project
-                        )
-                      "
-                    >
-                      Updates
+                      <small :style="{ color: getTimerMetrics(task).color }">
+                        ⏳ {{ getTimerMetrics(task).string }}
+                      </small>
+                    </div>
+
+                    <span v-else>—</span>
+                  </td>
+
+                  <!-- Due Date -->
+                  <td>
+                    {{ task.due_date || '—' }}
+                  </td>
+
+                  <!-- Action -->
+                  <td>
+                    <button class="row-remove-trigger" @click="removeTaskRow(task.id, project)" title="Delete Task">
+                      ✕
                     </button>
-
                   </td>
 
                 </tr>
@@ -387,23 +378,14 @@
 
       <!-- TASK UPDATE SIDEBAR -->
 
-      <div
-        class="updates-sidebar-overlay"
-        :class="{
-          open:
+      <div class="updates-sidebar-overlay" :class="{
+        open:
           showUpdatesSidebarPane
-        }"
-        @click="closeUpdatesSidebar"
-      >
+      }" @click="closeUpdatesSidebar">
 
-        <div
-          class="updates-sidebar-panel"
-          @click.stop
-        >
+        <div class="updates-sidebar-panel" @click.stop>
 
-          <div
-            class="sidebar-panel-header"
-          >
+          <div class="sidebar-panel-header">
 
             <div>
 
@@ -421,40 +403,27 @@
 
             </div>
 
-            <button
-              class="close-panel-btn"
-              @click="
-                closeUpdatesSidebar
-              "
-            >
+            <button class="close-panel-btn" @click="
+              closeUpdatesSidebar
+            ">
               ✕
             </button>
 
           </div>
 
-          <div
-            class="sidebar-panel-body"
-          >
+          <div class="sidebar-panel-body">
 
-            <div
-              v-if="
+            <div v-if="
               activeTaskForUpdates?.notes &&
               activeTaskForUpdates.notes.length
-              "
-            >
+            ">
 
-              <div
-                v-for="(
-                note,
-                index
-                ) in activeTaskForUpdates.notes"
-                :key="index"
-                class="chat-bubble-card"
-              >
+              <div v-for="(
+note,
+  index
+                ) in activeTaskForUpdates.notes" :key="index" class="chat-bubble-card">
 
-                <div
-                  class="chat-bubble-meta"
-                >
+                <div class="chat-bubble-meta">
 
                   <span>
                     {{ note.sender }}
@@ -470,9 +439,7 @@
 
                 </div>
 
-                <div
-                  class="chat-bubble-body"
-                >
+                <div class="chat-bubble-body">
                   {{ note.text }}
                 </div>
 
@@ -480,39 +447,25 @@
 
             </div>
 
-            <div
-              v-else
-              class="notes-empty"
-            >
+            <div v-else class="notes-empty">
               No updates available
             </div>
 
-            <textarea
-              v-model="updatesDraftText"
-              placeholder="Write update..."
-            ></textarea>
+            <textarea v-model="updatesDraftText" placeholder="Write update..."></textarea>
 
           </div>
 
-          <div
-            class="sidebar-panel-footer"
-          >
+          <div class="sidebar-panel-footer">
 
-            <button
-              class="btn-flat-cancel"
-              @click="
-                closeUpdatesSidebar
-              "
-            >
+            <button class="btn-flat-cancel" @click="
+              closeUpdatesSidebar
+            ">
               Close
             </button>
 
-            <button
-              class="monday-btn-primary"
-              @click="
-                saveTaskNotesUpdate
-              "
-            >
+            <button class="monday-btn-primary" @click="
+              saveTaskNotesUpdate
+            ">
               Save Update
             </button>
 
@@ -536,15 +489,13 @@ import { router } from "@inertiajs/vue3";
 import { usePage } from "@inertiajs/vue3";
 
 import { useToast }
-from "vue-toastification";
+  from "vue-toastification";
 
-import Sidebar
-from "./components/LeaderSidebar.vue";
-
+import Sidebar from "./Sidebar.vue";
 import {
   useThemeStore
 }
-from "../stores/theme";
+  from "../../stores/theme.js";
 
 const theme = useThemeStore();
 const toast = useToast();
@@ -578,87 +529,87 @@ const filteredProjects = computed(() => {
 });
 
 const completionRate =
-computed(() => {
+  computed(() => {
 
-  if (!props.stats.tasks)
-    return 0;
+    if (!props.stats.tasks)
+      return 0;
 
-  return Math.round(
-    (
-      props.stats.completed /
-      props.stats.tasks
-    ) * 100
-  );
-});
+    return Math.round(
+      (
+        props.stats.completed /
+        props.stats.tasks
+      ) * 100
+    );
+  });
 
 const overdueTasks =
-computed(() => {
+  computed(() => {
 
-  let count = 0;
+    let count = 0;
 
-  props.projects.forEach(
-    project => {
+    props.projects.forEach(
+      project => {
 
-      project.tasks?.forEach(
-        task => {
+        project.tasks?.forEach(
+          task => {
 
-          if (
-            task.status !==
-            "Completed" &&
-            task.due_date &&
-            new Date(
-              task.due_date
-            ) < new Date()
-          ) {
-            count++;
+            if (
+              task.status !==
+              "Completed" &&
+              task.due_date &&
+              new Date(
+                task.due_date
+              ) < new Date()
+            ) {
+              count++;
+            }
+
           }
+        );
 
-        }
-      );
+      }
+    );
 
-    }
-  );
+    return count;
 
-  return count;
-
-});
+  });
 
 const teamWorkload =
-computed(() => {
+  computed(() => {
 
-  return props.teamMembers.map(
-    member => {
+    return props.teamMembers.map(
+      member => {
 
-      let tasks = 0;
+        let tasks = 0;
 
-      props.projects.forEach(
-        project => {
+        props.projects.forEach(
+          project => {
 
-          project.tasks?.forEach(
-            task => {
+            project.tasks?.forEach(
+              task => {
 
-              if (
-                task.member_id ==
-                member.id
-              ) {
-                tasks++;
+                if (
+                  task.member_id ==
+                  member.id
+                ) {
+                  tasks++;
+                }
+
               }
+            );
 
-            }
-          );
+          }
+        );
 
-        }
-      );
+        return {
+          ...member,
+          taskCount: tasks
+        };
 
-      return {
-        ...member,
-        taskCount: tasks
-      };
+      }
+    );
 
-    }
-  );
-
-});
+  });
 const showUpdatesSidebarPane = ref(false);
 
 const activeTaskForUpdates = ref(null);
@@ -795,7 +746,13 @@ const syncTask = task => {
     }
   );
 };
+const assignMember = (task, memberId) => {
 
+  task.member_id = [Number(memberId)];
+
+  syncTask(task);
+
+};
 const formatDate = value => {
 
   if (!value) return "";
@@ -808,11 +765,82 @@ const formatDate = value => {
 const logout = () => {
   router.post("/logout");
 };
+const removeTaskRow = (taskId, project) => {
 
+  router.delete(`/task/${taskId}`, {
+    preserveScroll: true,
+
+    onSuccess: () => {
+      project.tasks =
+        project.tasks.filter(
+          t => t.id !== taskId
+        );
+
+      toast.success("Task deleted");
+    },
+
+    onError: () => {
+      toast.error("Delete failed");
+    }
+  });
+
+};
+const handleTimerDurationChange = (task) => {
+
+  if (!task.allocated_duration) {
+    task.timer_started_at = null;
+  } else {
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    task.timer_started_at = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  }
+
+  syncTask(task);
+};
+const currentTime = ref(Date.now());
+
+setInterval(() => {
+  currentTime.value = Date.now();
+}, 1000);
+
+const getTimerMetrics = (task) => {
+  if (!task.allocated_duration || !task.timer_started_at) {
+    return { percentage: 0, string: "00:00", color: "#94a3b8" };
+  }
+
+  const start = new Date(task.timer_started_at).getTime();
+  const total = task.allocated_duration * 60 * 1000;
+  const end = start + total;
+
+  const remaining = end - currentTime.value;
+
+  if (remaining <= 0) {
+    return { percentage: 100, string: "Done", color: "#ef4444" };
+  }
+
+  const elapsed = currentTime.value - start;
+  const percent = Math.min((elapsed / total) * 100, 100);
+
+  const seconds = Math.floor(remaining / 1000);
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+
+  return {
+    percentage: percent,
+    string: `${m}:${s.toString().padStart(2, "0")}`,
+    color: percent > 80 ? "#ef4444" : "#22c55e"
+  };
+};
 </script>
 
 <style scoped>
-
 .dashboard {
   display: flex;
   min-height: 100vh;
@@ -872,7 +900,7 @@ const logout = () => {
 .stats-grid {
   display: grid;
   grid-template-columns:
-    repeat(auto-fit,minmax(220px,1fr));
+    repeat(auto-fit, minmax(220px, 1fr));
   gap: 20px;
   margin-bottom: 25px;
 }
@@ -961,11 +989,9 @@ const logout = () => {
 .progress-fill {
   height: 100%;
   background:
-    linear-gradient(
-      90deg,
+    linear-gradient(90deg,
       #06b6d4,
-      #3b82f6
-    );
+      #3b82f6);
 }
 
 /* TEAM */
@@ -985,11 +1011,9 @@ const logout = () => {
   height: 45px;
   border-radius: 50%;
   background:
-    linear-gradient(
-      135deg,
+    linear-gradient(135deg,
       #06b6d4,
-      #2563eb
-    );
+      #2563eb);
 
   display: flex;
   align-items: center;
@@ -1007,7 +1031,7 @@ const logout = () => {
 .workload-grid {
   display: grid;
   grid-template-columns:
-    repeat(auto-fit,minmax(250px,1fr));
+    repeat(auto-fit, minmax(250px, 1fr));
   gap: 15px;
 }
 
@@ -1173,7 +1197,7 @@ select {
 .updates-sidebar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.5);
+  background: rgba(0, 0, 0, .5);
   opacity: 0;
   visibility: hidden;
   transition: .3s;
@@ -1258,33 +1282,33 @@ select {
 
 /* RESPONSIVE */
 
-@media(max-width:1200px){
+@media(max-width:1200px) {
 
-  .top-grid{
-    grid-template-columns:1fr;
+  .top-grid {
+    grid-template-columns: 1fr;
   }
 
 }
 
-@media(max-width:768px){
+@media(max-width:768px) {
 
-  .header{
-    flex-direction:column;
-    align-items:flex-start;
-    gap:20px;
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
   }
 
-  .header-right{
-    width:100%;
-    flex-wrap:wrap;
+  .header-right {
+    width: 100%;
+    flex-wrap: wrap;
   }
 
-  .search-box{
-    width:100%;
+  .search-box {
+    width: 100%;
   }
 
-  .updates-sidebar-panel{
-    width:100%;
+  .updates-sidebar-panel {
+    width: 100%;
   }
 
 }

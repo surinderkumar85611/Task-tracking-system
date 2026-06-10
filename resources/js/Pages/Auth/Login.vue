@@ -121,10 +121,6 @@ const login = () => {
         type: "success",
         toastClassName: "custom-toast",
       });
-
-      setTimeout(() => {
-        router.visit("/dashboard"); 
-      }, 1200);
     },
 
     onError: (backendErrors) => {
