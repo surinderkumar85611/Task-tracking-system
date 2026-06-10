@@ -37,9 +37,6 @@
                 </button>
 
 
-                <button :class="{ active: activeTab === 'danger' }" @click="activeTab = 'danger'">
-                    ⚠️ Danger Zone
-                </button>
 
             </div>
 
@@ -311,7 +308,44 @@
                         </label>
 
                     </div>
+                    
+                    <!-- TWO FACTOR AUTHENTICATION -->
+<div class="twofa-box">
 
+    <h3>Two Factor Authentication (2FA)</h3>
+
+    <p>
+        Secure your account using Google Authenticator.
+    </p>
+
+    <!-- STEP 1 BUTTON -->
+    <button class="primary-btn" @click="generate2FA">
+        Generate QR Code
+    </button>
+
+    <!-- SHOW QR -->
+    <div v-if="twoFA.qr" class="qr-box">
+
+        <p>Scan this QR in Google Authenticator:</p>
+
+        <img :src="twoFA.qr" alt="2FA QR Code" />
+
+        <p><strong>Or enter manually:</strong></p>
+        <code>{{ twoFA.secret }}</code>
+
+        <div class="form-group">
+            <label>Enter 6-digit code</label>
+
+            <input v-model="twoFA.code" placeholder="123456" />
+        </div>
+
+        <button class="primary-btn" @click="enable2FA">
+            Enable 2FA
+        </button>
+
+    </div>
+
+</div>
                 </div>
 
                 <div class="card-footer">
@@ -412,48 +446,7 @@
 
             </section>
 
-<section v-if="activeTab === 'danger'" class="danger-card">
-
-    <div class="danger-header">
-        <h2>Danger Zone</h2>
-        <p>Select a workspace to permanently delete it.</p>
-    </div>
-
-    <!-- WORKSPACE LIST -->
-    <div v-if="workspaces.length" class="danger-actions">
-
-        <div
-            v-for="ws in workspaces"
-            :key="ws.id"
-            class="danger-item"
-            :style="{
-                border:
-                    selectedWorkspace?.id === ws.id
-                        ? '2px solid #ef4444'
-                        : ''
-            }"
-            @click="selectedWorkspace = ws"
-        >
-
-            <div>
-                <h4>{{ ws.name }}</h4>
-                <p>{{ ws.description || 'No description' }}</p>
-            </div>
-
-            <button
-                class="danger-btn"
-                @click.stop="deleteWorkspace(ws)"
-            >
-                Delete
-            </button>
-
-        </div>
-
-    </div>
-
-    <p v-else>No workspaces available.</p>
-
-</section>
+            
 
         </main>
 
@@ -468,8 +461,12 @@ import {
     watch
 } from "vue";
 import axios from "axios";
-import Sidebar from "./components/Sidebar.vue";
-import { useThemeStore } from "../stores/theme";
+import Sidebar from "./Sidebar.vue";
+import {
+    useThemeStore
+}
+    from "../../stores/theme.js";
+
 import { useToast } from "vue-toastification";
 
 const toast = useToast();
@@ -519,10 +516,10 @@ const fetchProfile = async () => {
         profile.name = user.name;
         profile.email = user.email;
 
-       const data = member?.member ?? member;
+        const data = member?.member ?? member;
 
-profile.role = data?.role || "N/A";
-profile.department = data?.department || "N/A";
+        profile.role = data?.role || "N/A";
+        profile.department = data?.department || "N/A";
     } catch (error) {
         console.error("fetchProfile error:", error);
     }
@@ -718,29 +715,52 @@ onMounted(() => {
     fetchProfile();
     fetchWorkspaces();
 });
-const deleteWorkspace = async (workspace) => {
-    if (!workspace) return;
-
+const twoFA = reactive({
+    qr: null,
+    secret: null,
+    code: "",
+    enabled: false,
+    loading: false
+});
+const generate2FA = async () => {
     try {
-        const res = await axios.delete(`/workspaces/${workspace.id}`);
+        twoFA.loading = true;
 
-        toast.success(res.data.message || "Workspace deleted");
+        const res = await axios.get("/leader/2fa/generate");
 
-        workspaces.value = workspaces.value.filter(
-            w => w.id !== workspace.id
-        );
+        twoFA.qr = res.data.qr;
+        twoFA.secret = res.data.secret;
 
-        if (selectedWorkspace.value?.id === workspace.id) {
-            selectedWorkspace.value =
-                workspaces.value.length ? workspaces.value[0] : null;
-        }
+        toast.success("QR generated. Scan it in Google Authenticator");
 
     } catch (err) {
-        console.error(err);
-        toast.error(
-            err.response?.data?.message ||
-            "Failed to delete workspace"
-        );
+        toast.error("Failed to generate QR");
+    } finally {
+        twoFA.loading = false;
+    }
+};
+
+const enable2FA = async () => {
+    if (!twoFA.code) {
+        toast.error("Enter 6-digit code");
+        return;
+    }
+
+    try {
+        twoFA.loading = true;
+
+        await axios.post("/leader/2fa/enable", {
+            code: twoFA.code
+        });
+
+        twoFA.enabled = true;
+
+        toast.success("2FA enabled successfully");
+
+    } catch (err) {
+        toast.error(err.response?.data?.message || "Invalid code");
+    } finally {
+        twoFA.loading = false;
     }
 };
 </script>
@@ -810,13 +830,7 @@ const deleteWorkspace = async (workspace) => {
 }
 
 
-.settings-card,
-.danger-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 22px;
-    padding: 28px;
-}
+
 
 .card-header {
     margin-bottom: 24px;
@@ -1063,38 +1077,6 @@ const deleteWorkspace = async (workspace) => {
     border: 1px solid #dbeafe;
 }
 
-.danger-header {
-    margin-bottom: 24px;
-}
-
-.danger-header h2 {
-    color: #ef4444;
-}
-
-.danger-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.danger-item {
-    background: rgba(239, 68, 68, .08);
-    border: 1px solid rgba(239, 68, 68, .2);
-    border-radius: 16px;
-    padding: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.danger-btn {
-    background: #ef4444;
-    color: white;
-    border: none;
-    padding: 12px 18px;
-    border-radius: 12px;
-    cursor: pointer;
-}
 
 
 @media (max-width: 992px) {
@@ -1111,11 +1093,7 @@ const deleteWorkspace = async (workspace) => {
         grid-template-columns: 1fr;
     }
 
-    .danger-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
-    }
+    
 }
 
 .password-wrapper {
@@ -1143,5 +1121,26 @@ const deleteWorkspace = async (workspace) => {
     color: #ef4444;
     margin-top: 6px;
     font-size: 13px;
+}
+.twofa-box {
+    margin-top: 20px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+}
+
+.qr-box {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.qr-box img {
+    width: 180px;
+    height: 180px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
 }
 </style>

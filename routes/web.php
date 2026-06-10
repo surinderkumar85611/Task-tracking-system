@@ -16,6 +16,8 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\Leader\LprojectController;
 use App\Http\Controllers\Leader\TeamController;
+use App\Http\Controllers\TeamRequestController;
+use App\Http\Controllers\Leader\TwoFactorController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -201,4 +203,26 @@ Route::get('/leader/projects', [LProjectController::class, 'index'])
 Route::middleware(['auth', 'tl'])->group(function () {
     Route::get('/leader/team', [TeamController::class, 'index'])
         ->name('leader.team');
+});
+
+Route::post('/team/request', [TeamRequestController::class, 'store']);
+Route::get('/team/request', [TeamRequestController::class, 'index']);
+
+Route::middleware(['auth', 'tl'])->prefix('leader')->group(function () {
+
+    Route::get('/settings', [\App\Http\Controllers\Leader\SettingsController::class, 'index']);
+
+    Route::put('/settings/profile', [\App\Http\Controllers\Leader\SettingsController::class, 'updateProfile']);
+
+    Route::post('/settings/password', [\App\Http\Controllers\Leader\SettingsController::class, 'updatePassword']);
+
+    Route::put('/settings/notifications', [\App\Http\Controllers\Leader\SettingsController::class, 'updateNotifications']);
+});
+
+Route::middleware(['auth'])->prefix('leader')->group(function () {
+
+    Route::get('/2fa/generate', [TwoFactorController::class, 'generateSecret']);
+    Route::post('/2fa/enable', [TwoFactorController::class, 'enable']);
+    Route::post('/2fa/disable', [TwoFactorController::class, 'disable']);
+
 });

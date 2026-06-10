@@ -8,29 +8,36 @@ use App\Models\Project;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-class LProjectController extends Controller{
+class LProjectController extends Controller
+{
     public function index()
     {
         $user = auth()->user();
 
-        // get logged-in leader
+        // Get logged-in leader
         $leader = Member::where('email', $user->email)->first();
 
         if (!$leader || $leader->role !== 'TL') {
             abort(403, 'Access Denied');
         }
 
-        // 🔥 FIX: ONLY projects assigned to THIS leader
-        $projects = Project::with(['tasks', 'teamLeader'])
-            ->where('team_leader_id', $leader->id)
-            ->when(session('workspace_id'), function ($query) {
-                $query->where('workspace_id', session('workspace_id'));
-            })
-            ->get();
+        $projects = Project::with([
+            'tasks',
+            'teamLeader',
+            'teamLeader.teamMembers' // Load all members under the leader
+        ])
+        ->where('team_leader_id', $leader->id)
+        ->when(session('workspace_id'), function ($query) {
+            $query->where('workspace_id', session('workspace_id'));
+        })
+        ->get();
 
         return Inertia::render('Leader/Projects', [
             'projects' => $projects,
-            'teamLeaders' => Member::where('role', 'TL')->get(),
+
+            'teamLeaders' => Member::with('teamMembers')
+                ->where('role', 'TL')
+                ->get(),
         ]);
     }
 }

@@ -69,30 +69,10 @@
           <h2>{{ completionRate }}%</h2>
         </div>
 
-        <div class="stat-card danger">
-          <span>Overdue Tasks</span>
-          <h2>{{ overdueTasks }}</h2>
-        </div>
+        
 
       </section>
 
-      <!-- QUICK ACTIONS -->
-      <section class="dashboard-card">
-
-        <div class="card-header">
-          <h2>Quick Actions</h2>
-        </div>
-
-        <div class="quick-actions">
-
-
-          <button class="quick-btn success">
-            Assign Task
-          </button>
-
-        </div>
-
-      </section>
 
       <!-- PROJECT + TEAM GRID -->
       <section class="top-grid">
@@ -242,139 +222,7 @@
       </section>
 
       <!-- TASK BOARD -->
-      <section class="dashboard-card">
-
-        <div class="card-header">
-          <h2>Project Tasks</h2>
-        </div>
-
-        <div class="table-wrapper">
-
-          <table class="project-table">
-
-            <thead>
-              <tr>
-                <th>Task Name</th>
-                <th>Updates</th>
-                <th>Member</th>
-                <th>Status</th>
-                <th>Priority</th>
-                <th>Allocated Duration</th>
-                <th>Start Time</th>
-                <th>Due Date</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-
-            <tbody>
-
-              <template v-for="project in filteredProjects" :key="project.id">
-
-                <!-- PROJECT ROW -->
-                <tr class="project-row">
-                  <td colspan="9">
-                    {{ project.name }}
-                  </td>
-                </tr>
-
-                <!-- TASK ROWS -->
-                <tr v-for="task in project.tasks" :key="task.id">
-
-                  <!-- Task Name -->
-                  <td>
-                    {{ task.title }}
-                  </td>
-
-                  <!-- Updates -->
-                  <td>
-                    <button class="update-btn" @click="openUpdatesSidebar(task, project)">
-                      💬 Updates
-                    </button>
-                  </td>
-
-                  <!-- Member -->
-                  <td>
-                    <select @change="assignMember(task, $event.target.value)" :value="task.member_id?.[0] || ''">
-                      <option value="">Assign Member</option>
-
-                      <option v-for="member in teamMembers" :key="member.id" :value="member.id">
-                        {{ member.first_name }} {{ member.last_name }}
-                      </option>
-                    </select>
-                  </td>
-
-                  <!-- Status -->
-                  <td>
-                    <select v-model="task.status" @change="syncTask(task)">
-                      <option>Todo</option>
-                      <option>In Progress</option>
-                      <option>Completed</option>
-                    </select>
-                  </td>
-
-                  <!-- Priority -->
-                  <td>
-                    <select v-model="task.priority" @change="syncTask(task)">
-                      <option value="Low">Low</option>
-                      <option value="Medium">Medium</option>
-                      <option value="High">High</option>
-                    </select>
-                  </td>
-
-                  <!-- Duration -->
-                  <td>
-                    <select v-model="task.allocated_duration" @change="handleTimerDurationChange(task)">
-                      <option :value="null">None</option>
-                      <option :value="1">1 Min</option>
-                      <option :value="30">30 Mins</option>
-                      <option :value="60">1 Hour</option>
-                      <option :value="120">2 Hours</option>
-                      <option :value="240">4 Hours</option>
-                      <option :value="480">8 Hours</option>
-                    </select>
-                  </td>
-
-                  <!-- Start Time (FIXED — MUST BE TD) -->
-                  <td>
-                    <div v-if="task.allocated_duration && task.timer_started_at">
-                      <div class="progress-bar">
-                        <div class="progress-fill" :style="{
-                          width: getTimerMetrics(task).percentage + '%',
-                          background: getTimerMetrics(task).color
-                        }"></div>
-                      </div>
-
-                      <small :style="{ color: getTimerMetrics(task).color }">
-                        ⏳ {{ getTimerMetrics(task).string }}
-                      </small>
-                    </div>
-
-                    <span v-else>—</span>
-                  </td>
-
-                  <!-- Due Date -->
-                  <td>
-                    {{ task.due_date || '—' }}
-                  </td>
-
-                  <!-- Action -->
-                  <td>
-                    <button class="row-remove-trigger" @click="removeTaskRow(task.id, project)" title="Delete Task">
-                      ✕
-                    </button>
-                  </td>
-
-                </tr>
-
-              </template>
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-      </section>
+     
 
       <!-- TASK UPDATE SIDEBAR -->
 

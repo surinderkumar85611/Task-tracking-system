@@ -7,36 +7,33 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     public function up(): void
-    {
-        Schema::table(
-            'members',
-            function (Blueprint $table) {
+{
+    if (!Schema::hasColumn('members', 'team_id')) {
 
-                $table->foreignId('team_id')
-                    ->nullable()
-                    ->after('assigned_to')
-                    ->constrained('teams')
-                    ->nullOnDelete();
+        Schema::table('members', function (Blueprint $table) {
 
-            }
-        );
+            $table->foreignId('team_id')
+                ->nullable()
+                ->after('assigned_to')
+                ->constrained('teams')
+                ->nullOnDelete();
+
+        });
+
     }
+}
 
     public function down(): void
-    {
-        Schema::table(
-            'members',
-            function (Blueprint $table) {
+{
+    if (Schema::hasColumn('members', 'team_id')) {
 
-                $table->dropForeign([
-                    'team_id'
-                ]);
+        Schema::table('members', function (Blueprint $table) {
 
-                $table->dropColumn(
-                    'team_id'
-                );
+            $table->dropForeign(['team_id']);
+            $table->dropColumn('team_id');
 
-            }
-        );
+        });
+
     }
+}
 };

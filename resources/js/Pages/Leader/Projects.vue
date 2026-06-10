@@ -73,35 +73,47 @@
 
                 <div class="stat-card">
                     <h3>In Progress</h3>
-                    <h1>{{projects.filter(p => p.status === 'In Progress').length}}</h1>
+                    <h1>
+                        {{
+                            projects.reduce((acc, p) =>
+                                acc + (p.tasks?.filter(t => t.status?.toLowerCase() === 'in progress' || t.status?.toLowerCase()
+                                    === 'in_progress').length || 0), 0
+                        )
+                        }}
+                    </h1>
                 </div>
 
                 <div class="stat-card">
                     <h3>Completed</h3>
-                    <h1>{{projects.filter(p => p.status === 'Completed').length}}</h1>
+                    <h1>
+                        {{
+                            projects.reduce((acc, p) =>
+                                acc + (p.tasks?.filter(t => t.status?.toLowerCase() === 'completed').length || 0), 0
+                            )
+                        }}
+                    </h1>
                 </div>
 
                 <div class="stat-card">
                     <h3>Planning</h3>
-                    <h1>{{projects.filter(p => p.status === 'Planning').length}}</h1>
+                    <h1>
+                        {{
+                            projects.reduce((acc, p) =>
+                                acc + (p.tasks?.filter(t => t.status?.toLowerCase() === 'todo' || t.status?.toLowerCase() ===
+                                    'planning' || !t.status).length || 0), 0
+                        )
+                        }}
+                    </h1>
                 </div>
             </section>
 
-            <div class="global-actions-bar">
-                
-
-                <!-- <select v-model="selectedActiveProjectFilter" class="project-view-selector">
-                    <option :value="null">📁 All Project Folders</option>
-                    <option v-for="project in projects" :key="project.id" :value="project.id">
-                        {{ project.name }}
-                    </option>
-                </select> -->
-            </div>
+            
 
             <div class="monday-board-container">
                 <div v-if="filteredProjects.length === 0" class="empty-board-state">
                     <h3>No projects found matching current parameters</h3>
-                    
+                    <button class="monday-btn-secondary" @click="openCreateProjectModal">Create your first
+                        board</button>
                 </div>
 
                 <div v-for="project in filteredProjects" :key="project.id" class="monday-project-group">
@@ -119,8 +131,7 @@
                         <div class="group-control-actions">
                             <button class="action-icon-btn" title="Edit Project Config"
                                 @click="openEditProjectModal(project)">✏️ Edit</button>
-                            <button class="action-icon-btn delete" title="Drop Project"
-                                @click="openDeleteModal(project.id)">🗑️ Delete</button>
+                            
                         </div>
                     </div>
 
@@ -140,7 +151,8 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="task in project.tasks" :key="task.id" class="task-row-item">
+                                <tr v-for="task in project.tasks" :key="task.id"
+                                    :class="{ 'completed-task-row': task.status === 'Completed' }">
                                     <td class="cell-task">
                                         <input type="text" v-model="task.title" placeholder="Type task description..."
                                             @change="syncTaskRow(task)" class="monday-input-cell" />
@@ -181,9 +193,9 @@
                                             <div class="modal-pills-row">
                                                 <div v-for="mId in task.member_id" :key="mId" class="member-pill-badge">
                                                     <span class="pill-avatar-dot">{{ getMemberInitials(project, mId)
-                                                        }}</span>
+                                                    }}</span>
                                                     <span class="pill-name-text">{{ getMemberFirstNameOnly(project, mId)
-                                                        }}</span>
+                                                    }}</span>
                                                     <span class="pill-remove-btn"
                                                         @click.stop="toggleMemberAssignment(task, mId)">×</span>
                                                 </div>
@@ -258,7 +270,7 @@
                                         <select v-model="task.allocated_duration"
                                             @change="handleTimerDurationChange(task)" class="table-duration-dropdown">
                                             <option :value="null">None</option>
-                                            <option :value="1">1 Min (Test)</option>
+                                            <option :value="15">15 Mins</option>
                                             <option :value="30">30 Mins</option>
                                             <option :value="60">1 Hour</option>
                                             <option :value="120">2 Hours</option>
@@ -292,8 +304,14 @@
                                             class="monday-date-cell" />
                                     </td>
                                     <td class="cell-action">
-                                        <button class="row-remove-trigger"
-                                            @click="removeTaskRow(task.id, project)">✕</button>
+                                        <button v-if="task.status !== 'Completed'"
+                                            @click="removeTaskRow(task.id, project)">
+                                            🗑
+                                        </button>
+
+                                        <button v-else class="review-btn" @click="openReviewModal(task)">
+                                            Review
+                                        </button>
                                     </td>
                                 </tr>
 
@@ -467,6 +485,28 @@
                     </div>
                 </div>
             </div>
+
+            <div v-if="showReviewModal" class="modal-overlay">
+                <div class="review-modal">
+
+                    <h2>Task Review</h2>
+
+                    <textarea v-model="reviewText" placeholder="Write review..."></textarea>
+
+                    <div class="modal-actions">
+
+                        <button class="cancel-btn" @click="closeReviewModal">
+                            Cancel
+                        </button>
+
+                        <button class="save-btn" @click="saveReview">
+                            Save Review
+                        </button>
+
+                    </div>
+
+                </div>
+            </div>
         </main>
     </div>
 </template>
@@ -494,6 +534,51 @@ const showProfileMenu = ref(false);
 const showCreateProjectModal = ref(false);
 const selectedActiveProjectFilter = ref(null);
 const currentTimeLiveTick = ref(Date.now());
+
+const showReviewModal = ref(false);
+const reviewText = ref("");
+const selectedReviewTask = ref(null);
+
+const openReviewModal = (task) => {
+
+    selectedReviewTask.value = task;
+
+    reviewText.value = task.review || "";
+
+    showReviewModal.value = true;
+};
+
+const closeReviewModal = () => {
+
+    showReviewModal.value = false;
+
+    selectedReviewTask.value = null;
+
+    reviewText.value = "";
+};
+
+const saveReview = () => {
+
+    router.put(
+        `/task/${selectedReviewTask.value.id}`,
+        {
+            ...selectedReviewTask.value,
+            review: reviewText.value,
+        },
+        {
+            preserveScroll: true,
+
+            onSuccess: () => {
+
+                toast.success(
+                    "Review saved"
+                );
+
+                closeReviewModal();
+            },
+        }
+    );
+};
 
 const form = reactive({
     name: "",
@@ -575,7 +660,8 @@ const getProjectScopeMembers = (project) => {
     if (!project || !project.team_leader) return [];
     const leader = project.team_leader;
     const assets = leader.team_members || [];
-
+    console.log("TEAM LEADER:", leader);
+    console.log("TEAM MEMBERS:", assets);
     if (isAdmin.value) {
         const managerNode = { id: leader.id, first_name: leader.first_name, last_name: " (TL)" };
         return [managerNode, ...assets];
@@ -585,6 +671,7 @@ const getProjectScopeMembers = (project) => {
 
 const appendNewEmptyTask = (project) => {
     const rawPayload = {
+        workspace_id: project.workspace_id,
         project_id: project.id,
         title: "New Item Row",
         member_id: [],
@@ -594,7 +681,8 @@ const appendNewEmptyTask = (project) => {
         allocated_duration: null,
         timer_started_at: null,
     };
-
+    console.log("Creating task for project:", project);
+    console.log("Workspace ID:", project.workspace_id);
     router.post("/task", rawPayload, {
         preserveScroll: true,
         onSuccess: () => { },
@@ -906,7 +994,9 @@ const getMemberFullName = (project, memberId) => {
 const logout = () => {
     router.post('/logout');
 };
+
 </script>
+
 
 <style scoped>
 .main-content {
@@ -1106,6 +1196,7 @@ const logout = () => {
     border-collapse: collapse;
     text-align: left;
     table-layout: fixed;
+    text-align: center;
 }
 
 .col-task {
@@ -2182,5 +2273,56 @@ tbody tr {
 .table-duration-dropdown option {
     background-color: var(--sidebar);
     color: var(--text);
+}
+
+.completed-task-row {
+    opacity: 0.6;
+    background: rgba(0, 200, 117, 0.08);
+}
+
+.completed-task-row td {
+    pointer-events: none;
+}
+
+.completed-task-row .review-btn {
+    pointer-events: auto;
+}
+
+.done-text {
+    color: #00c875;
+    font-weight: 700;
+}
+
+.review-modal {
+    width: 550px;
+    max-width: 95%;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .4);
+}
+
+.review-modal h2 {
+    margin-bottom: 15px;
+    color: #fff;
+}
+
+.review-modal textarea {
+    width: 100%;
+    min-height: 180px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 12px;
+    color: white;
+    resize: vertical;
+}
+
+.review-modal .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
 }
 </style>
