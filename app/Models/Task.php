@@ -22,6 +22,7 @@ class Task extends Model
         'notes',
         'allocated_duration',
         'timer_started_at',
+        'review'
     ];
 
     protected $casts = [

@@ -143,7 +143,8 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="task in project.tasks" :key="task.id" class="task-row-item">
+                                <tr v-for="task in project.tasks" :key="task.id"
+                                    :class="{ 'completed-task-row': task.status === 'Completed' }">
                                     <td class="cell-task">
                                         <input type="text" v-model="task.title" placeholder="Type task description..."
                                             @change="syncTaskRow(task)" class="monday-input-cell" />
@@ -261,7 +262,7 @@
                                         <select v-model="task.allocated_duration"
                                             @change="handleTimerDurationChange(task)" class="table-duration-dropdown">
                                             <option :value="null">None</option>
-                                            <option :value="1">1 Min (Test)</option>
+                                            <option :value="15">15 Mins</option>
                                             <option :value="30">30 Mins</option>
                                             <option :value="60">1 Hour</option>
                                             <option :value="120">2 Hours</option>
@@ -295,8 +296,14 @@
                                             class="monday-date-cell" />
                                     </td>
                                     <td class="cell-action">
-                                        <button class="row-remove-trigger"
-                                            @click="removeTaskRow(task.id, project)">✕</button>
+                                        <button v-if="task.status !== 'Completed'"
+                                            @click="removeTaskRow(task.id, project)">
+                                            🗑
+                                        </button>
+
+                                        <button v-else class="review-btn" @click="openReviewModal(task)">
+                                            Review
+                                        </button>
                                     </td>
                                 </tr>
 
@@ -470,6 +477,28 @@
                     </div>
                 </div>
             </div>
+
+            <div v-if="showReviewModal" class="modal-overlay">
+                <div class="review-modal">
+
+                    <h2>Task Review</h2>
+
+                    <textarea v-model="reviewText" placeholder="Write review..."></textarea>
+
+                    <div class="modal-actions">
+
+                        <button class="cancel-btn" @click="closeReviewModal">
+                            Cancel
+                        </button>
+
+                        <button class="save-btn" @click="saveReview">
+                            Save Review
+                        </button>
+
+                    </div>
+
+                </div>
+            </div>
         </main>
     </div>
 </template>
@@ -497,6 +526,51 @@ const showProfileMenu = ref(false);
 const showCreateProjectModal = ref(false);
 const selectedActiveProjectFilter = ref(null);
 const currentTimeLiveTick = ref(Date.now());
+
+const showReviewModal = ref(false);
+const reviewText = ref("");
+const selectedReviewTask = ref(null);
+
+const openReviewModal = (task) => {
+
+    selectedReviewTask.value = task;
+
+    reviewText.value = task.review || "";
+
+    showReviewModal.value = true;
+};
+
+const closeReviewModal = () => {
+
+    showReviewModal.value = false;
+
+    selectedReviewTask.value = null;
+
+    reviewText.value = "";
+};
+
+const saveReview = () => {
+
+    router.put(
+        `/task/${selectedReviewTask.value.id}`,
+        {
+            ...selectedReviewTask.value,
+            review: reviewText.value,
+        },
+        {
+            preserveScroll: true,
+
+            onSuccess: () => {
+
+                toast.success(
+                    "Review saved"
+                );
+
+                closeReviewModal();
+            },
+        }
+    );
+};
 
 const form = reactive({
     name: "",
@@ -1109,6 +1183,7 @@ const logout = () => {
     border-collapse: collapse;
     text-align: left;
     table-layout: fixed;
+    text-align: center;
 }
 
 .col-task {
@@ -2185,5 +2260,56 @@ tbody tr {
 .table-duration-dropdown option {
     background-color: var(--sidebar);
     color: var(--text);
+}
+
+.completed-task-row {
+    opacity: 0.6;
+    background: rgba(0, 200, 117, 0.08);
+}
+
+.completed-task-row td {
+    pointer-events: none;
+}
+
+.completed-task-row .review-btn {
+    pointer-events: auto;
+}
+
+.done-text {
+    color: #00c875;
+    font-weight: 700;
+}
+
+.review-modal {
+    width: 550px;
+    max-width: 95%;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .4);
+}
+
+.review-modal h2 {
+    margin-bottom: 15px;
+    color: #fff;
+}
+
+.review-modal textarea {
+    width: 100%;
+    min-height: 180px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 12px;
+    color: white;
+    resize: vertical;
+}
+
+.review-modal .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
 }
 </style>
