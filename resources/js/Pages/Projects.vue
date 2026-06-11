@@ -120,6 +120,9 @@
                         </div>
 
                         <div class="group-control-actions">
+                            <button class="monday-btn-primary" @click="openImportModal(project)">
+                                📥 Import Tasks
+                            </button>
                             <button class="action-icon-btn" title="Edit Project Config"
                                 @click="openEditProjectModal(project)">✏️ Edit</button>
                             <button class="action-icon-btn delete" title="Drop Project"
@@ -499,6 +502,72 @@
 
                 </div>
             </div>
+
+            <div v-if="showImportModal" class="modal-backdrop">
+                <div class="modal-custom-card mapping-modal-card">
+
+                    <div class="modal-custom-header">
+                        <h3>Import Tasks via Excel File</h3>
+                        <button class="modal-close-cross-btn"
+                            @click="showImportModal = false; showMappingStep = false;">×</button>
+                    </div>
+
+                    <div class="modal-custom-body">
+                        <div v-if="!showMappingStep" class="upload-dropzone-box">
+                            <p class="mapping-description-text">Select a spreadsheet file (.xlsx, .xls, .csv) to pull
+                                task lists directly into your board.</p>
+                            <input type="file" accept=".xlsx,.xls,.csv" @change="handleFileUpload"
+                                class="modal-input-file-field" />
+                        </div>
+
+                        <div v-else class="mapping-flow-form">
+
+                            <h3>Map Spreadsheet Columns</h3>
+
+                            <div class="mapping-table">
+
+                                <div class="mapping-row mapping-header">
+                                    <div>Task Table Field</div>
+                                    <div>Excel Column</div>
+                                </div>
+
+                                <div v-for="field in targetSchemaFields" :key="field.key" class="mapping-row">
+                                    <div class="mapping-left">
+                                        {{ field.label }}
+                                    </div>
+
+                                    <div class="mapping-right">
+
+                                        <select v-model="mapping[field.key]" class="modal-input-select">
+                                            <option value="">
+                                                Ignore this field
+                                            </option>
+
+                                            <option v-for="header in uploadedHeaders" :key="header" :value="header">
+                                                {{ header }}
+                                            </option>
+
+                                        </select>
+
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="modal-custom-footer">
+                        <button class="cancel-modal-btn"
+                            @click="showImportModal = false; showMappingStep = false;">Cancel</button>
+                        <button v-if="showMappingStep" class="confirm-modal-btn import-execute-btn" @click="importTasks"
+                            :disabled="!mapping.title">
+                            Run Task Import
+                        </button>
+                    </div>
+
+                </div>
+            </div>
         </main>
     </div>
 </template>
@@ -510,6 +579,7 @@ import { useToast } from "vue-toastification";
 import Sidebar from "./components/Sidebar.vue";
 import { useThemeStore } from "../stores/theme";
 import { useNotificationStore } from '@/stores/notificationStore';
+import * as XLSX from 'xlsx';
 
 const theme = useThemeStore();
 const toast = useToast();
@@ -872,7 +942,6 @@ const formatDate = (isoString) => {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-
 const vClickOutside = {
     mounted(el, binding) {
         el.clickOutsideEvent = (event) => {
@@ -978,6 +1047,135 @@ const getMemberFullName = (project, memberId) => {
     const members = getProjectScopeMembers(project) || [];
     const found = members.find(m => m.id === memberId);
     return found ? `${found.first_name} ${found.last_name || ''}` : "Team Member";
+};
+
+const targetSchemaFields = ref([]);
+
+const showImportModal = ref(false);
+const showMappingStep = ref(false);
+const uploadedHeaders = ref([]);
+const excelRows = ref([]);
+
+const selectedImportProject = ref(null);
+
+const openImportModal = async (project) => {
+
+    selectedImportProject.value = project;
+
+    const response = await axios.get('/task-fields');
+
+    targetSchemaFields.value = response.data;
+
+    showImportModal.value = true;
+};
+
+const mapping = ref({});
+
+watch(targetSchemaFields, (fields) => {
+
+    const temp = {};
+
+    fields.forEach(field => {
+        temp[field.key] = "";
+    });
+
+    mapping.value = temp;
+
+});
+
+const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+
+        const rawRows = XLSX.utils.sheet_to_json(sheet, {
+            header: 1,
+            raw: false,
+            dateNF: 'yyyy-mm-dd'
+        });
+
+        if (rawRows.length > 0) {
+            uploadedHeaders.value = rawRows[0].map(h => String(h).trim());
+            excelRows.value = rawRows.slice(1);
+
+            targetSchemaFields.value.forEach(field => {
+                const guessedColumn = uploadedHeaders.value.find(header =>
+                    header.toLowerCase().includes(field.key.toLowerCase().replace('_', '')) ||
+                    header.toLowerCase().includes(field.label.toLowerCase().split(' ')[0])
+                );
+                if (guessedColumn) {
+                    mapping.value[field.key] = guessedColumn;
+                }
+            });
+
+            showMappingStep.value = true;
+        } else {
+            toast.error("The uploaded file appears to be empty.");
+        }
+    };
+    reader.readAsArrayBuffer(file);
+};
+
+const importTasks = () => {
+
+    if (!selectedImportProject.value) {
+        toast.error("No project selected");
+        return;
+    }
+
+    const tasks = [];
+
+    excelRows.value.forEach(row => {
+
+        const task = {
+            project_id: selectedImportProject.value.id,
+            status: "Todo",
+            timer_started_at: null,
+            member_id: []
+        };
+
+        targetSchemaFields.value.forEach(field => {
+
+            const mappedHeader = mapping.value[field.key];
+            const columnIndex = uploadedHeaders.value.indexOf(mappedHeader);
+
+            task[field.key] =
+                columnIndex !== -1
+                    ? row[columnIndex]
+                    : field.default;
+        });
+
+        tasks.push(task);
+    });
+
+    router.post('/task/import', {
+        project_id: selectedImportProject.value.id,
+        tasks
+    }, {
+        preserveScroll: true,
+
+        onSuccess: () => {
+
+            toast.success('Tasks imported successfully');
+
+            showImportModal.value = false;
+            showMappingStep.value = false;
+
+            uploadedHeaders.value = [];
+            excelRows.value = [];
+            selectedImportProject.value = null;
+        },
+
+        onError: () => {
+            toast.error('Import failed');
+        }
+    });
 };
 
 const logout = () => {
@@ -2311,5 +2509,236 @@ tbody tr {
     justify-content: flex-end;
     gap: 12px;
     margin-top: 20px;
+}
+
+/* --- EXCEL IMPORT PANEL MODAL SYSTEM STYLES --- */
+.monday-btn-primary {
+    background-color: #00c875;
+    color: #ffffff;
+    border: none;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.monday-btn-primary:hover {
+    background-color: #00a35e;
+}
+
+.mapping-modal-card {
+    width: 480px;
+    max-width: 95%;
+    background: #1e1e2d;
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+.upload-dropzone-box {
+    padding: 20px 10px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.modal-input-file-field {
+    background: #151521;
+    border: 1px dashed #4a4e69;
+    padding: 16px;
+    color: #ffffff;
+    border-radius: 6px;
+    width: 100%;
+    cursor: pointer;
+}
+
+.mapping-flow-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.mapping-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mapping-field-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #e1e3e7;
+}
+
+.mapping-description-text {
+    font-size: 13px;
+    color: #7e8299;
+    line-height: 1.5;
+    margin: 0 0 4px 0;
+}
+
+.import-execute-btn {
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
+}
+
+.import-execute-btn:hover {
+    background-color: #2563eb !important;
+}
+
+.import-execute-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background-color: #4a4e69 !important;
+}
+
+/* --- THE BACKDROP SCREEN FIXED POSITIONS --- */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.65);
+    /* Darkens the rest of the workspace out layout */
+    backdrop-filter: blur(4px);
+    /* Soft focus background styling */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    /* Forces the box layout over tables and panels layout cards */
+}
+
+/* --- INNER MODAL COMPONENTS STRUCTURE LAYOUTS --- */
+.modal-custom-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-custom-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #32324d;
+}
+
+.modal-custom-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.modal-close-cross-btn {
+    background: transparent;
+    border: none;
+    font-size: 22px;
+    color: #7e8299;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-close-cross-btn:hover {
+    color: #ffffff;
+}
+
+.modal-custom-body {
+    padding: 20px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.modal-custom-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 14px 20px;
+    border-top: 1px solid #32324d;
+    background-color: #1a1a27;
+}
+
+.cancel-modal-btn {
+    background: transparent;
+    border: 1px solid #4a4e69;
+    color: #e1e3e7;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.cancel-modal-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.confirm-modal-btn {
+    border: none;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.modal-input-select {
+    background-color: #151521;
+    border: 1px solid #32324d;
+    color: #ffffff;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 13px;
+    outline: none;
+    width: 100%;
+    margin-top: 4px;
+}
+
+.modal-input-select:focus {
+    border-color: #3b82f6;
+}
+
+.mapping-table {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+.mapping-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.mapping-row:last-child {
+    border-bottom: none;
+}
+
+.mapping-header {
+    font-weight: 600;
+}
+
+.mapping-left {
+    font-weight: 500;
+}
+
+.required-star {
+    color: #ef4444;
+    margin-left: 4px;
+}
+
+.mapping-right select {
+    width: 100%;
 }
 </style>

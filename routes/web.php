@@ -141,7 +141,7 @@ Route::middleware(['auth'])->group(function () {
         return redirect('/login');
     })->name('logout');
 
-    
+
 });
 use App\Http\Controllers\SettingsController;
 
@@ -195,7 +195,6 @@ Route::get('/workspaces/{workspace}', [WorkspaceController::class, 'show']);
 Route::put('/workspaces/{workspace}', [WorkspaceController::class, 'update']);
 Route::delete('/workspaces/{workspace}', [WorkspaceController::class, 'destroy']);
 
-
 Route::get('/leader/projects', [LProjectController::class, 'index'])
     ->middleware(['auth', 'tl'])
     ->name('leader.projects');
@@ -226,3 +225,8 @@ Route::middleware(['auth'])->prefix('leader')->group(function () {
     Route::post('/2fa/disable', [TwoFactorController::class, 'disable']);
 
 });
+
+Route::get('/task-fields', [TaskController::class, 'getTaskFields']);
+Route::post('/task/import', [TaskController::class, 'import'])
+    ->name('task.import');
+
