@@ -10,29 +10,27 @@ use Illuminate\Support\Facades\Auth;
 class TwoFactorController extends Controller
 {
     public function generateSecret()
-{$google2fa = new Google2FA();
+{
+    $google2fa = new Google2FA();
+    $user = Auth::user();
 
-$user = Auth::user();
+    if (!$user->two_factor_secret) {
+        $user->two_factor_secret = $google2fa->generateSecretKey();
+        $user->save();
+    }
 
-if (!$user->two_factor_secret) {
-    $user->two_factor_secret = $google2fa->generateSecretKey();
-    $user->save();
-}
+    $secret = $user->two_factor_secret;
 
-$secret = $user->two_factor_secret;
+    // This outputs the raw text stream that your new Vue component reads to draw the QR code
+    $qr = "otpauth://totp/" . config('app.name') . ":" . $user->email .
+        "?secret=" . $secret .
+        "&issuer=" . config('app.name') .
+        "&algorithm=SHA1&digits=6&period=30";
 
-$qr = "https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=" . urlencode(
-    "otpauth://totp/" .
-    config('app.name') . ":" . $user->email .
-    "?secret=" . $secret .
-    "&issuer=" . config('app.name') .
-    "&algorithm=SHA1&digits=6&period=30"
-);
-
-return response()->json([
-    'secret' => $secret,
-    'qr' => $qr
-]);
+    return response()->json([
+        'secret' => $secret,
+        'qr' => $qr
+    ]);
 }
 
     public function enable(Request $request)

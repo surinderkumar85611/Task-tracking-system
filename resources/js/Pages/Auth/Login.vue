@@ -112,11 +112,21 @@ const login = () => {
   validateEmail();
   validatePassword();
 
+  if (hasErrors.value) return; // Prevents submitting if frontend validation fails
+
   router.post("/login", form, {
     preserveState: true,
     preserveScroll: true,
 
-    onSuccess: () => {
+    onSuccess: (page) => {
+      if (page.props.flash?.two_factor_required || page.props.auth?.two_factor_pending) {
+        toast.info("Two-factor authentication required.", {
+          toastClassName: "custom-toast",
+        });
+        router.get("/two-factor-challenge");
+        return;
+      }
+
       toast("Login successful", {
         type: "success",
         toastClassName: "custom-toast",

@@ -230,3 +230,5 @@ Route::get('/task-fields', [TaskController::class, 'getTaskFields']);
 Route::post('/task/import', [TaskController::class, 'import'])
     ->name('task.import');
 
+Route::get('/two-factor-challenge', [\App\Http\Controllers\AuthController::class, 'showTwoFactorChallenge'])->name('two-factor.challenge');
+Route::post('/two-factor-challenge', [\App\Http\Controllers\AuthController::class, 'verifyTwoFactorChallenge']);
