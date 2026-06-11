@@ -2,11 +2,106 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
 use App\Models\Task;
+use Carbon\Carbon;
 
 class TaskController extends Controller
 {
+    public function getTaskFields()
+    {
+        $columns = Schema::getColumnListing('tasks');
+
+        $exclude = [
+            'id',
+            'workspace_id',
+            'project_id',
+            'member_id',
+            'review',
+            'created_at',
+            'updated_at',
+        ];
+
+        $fields = collect($columns)
+            ->reject(fn($col) => in_array($col, $exclude))
+            ->map(fn($col) => [
+                'key' => $col,
+                'label' => ucwords(str_replace('_', ' ', $col))
+            ])
+            ->values();
+
+        return response()->json($fields);
+    }
+
+    public function import(Request $request)
+    {
+        foreach ($request->tasks as $task) {
+
+            if (!empty($task['due_date'])) {
+
+                if (is_numeric($task['due_date'])) {
+
+                    $task['due_date'] = Carbon::createFromDate(1899, 12, 30)
+                        ->addDays((int)$task['due_date'])
+                        ->format('Y-m-d');
+                } else {
+
+                    try {
+
+                        $date = trim($task['due_date']);
+
+                        if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $date)) {
+
+                            $task['due_date'] =
+                                Carbon::createFromFormat(
+                                    'd-m-Y',
+                                    $date
+                                )->format('Y-m-d');
+                        } elseif (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $date)) {
+
+                            $task['due_date'] =
+                                Carbon::createFromFormat(
+                                    'd/m/Y',
+                                    $date
+                                )->format('Y-m-d');
+                        } else {
+
+                            $task['due_date'] =
+                                Carbon::parse($date)
+                                ->format('Y-m-d');
+                        }
+                    } catch (\Exception $e) {
+
+                        $task['due_date'] = null;
+                    }
+                }
+            }
+
+            if (!empty($task['allocated_duration'])) {
+
+                preg_match('/\d+/', $task['allocated_duration'], $matches);
+
+                $task['allocated_duration'] =
+                    isset($matches[0])
+                    ? (int)$matches[0]
+                    : null;
+            }
+
+            Task::create([
+                'workspace_id' => session('workspace_id'),
+                'project_id' => $task['project_id'],
+                'title' => $task['title'],
+                'priority' => $task['priority'] ?? 'Medium',
+                'status' => $task['status'] ?? 'Todo',
+                'due_date' => $task['due_date'],
+                'allocated_duration' => $task['allocated_duration'] ?? null,
+            ]);
+        }
+
+        return back()->with('success', 'Tasks imported');
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -22,7 +117,6 @@ class TaskController extends Controller
         Task::create([
             'workspace_id'         => session('workspace_id'),
             'project_id'           => $request->project_id,
-            // 'member_id'            => !empty($request->member_id) ? $request->member_id : [],
             'member_id'            => $request->member_id ?: null,
             'title'                => $request->title,
             'description'          => $request->description,
