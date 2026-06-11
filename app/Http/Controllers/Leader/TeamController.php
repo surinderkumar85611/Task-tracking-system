@@ -1,8 +1,10 @@
 <?php
+
 namespace App\Http\Controllers\Leader;
 
 use App\Http\Controllers\Controller;
 use App\Models\Member;
+use App\Models\Project;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
@@ -12,10 +14,8 @@ class TeamController extends Controller
     {
         $workspaceId = session('workspace_id') ?? 1;
 
-        // 🔥 STEP 1: get logged-in user
         $user = Auth::user();
 
-        // ⚠️ IMPORTANT: convert user → member (because your system uses members table)
         $leader = Member::where('email', $user->email)
             ->where('workspace_id', $workspaceId)
             ->first();
@@ -24,23 +24,29 @@ class TeamController extends Controller
             return Inertia::render('Leader/Team', [
                 'teamLeaders' => [],
                 'members' => [],
+                'projects' => [],
             ]);
         }
 
-        // 🔥 STEP 2: ONLY members assigned to this leader
+        // 🔥 STEP 1: members (NO assignedTasks)
         $members = Member::where('workspace_id', $workspaceId)
             ->where('assigned_to', $leader->id)
-            ->with('assignedTasks')
             ->get();
 
-        // 🔥 STEP 3: leader data
+        // 🔥 STEP 2: leader (NO assignedTasks)
         $teamLeader = Member::where('id', $leader->id)
-            ->with(['teamMembers.assignedTasks'])
+            ->with('teamMembers')
             ->first();
 
+        // 🔥 STEP 3: ADD PROJECTS (THIS IS THE KEY FIX)
+        $projects = Project::where('workspace_id', $workspaceId)
+            ->with('tasks')
+            ->get();
+
         return Inertia::render('Leader/Team', [
-            'teamLeaders' => [$teamLeader], // single leader only
+            'teamLeaders' => [$teamLeader],
             'members' => $members,
+            'projects' => $projects, // ✅ THIS FIXES YOUR UI
         ]);
     }
 }

@@ -115,7 +115,7 @@ class TaskController extends Controller
         ]);
 
         Task::create([
-            'workspace_id'         => session('workspace_id'),
+            'workspace_id'       => $request->workspace_id, 
             'project_id'           => $request->project_id,
             'member_id'            => $request->member_id ?: null,
             'title'                => $request->title,
