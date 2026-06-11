@@ -18,35 +18,40 @@
 
                     <input type="text" placeholder="Search member..." class="header-search-bar" />
 
-                    <div class="notification-bell-container" v-click-outside="() => notificationStore.showBellDropdown = false">
-    <button class="icon-btn" @click="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
-        🔔
-        <span v-if="notificationStore.activeUrgentTasks.length > 0" class="bell-alert-badge-dot">
-            {{ notificationStore.activeUrgentTasks.length }}
-        </span>
-    </button>
+                    <div class="notification-bell-container"
+                        v-click-outside="() => notificationStore.showBellDropdown = false">
+                        <button class="icon-btn"
+                            @click="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
+                            🔔
+                            <span v-if="notificationStore.activeUrgentTasks.length > 0" class="bell-alert-badge-dot">
+                                {{ notificationStore.activeUrgentTasks.length }}
+                            </span>
+                        </button>
 
-    <div v-if="notificationStore.showBellDropdown" class="notification-dropdown-panel">
-        <div class="notification-dropdown-header">
-            <h3>Urgent Task Alerts</h3>
-        </div>
-        <div class="notification-dropdown-body">
-            <div v-for="task in notificationStore.activeUrgentTasks" :key="task.id" class="notification-alert-item">
-                <div class="alert-item-indicator">⚠️</div>
-                <div class="alert-item-details">
-                    <p class="alert-task-title">{{ task.title }}</p>
-                    <p class="alert-task-time-left" :style="{ color: notificationStore.getLiveTaskMetrics(task).color }">
-                        Only {{ notificationStore.getLiveTaskMetrics(task).string }} left!
-                    </p>
-                </div>
-            </div>
+                        <div v-if="notificationStore.showBellDropdown" class="notification-dropdown-panel">
+                            <div class="notification-dropdown-header">
+                                <h3>Urgent Task Alerts</h3>
+                            </div>
+                            <div class="notification-dropdown-body">
+                                <div v-for="task in notificationStore.activeUrgentTasks" :key="task.id"
+                                    class="notification-alert-item">
+                                    <div class="alert-item-indicator">⚠️</div>
+                                    <div class="alert-item-details">
+                                        <p class="alert-task-title">{{ task.title }}</p>
+                                        <p class="alert-task-time-left"
+                                            :style="{ color: notificationStore.getLiveTaskMetrics(task).color }">
+                                            Only {{ notificationStore.getLiveTaskMetrics(task).string }} left!
+                                        </p>
+                                    </div>
+                                </div>
 
-            <div v-if="notificationStore.activeUrgentTasks.length === 0" class="notification-empty-state">
-                🎉 No urgent deadlines right now. Everything is under control!
-            </div>
-        </div>
-    </div>
-</div>
+                                <div v-if="notificationStore.activeUrgentTasks.length === 0"
+                                    class="notification-empty-state">
+                                    🎉 No urgent deadlines right now. Everything is under control!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="profile-container">
                         <img src="https://i.pravatar.cc/100" class="avatar"
@@ -90,13 +95,8 @@
                         <div class="form-row-split">
                             <div class="input-group-wrapper">
                                 <label>Email Address</label>
-                                <input 
-                                    type="email" 
-                                    v-model="form.email" 
-                                    placeholder="Enter email address"
-                                    @blur="validateEmail(); handleBlur('email')" 
-                                    @input="validateEmail" 
-                                />
+                                <input type="email" v-model="form.email" placeholder="Enter email address"
+                                    @blur="validateEmail(); handleBlur('email')" @input="validateEmail" />
                                 <small v-if="errors.email" class="error-text">{{ errors.email }}</small>
                             </div>
                             <div class="input-group-wrapper">
@@ -153,62 +153,66 @@
                         <button class="action-cyan-btn" @click="showInviteModal = true">
                             ✨ Invite via Link Workflow
                         </button>
-                       <Transition name="modal-fade">
-    <div v-if="showInviteModal" class="modal-backdrop-blur-overlay" @click.self="showInviteModal = false">
+                        <Transition name="modal-fade">
+                            <div v-if="showInviteModal" class="modal-backdrop-blur-overlay"
+                                @click.self="showInviteModal = false">
 
-        <div class="professional-modal-window">
+                                <div class="professional-modal-window">
 
-            <div class="modal-custom-header">
-                <h3>Invite Workspace Member</h3>
-                <button class="modal-close-cross-btn" @click="showInviteModal = false">✕</button>
-            </div>
+                                    <div class="modal-custom-header">
+                                        <h3>Invite Workspace Member</h3>
+                                        <button class="modal-close-cross-btn"
+                                            @click="showInviteModal = false">✕</button>
+                                    </div>
 
-            <div class="modal-custom-body">
+                                    <div class="modal-custom-body">
 
-                <div class="input-group-wrapper">
-                    <label>Email Address</label>
-                    <input v-model="inviteForm.email" type="email" placeholder="john@gmail.com" />
-                    <small v-if="inviteErrors.email" class="error-text">
-                        {{ inviteErrors.email }}
-                    </small>
-                </div>
+                                        <div class="input-group-wrapper">
+                                            <label>Email Address</label>
+                                            <input v-model="inviteForm.email" type="email"
+                                                placeholder="john@gmail.com" />
+                                            <small v-if="inviteErrors.email" class="error-text">
+                                                {{ inviteErrors.email }}
+                                            </small>
+                                        </div>
 
-                <div class="input-group-wrapper">
-                    <label>Default Role</label>
-                    <select v-model="inviteForm.role">
-                        <option value="Member">Team Member</option>
-                        <option value="TL">Team Leader</option>
-                    </select>
-                    <small v-if="inviteErrors.role" class="error-text">
-                        {{ inviteErrors.role }}
-                    </small>
-                </div>
+                                        <div class="input-group-wrapper">
+                                            <label>Default Role</label>
+                                            <select v-model="inviteForm.role">
+                                                <option value="Member">Team Member</option>
+                                                <option value="TL">Team Leader</option>
+                                            </select>
+                                            <small v-if="inviteErrors.role" class="error-text">
+                                                {{ inviteErrors.role }}
+                                            </small>
+                                        </div>
 
-                <div class="input-group-wrapper">
-                    <label>Department</label>
-                    <input v-model="inviteForm.department" placeholder="Development" />
-                    <small v-if="inviteErrors.department" class="error-text">
-                        {{ inviteErrors.department }}
-                    </small>
-                </div>
+                                        <div class="input-group-wrapper">
+                                            <label>Department</label>
+                                            <input v-model="inviteForm.department" placeholder="Development" />
+                                            <small v-if="inviteErrors.department" class="error-text">
+                                                {{ inviteErrors.department }}
+                                            </small>
+                                        </div>
 
-                <button class="action-primary-btn" @click="generateInvite">
-                    ✨ Generate Invite Link
-                </button>
+                                        <button class="action-primary-btn" @click="generateInvite">
+                                            ✨ Generate Invite Link
+                                        </button>
 
-                <div v-if="generatedInviteLink" class="invite-link-copy-wrapper">
-                    <input class="copy-link-input-field" :value="generatedInviteLink" readonly />
-                    <button class="action-copy-trigger-btn" @click="copyToClipboard">
-                        Copy
-                    </button>
-                </div>
+                                        <div v-if="generatedInviteLink" class="invite-link-copy-wrapper">
+                                            <input class="copy-link-input-field" :value="generatedInviteLink"
+                                                readonly />
+                                            <button class="action-copy-trigger-btn" @click="copyToClipboard">
+                                                Copy
+                                            </button>
+                                        </div>
 
-            </div>
+                                    </div>
 
-        </div>
+                                </div>
 
-    </div>
-</Transition>
+                            </div>
+                        </Transition>
                     </div>
                 </section>
             </div>
@@ -235,10 +239,10 @@
                                         {{ getInitials(leader.first_name, leader.last_name) }}
                                     </div>
 
-                                   
+
                                     <div class="tl-details-column">
                                         <h3>{{ leader.role === 'TL' ? 'Team Leader' : 'Team Member' }}</h3>
-                                        
+
                                         <span class="role-pill-tag tl-badge">
                                             {{ leader.department }}
                                         </span>
@@ -255,12 +259,37 @@
                                         <div v-for="member in leader.team_members || []" :key="member.id"
                                             class="member-sub-pill-row" draggable="true"
                                             @dragstart="dragMember(member)">
+
                                             <div class="mini-avatar-dot" @click.stop="openEditModal(member)"
                                                 style="cursor:pointer">
                                                 {{ getInitials(member.first_name, member.last_name) }}
+
+                                                <div class="member-rich-tooltip-box">
+                                                    <div class="tooltip-header-row">
+                                                        <span class="tooltip-avatar-badge">
+                                                            {{ getInitials(member.first_name, member.last_name) }}
+                                                        </span>
+                                                        <div class="tooltip-title-block">
+                                                            <h4>{{ member.first_name }} {{ member.last_name }}</h4>
+                                                            <p class="tooltip-email-label">{{ member.email || 'No email saved' }}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="tooltip-details-grid">
+                                                        <div class="tooltip-meta-item">
+                                                            <span class="meta-label-title">Role</span>
+                                                            <span class="meta-value-text role-tag-pill">{{ member.role
+                                                                || 'Team Member' }}</span>
+                                                        </div>
+                                                        <div class="tooltip-meta-item">
+                                                            <span class="meta-label-title">Department</span>
+                                                            <span class="meta-value-text">{{ member.department ||
+                                                                'General Operations' }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
                                             </div>
-
-
                                         </div>
                                     </div>
                                     <div v-else class="empty-subordinates-state">
@@ -912,7 +941,7 @@ const vClickOutside = {
     border-color: #0073ea;
 }
 
-/* Master Grid Core Structures */
+
 .members-utility-grid {
     display: grid;
     grid-template-columns: 1.3fr 0.7fr;
@@ -1004,7 +1033,7 @@ const vClickOutside = {
     margin: 4px 0 0 0;
 }
 
-/* Form Controls System Settings */
+
 .professional-form-layout {
     display: flex;
     flex-direction: column;
@@ -1109,7 +1138,7 @@ const vClickOutside = {
     margin: 0 0 24px 0;
 }
 
-/* Tree Directory Layout System Grid Rules */
+
 .hierarchy-directory-wrapper,
 .unassigned-pool-box {
     display: flex;
@@ -1121,7 +1150,7 @@ const vClickOutside = {
     background-color: var(--bg);
     border: 1px solid var(--border);
     border-radius: 8px;
-    overflow: hidden;
+
 }
 
 .tl-card-info-header {
@@ -1196,6 +1225,7 @@ const vClickOutside = {
     flex-wrap: wrap;
     gap: 10px;
 }
+
 .member-sub-pill-row {
     display: flex;
     align-items: center;
@@ -1204,11 +1234,7 @@ const vClickOutside = {
     padding: 10px 14px;
     border-radius: 8px;
     gap: 10px;
-
     width: fit-content;
-    min-width: 120px;
-    max-width: 180px;
-
     flex: 0 0 auto;
     transition: transform 0.15s ease;
     cursor: grab;
@@ -1315,7 +1341,7 @@ const vClickOutside = {
     color: #ef4444;
 }
 
-/* Invitation Dialog Windows Rules CSS Framework layout */
+
 .modal-backdrop-blur-overlay {
     position: fixed;
     inset: 0;
@@ -1434,7 +1460,132 @@ const vClickOutside = {
 :deep(.Toastify__toast-container) {
     z-index: 9999 !important;
 }
+
 :deep(.Toastify__toast-container) {
     z-index: 100000 !important;
+}
+
+.member-sub-pill-row {
+    position: relative;
+}
+
+.member-rich-tooltip-box {
+    position: absolute;
+    left: calc(100% + 12px);
+    top: -25px;
+    transform: translateY(-10%);
+    width: 260px;
+    background: #1e1e2d;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    box-shadow: 0 12px 36px rgba(0,0,0,.65);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 999999;
+    transition: .15s ease;
+}
+
+.member-rich-tooltip-box::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    transform: translateY(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent #1e1e2d transparent transparent;
+}
+
+.member-sub-pill-row:hover .member-rich-tooltip-box {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+}
+
+.tooltip-header-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    width: 100%;
+}
+
+.tooltip-avatar-badge {
+    background-color: #3b82f6;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: bold;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.tooltip-title-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.tooltip-title-block h4 {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.tooltip-email-label {
+    margin: 2px 0 0 0;
+    font-size: 11px;
+    color: var(--subtext);
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 170px;
+}
+
+.tooltip-details-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+    width: 100%;
+}
+
+.tooltip-meta-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    width: 100%;
+}
+
+.meta-label-title {
+    color: var(--subtext);
+    font-weight: 500;
+}
+
+.meta-value-text {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.role-tag-pill {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 </style>
