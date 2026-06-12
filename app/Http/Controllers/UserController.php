@@ -32,15 +32,16 @@ class UserController extends Controller
         ]);
     }
     public function profile()
-{
-    $user = auth()->user();
+    {
+        $user = auth()->user();
 
-    return response()->json([
-        'id' => $user->id,
-        'name' => $user->name,
-        'email' => $user->email,
-        'department' => $user->department,
-        'role' => $user->role,
-    ]);
-}
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'department' => $user->department,
+            'role' => $user->role,
+            'two_factor_enabled' => $user->two_factor_enabled,
+        ]);
+    }
 }

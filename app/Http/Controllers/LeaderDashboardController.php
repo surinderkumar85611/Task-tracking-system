@@ -73,6 +73,8 @@ class LeaderDashboardController extends Controller
 
                 'teamMembers' => $teamMembers,
 
+                'currentWorkspaceId' => session('workspace_id'),
+
                 'stats' => [
                     'projects' => $projects->count(),
                     'tasks' => $allTasks->count(),
