@@ -328,8 +328,7 @@
 
         <p>Scan this QR in Google Authenticator:</p>
 
-        <img :src="twoFA.qr" alt="2FA QR Code" />
-
+       <qrcode-vue :value="twoFA.qr" :size="200" level="H" />
         <p><strong>Or enter manually:</strong></p>
         <code>{{ twoFA.secret }}</code>
 
@@ -468,6 +467,7 @@ import {
     from "../../stores/theme.js";
 
 import { useToast } from "vue-toastification";
+import QrcodeVue from 'qrcode.vue';
 
 const toast = useToast();
 const theme = useThemeStore();
@@ -728,12 +728,17 @@ const generate2FA = async () => {
 
         const res = await axios.get("/leader/2fa/generate");
 
+        console.log("2FA Response:", res.data);
+
         twoFA.qr = res.data.qr;
         twoFA.secret = res.data.secret;
+
+        console.log("QR URL:", twoFA.qr);
 
         toast.success("QR generated. Scan it in Google Authenticator");
 
     } catch (err) {
+        console.error(err);
         toast.error("Failed to generate QR");
     } finally {
         twoFA.loading = false;

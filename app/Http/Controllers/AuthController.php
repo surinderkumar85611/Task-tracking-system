@@ -159,4 +159,43 @@ class AuthController extends Controller
         return redirect('/login')
             ->with('success', 'Profile completed successfully. Please login.');
     }
+
+    public function showTwoFactorChallenge()
+    {
+        if (!session()->has('auth.password_confirmed_at') && !Auth::check()) {
+            return redirect('/login');
+        }
+
+        return Inertia::render('Auth/TwoFactorChallenge');
+    }
+
+    public function verifyTwoFactorChallenge(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|digits:6',
+        ]);
+
+        $user = $request->user() ?? User::find(session('login.id'));
+
+        if (!$user) {
+            return redirect('/login')->withErrors(['email' => 'Session expired. Please log in again.']);
+        }
+
+        $google2fa = new \Pragmarx\Google2FA\Google2FA();
+        $valid = $google2fa->verifyKey($user->two_factor_secret, $request->code);
+
+        if ($valid) {
+            if (!Auth::check()) {
+                Auth::login($user);
+            }
+
+            session()->forget('login.id');
+
+            return redirect('/dashboard');
+        }
+
+        return back()->withErrors([
+            'code' => 'The security code you entered is incorrect or has expired.',
+        ]);
+    }
 }
