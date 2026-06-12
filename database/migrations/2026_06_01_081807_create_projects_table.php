@@ -16,9 +16,7 @@ return new class extends Migration
 
             $table->unsignedBigInteger('workspace_id')->nullable();
 
-            $table->unsignedBigInteger('team_leader_id')
-                ->nullable()
-                ->after('workspace_id');
+            $table->unsignedBigInteger('team_leader_id')->nullable();
 
             $table->string('name');
             $table->string('status');

@@ -37,7 +37,20 @@ class ProjectController extends Controller
     {
         $projects = Project::with([
             'teamLeader.teamMembers',
-            'tasks'
+            'tasks' => function ($query) {
+
+                $query
+                    ->orderByRaw("
+                CASE
+                    WHEN allocated_duration IS NULL
+                    OR allocated_duration = ''
+                    OR allocated_duration = 0
+                    THEN 1
+                    ELSE 0
+                END
+            ")
+                    ->orderBy('allocated_duration', 'asc');
+            }
         ])
             ->where('workspace_id', session('workspace_id'))
             ->get()

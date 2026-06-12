@@ -18,6 +18,7 @@ use App\Http\Controllers\Leader\LprojectController;
 use App\Http\Controllers\Leader\TeamController;
 use App\Http\Controllers\TeamRequestController;
 use App\Http\Controllers\Leader\TwoFactorController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -232,3 +233,10 @@ Route::post('/task/import', [TaskController::class, 'import'])
 
 Route::get('/two-factor-challenge', [\App\Http\Controllers\AuthController::class, 'showTwoFactorChallenge'])->name('two-factor.challenge');
 Route::post('/two-factor-challenge', [\App\Http\Controllers\AuthController::class, 'verifyTwoFactorChallenge']);
+
+Route::post(
+    '/dashboard/widgets/reorder',
+    [DashboardController::class, 'reorderWidgets']
+)->middleware('auth');
+
+Route::post('/editor/upload', [EditorController::class, 'upload']);

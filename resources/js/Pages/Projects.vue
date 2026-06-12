@@ -298,9 +298,8 @@
                                         <input type="date" v-model="task.due_date" @change="syncTaskRow(task)"
                                             class="monday-date-cell" />
                                     </td>
-                                    <td class="cell-action">
-                                        <button v-if="task.status !== 'Completed'"
-                                            @click="removeTaskRow(task.id, project)">
+                                    <td class="cell-action" @click="removeTaskRow(task.id, project)">
+                                        <button v-if="task.status !== 'Completed'">
                                             🗑
                                         </button>
 
@@ -455,9 +454,7 @@
                                         </span>
                                         <span class="chat-bubble-time">{{ formatDate(note.created_at) }}</span>
                                     </div>
-                                    <div class="chat-bubble-body">
-                                        {{ note.text }}
-                                    </div>
+                                    <div class="chat-bubble-body" v-html="note.text"></div>
                                 </div>
 
                             </div>
@@ -469,8 +466,13 @@
 
                         <div class="notes-editor-section">
                             <label for="task-textarea">Write a new update or modify directions:</label>
-                            <textarea id="task-textarea" v-model="updatesDraftText"
-                                placeholder="Share an update, flag blockers, or drop context for the team..."></textarea>
+                            <div class="editor-modal-canvas-frame" style="width: 100%; min-height: 200px; display: block; background-color: #151521;">
+    <textarea
+        id="modalRichEditor"
+        v-model="newCommentText"
+        placeholder="Type your message or project notes here..."
+    ></textarea>
+</div>
                         </div>
                     </div>
 
@@ -581,6 +583,54 @@ import { useThemeStore } from "../stores/theme";
 import { useNotificationStore } from '@/stores/notificationStore';
 import * as XLSX from 'xlsx';
 
+// 🟢 STEP 1: Keep a native reference to your editor instance instance
+const editorInstance = ref(null);
+
+// 🟢 STEP 2: Dynamically load and safely build the engine onto the DOM instance element
+const initCKEditor = () => {
+    if (window.ClassicEditor) {
+        window.ClassicEditor.create(document.querySelector('#modalRichEditor'), {
+            placeholder: 'Type your message or project notes here...',
+            toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', '|', 'undo', 'redo']
+        })
+        .then(editor => {
+            editorInstance.value = editor;
+
+            // Sync content updates back to your reactive variable on input change triggers
+            editor.model.document.on('change:data', () => {
+                newCommentText.value = editor.getData();
+            });
+        })
+        .catch(error => {
+            console.error("CKEditor initialization failed:", error);
+        });
+    }
+};
+
+onMounted(() => {
+    // If script isn't loaded yet, pull it dynamically from CDN
+    if (!window.ClassicEditor) {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.ckeditor.com/ckeditor5/44.0.0/classic/ckeditor.js';
+        script.onload = () => {
+            // Give the DOM a tiny fraction of time to handle context loops
+            setTimeout(initCKEditor, 100);
+        };
+        document.head.appendChild(script);
+    } else {
+        setTimeout(initCKEditor, 100);
+    }
+});
+
+// Clean up memory leaks when the modal closes or component unmounts
+onBeforeUnmount(() => {
+    if (editorInstance.value) {
+        editorInstance.value.destroy()
+            .then(() => { editorInstance.value = null; })
+            .catch(err => console.error(err));
+    }
+});
+
 const theme = useThemeStore();
 const toast = useToast();
 const page = usePage();
@@ -681,6 +731,18 @@ watch(() => projectsData.value, (newVal) => {
 }, { deep: true });
 
 const openCreateProjectModal = () => {
+    if (!props.teamLeaders.length) {
+
+        toast.error(
+            "No Team Leaders exist. Please create a Team Leader first."
+        );
+
+        setTimeout(() => {
+            router.visit('/member');
+        }, 2500);
+
+        return;
+    }
     showCreateProjectModal.value = true;
 };
 
@@ -1178,6 +1240,15 @@ const importTasks = () => {
     });
 };
 
+// 🟢 STEP 3: Ensure that if the modal opens/closes, the editor reinstantiates accurately
+watch(() => showEditModal?.value, (newVal) => {
+    if (newVal) {
+        setTimeout(initCKEditor, 150);
+    } else if (editorInstance.value) {
+        editorInstance.value.destroy().then(() => { editorInstance.value = null; });
+    }
+});
+
 const logout = () => {
     router.post('/logout');
 };
@@ -1412,6 +1483,11 @@ const logout = () => {
 .col-action {
     width: 5%;
     text-align: center;
+}
+
+td.cell-action,
+td.cell-action button {
+    cursor: pointer;
 }
 
 .col-updates {
@@ -2511,7 +2587,6 @@ tbody tr {
     margin-top: 20px;
 }
 
-/* --- EXCEL IMPORT PANEL MODAL SYSTEM STYLES --- */
 .monday-btn-primary {
     background-color: #00c875;
     color: #ffffff;
@@ -2597,7 +2672,7 @@ tbody tr {
     background-color: #4a4e69 !important;
 }
 
-/* --- THE BACKDROP SCREEN FIXED POSITIONS --- */
+
 .modal-backdrop {
     position: fixed;
     top: 0;
@@ -2605,17 +2680,13 @@ tbody tr {
     width: 100vw;
     height: 100vh;
     background-color: rgba(0, 0, 0, 0.65);
-    /* Darkens the rest of the workspace out layout */
     backdrop-filter: blur(4px);
-    /* Soft focus background styling */
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 9999;
-    /* Forces the box layout over tables and panels layout cards */
 }
 
-/* --- INNER MODAL COMPONENTS STRUCTURE LAYOUTS --- */
 .modal-custom-card {
     display: flex;
     flex-direction: column;
@@ -2740,5 +2811,99 @@ tbody tr {
 
 .mapping-right select {
     width: 100%;
+}
+
+.task-row:first-child {
+    border-left: 4px solid #22c55e;
+}
+
+.task-row:nth-child(2) {
+    border-left: 4px solid #f59e0b;
+}
+
+.task-row {
+    transition: all .25s ease;
+}
+
+/* --- 🟢 FORCE THE EDITOR CONTAINER OUT OF AN INVISIBLE LAYER STATUS --- */
+:deep(.ck-reset_all) {
+    display: block !important;
+    visibility: visible !important;
+}
+
+:deep(.ck-editor) {
+    display: block !important;
+    width: 100% !important;
+    min-height: 160px !important;
+    visibility: visible !important;
+}
+
+:deep(.ck-editor__container) {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+:deep(.ck-editor__editable_inline) {
+    min-height: 150px !important;
+    max-height: 300px !important;
+    background-color: #151521 !important; /* Dark dashboard inputs background */
+    color: #ffffff !important; /* White text contrast */
+    border: 1px solid #32324d !important;
+    text-align: left;
+    padding: 10px 14px !important;
+}
+
+:deep(.ck-toolbar) {
+    background-color: #1e1e2d !important;
+    border: 1px solid #32324d !important;
+}
+
+:deep(.ck-toolbar__items button), :deep(.ck-icon) {
+    color: #ffffff !important;
+}
+
+:deep(.ck-button:hover) {
+    background-color: #2b2b40 !important;
+}
+</style>
+
+<style>
+/* Forces the editor structural frame elements visible */
+.ck-editor {
+    display: block !important;
+    width: 100% !important;
+}
+
+/* Style the text editing box input canvas area */
+.ck-editor__editable.ck-editor__editable_inline {
+    min-height: 180px !important;
+    max-height: 300px !important;
+    background-color: #151521 !important; /* Dark theme field fill */
+    color: #ffffff !important; /* White typing color contrast */
+    border: 1px solid #32324d !important;
+    padding: 14px !important;
+    text-align: left !important;
+}
+
+/* Enforce the dark application design rules onto the controls header container */
+.ck.ck-toolbar {
+    background-color: #1a1a27 !important;
+    border: 1px solid #32324d !important;
+    display: flex !important;
+}
+
+/* White options tool buttons */
+.ck.ck-toolbar .ck-button,
+.ck.ck-icon {
+    color: #ffffff !important;
+}
+
+.ck.ck-button:hover {
+    background: #2b2b40 !important;
+}
+
+.ck-focused {
+    border-color: #3b82f6 !important;
+    outline: none !important;
 }
 </style>
