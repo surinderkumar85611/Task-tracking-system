@@ -277,81 +277,64 @@
 
                 <div class="security-cards">
 
-                    <div class="mini-card">
 
-                        <div>
-                            <h4>Two Factor Authentication</h4>
-                            <p>
-                                Add extra protection to your account.
-                            </p>
-                        </div>
-
-                        <label class="switch">
-                            <input type="checkbox" v-model="security.twoFactor">
-                            <span></span>
-                        </label>
-
+                    <div class="card-footer">
+                        <button class="primary-btn" @click="updatePassword">
+                            Update Security
+                        </button>
                     </div>
 
-                    <div class="mini-card">
-
-                        <div>
-                            <h4>Login Alerts</h4>
-                            <p>
-                                Receive alerts for new sign-ins.
-                            </p>
-                        </div>
-
-                        <label class="switch">
-                            <input type="checkbox" v-model="security.loginAlerts">
-                            <span></span>
-                        </label>
-
-                    </div>
-                    
                     <!-- TWO FACTOR AUTHENTICATION -->
-<div class="twofa-box">
+                    <div class="twofa-box">
 
-    <h3>Two Factor Authentication (2FA)</h3>
+                        <h3>Two Factor Authentication (2FA)</h3>
 
-    <p>
-        Secure your account using Google Authenticator.
-    </p>
+                        <!-- NEW: If 2FA is active, show the active status and the Disable Button -->
+                        <div v-if="twoFA.enabled" class="twofa-enabled-container">
+                            <p style="color: #4caf50; font-weight: bold; margin-bottom: 12px;">
+                                🔒 Two-Factor Authentication is currently active on your account.
+                            </p>
+                            <button class="primary-btn" style="background-color: #dc3545;" @click="disable2FA" :disabled="twoFA.loading">
+                                {{ twoFA.loading ? "Disabling..." : "Disable 2FA" }}
+                            </button>
+                        </div>
 
-    <!-- STEP 1 BUTTON -->
-    <button class="primary-btn" @click="generate2FA">
-        Generate QR Code
-    </button>
+                        <!-- NEW: Wrapped original code inside v-else so it only shows when 2FA is off -->
+                        <div v-else>
+                            <p>
+                                Secure your account using Google Authenticator.
+                            </p>
 
-    <!-- SHOW QR -->
-    <div v-if="twoFA.qr" class="qr-box">
+                            <!-- STEP 1 BUTTON -->
+                            <button class="primary-btn" @click="generate2FA" :disabled="twoFA.loading">
+                                Generate QR Code
+                            </button>
 
-        <p>Scan this QR in Google Authenticator:</p>
+                            <!-- SHOW QR -->
+                            <div v-if="twoFA.qr" class="qr-box">
 
-       <qrcode-vue :value="twoFA.qr" :size="200" level="H" />
-        <p><strong>Or enter manually:</strong></p>
-        <code>{{ twoFA.secret }}</code>
+                                <p>Scan this QR in Google Authenticator:</p>
 
-        <div class="form-group">
-            <label>Enter 6-digit code</label>
+                                <qrcode-vue :value="twoFA.qr" :size="200" level="H" />
+                                <p><strong>Or enter manually:</strong></p>
+                                <code>{{ twoFA.secret }}</code>
 
-            <input v-model="twoFA.code" placeholder="123456" />
-        </div>
+                                <div class="form-group">
+                                    <label>Enter 6-digit code</label>
 
-        <button class="primary-btn" @click="enable2FA">
-            Enable 2FA
-        </button>
+                                    <input v-model="twoFA.code" placeholder="123456" />
+                                </div>
 
-    </div>
+                                <button class="primary-btn" @click="enable2FA" :disabled="twoFA.loading">
+                                    Enable 2FA
+                                </button>
 
-</div>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
 
-                <div class="card-footer">
-                    <button class="primary-btn" @click="updatePassword">
-                        Update Security
-                    </button>
-                </div>
 
             </section>
 
@@ -438,14 +421,14 @@
                 </div>
 
                 <div class="card-footer">
-                    <button class="primary-btn">
+                    <button class="primary-btn" @click="saveNotificationPreferences">
                         Save Preferences
                     </button>
                 </div>
 
             </section>
 
-            
+
 
         </main>
 
@@ -512,9 +495,17 @@ const fetchProfile = async () => {
         const user = userRes.data;
         const member = memberRes.data;
 
+        // 🔍 This will print the backend data in your browser console
+        console.log("--- BACKEND USER DATA RESPONDED WITH: ---", user);
+
         profile.id = user.id;
         profile.name = user.name;
         profile.email = user.email;
+
+        twoFA.enabled = 
+            user.two_factor_enabled === 1 || 
+            user.two_factor_enabled === true || 
+            user.two_factor_enabled === "1";
 
         const data = member?.member ?? member;
 
@@ -754,7 +745,7 @@ const enable2FA = async () => {
     try {
         twoFA.loading = true;
 
-        await axios.post("/leader/2fa/enable", {
+        const res = await axios.post("/leader/2fa/enable", {
             code: twoFA.code
         });
 
@@ -768,8 +759,63 @@ const enable2FA = async () => {
         twoFA.loading = false;
     }
 };
-</script>
 
+// NEW: This is the logic that communicates with your server to disable 2FA
+const disable2FA = async () => {
+    if (!confirm("Are you sure you want to disable Two-Factor Authentication?")) {
+        return;
+    }
+
+    try {
+        twoFA.loading = true;
+        await axios.post("/leader/2fa/disable");
+
+        // Reset UI setup properties back to initial state
+        twoFA.enabled = false;
+        twoFA.qr = null;
+        twoFA.secret = null;
+        twoFA.code = "";
+
+        toast.success("2FA has been disabled successfully");
+    } catch (err) {
+        console.error(err);
+        toast.error(err.response?.data?.message || "Failed to disable 2FA");
+    } finally {
+        twoFA.loading = false;
+    }
+};
+
+const saveNotificationPreferences = async () => {
+    try {
+        await axios.put("/user/notification-preferences", notifications);
+
+        toast.success("Updated successfully, we will notify you about this.");
+    } catch (error) {
+        console.error("Failed to save preferences:", error);
+        toast.error("Failed to update preferences");
+    }
+};
+
+const checkForProjectAlerts = async () => {
+    try {
+        // Fetches new alert messages generated by the admin actions
+        const res = await axios.get("/user/unread-alerts");
+
+        if (res.data.alerts && res.data.alerts.length > 0) {
+            res.data.alerts.forEach(alert => {
+                toast.info(alert.message);
+            });
+        }
+    } catch (err) {
+        console.error("Alert check failed:", err);
+    }
+};
+
+onMounted(() => {
+    checkForProjectAlerts();
+    setInterval(checkForProjectAlerts, 30000); // 30000ms = 30 seconds
+});
+</script>
 <style scoped>
 .main-content {
     flex: 1;
@@ -1098,7 +1144,7 @@ const enable2FA = async () => {
         grid-template-columns: 1fr;
     }
 
-    
+
 }
 
 .password-wrapper {
@@ -1127,6 +1173,7 @@ const enable2FA = async () => {
     margin-top: 6px;
     font-size: 13px;
 }
+
 .twofa-box {
     margin-top: 20px;
     padding: 16px;

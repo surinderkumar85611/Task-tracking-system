@@ -9,6 +9,7 @@ use App\Models\User;
 use Inertia\Inertia;
 use App\Models\Invitation;
 use App\Models\Member;
+use PragmaRX\Google2FA\Google2FA;
 
 class AuthController extends Controller
 {
@@ -48,15 +49,29 @@ class AuthController extends Controller
 
             $request->session()->regenerate();
 
+            $user = Auth::user();
+
+
+            if ($user->two_factor_enabled) {
+
+                Auth::logout();
+
+                session([
+                    'login.id' => $user->id
+                ]);
+
+                return redirect()->route('two-factor.challenge');
+            }
+
             session()->forget('workspace_id');
 
             $member = Member::where(
                 'email',
-                auth()->user()->email
+                $user->email
             )->first();
 
             if ($member && $member->role === 'TL') {
-                return redirect('/leader-dashboard');
+                return redirect('/dashboard');
             }
 
             return redirect('/dashboard');
@@ -162,13 +177,12 @@ class AuthController extends Controller
 
     public function showTwoFactorChallenge()
     {
-        if (!session()->has('auth.password_confirmed_at') && !Auth::check()) {
+        if (!session()->has('login.id')) {
             return redirect('/login');
         }
 
         return Inertia::render('Auth/TwoFactorChallenge');
     }
-
     public function verifyTwoFactorChallenge(Request $request)
     {
         $request->validate([
@@ -181,19 +195,30 @@ class AuthController extends Controller
             return redirect('/login')->withErrors(['email' => 'Session expired. Please log in again.']);
         }
 
-        $google2fa = new \Pragmarx\Google2FA\Google2FA();
+        $google2fa = new Google2FA();
         $valid = $google2fa->verifyKey($user->two_factor_secret, $request->code);
 
         if ($valid) {
+
             if (!Auth::check()) {
                 Auth::login($user);
+
+                $request->session()->regenerate();
             }
 
             session()->forget('login.id');
 
+            $member = Member::where(
+                'email',
+                $user->email
+            )->first();
+
+            if ($member && $member->role === 'TL') {
+                return redirect('/dashboard');
+            }
+
             return redirect('/dashboard');
         }
-
         return back()->withErrors([
             'code' => 'The security code you entered is incorrect or has expired.',
         ]);
