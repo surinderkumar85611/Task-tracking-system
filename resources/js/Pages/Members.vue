@@ -1,4 +1,5 @@
 <template>
+    <Head title="Member" />
     <div class="dashboard" :class="theme.themeClass">
 
         <Sidebar />
@@ -474,6 +475,7 @@ import { useThemeStore } from "../stores/theme";
 import { router, usePage } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 import { useNotificationStore } from "../stores/notificationStore";
+import { Head } from '@inertiajs/vue3';
 
 const notificationStore = useNotificationStore();
 

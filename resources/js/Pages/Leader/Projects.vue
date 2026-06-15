@@ -1,4 +1,5 @@
 <template>
+    <Head title="Project" />
     <div class="dashboard" :class="theme.themeClass">
 
         <Sidebar />
@@ -107,7 +108,7 @@
                 </div>
             </section>
 
-            
+
 
             <div class="monday-board-container">
                 <div v-if="filteredProjects.length === 0" class="empty-board-state">
@@ -131,7 +132,7 @@
                         <div class="group-control-actions">
                             <button class="action-icon-btn" title="Edit Project Config"
                                 @click="openEditProjectModal(project)">✏️ Edit</button>
-                            
+
                         </div>
                     </div>
 
@@ -518,6 +519,7 @@ import { useToast } from "vue-toastification";
 import Sidebar from "./Sidebar.vue";
 import { useThemeStore } from "../../stores/theme";
 import { useNotificationStore } from "../../stores/notificationStore";
+import { Head } from '@inertiajs/vue3';
 
 const theme = useThemeStore();
 const toast = useToast();

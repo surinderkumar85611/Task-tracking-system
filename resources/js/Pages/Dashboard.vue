@@ -1,4 +1,6 @@
 <template>
+
+    <Head title="Dashboard" />
     <div class="dashboard" :class="theme.themeClass">
 
         <Sidebar />
@@ -66,15 +68,10 @@
 
             <!-- Stats Cards -->
             <draggable v-model="widgets" item-key="id" class="stats" @end="saveWidgetOrder">
-
                 <template #item="{ element }">
-
                     <div class="card">
-
                         <p>{{ element.title }}</p>
-
                         <h2>
-
                             <span v-if="element.widget_type === 'total_projects'">
                                 {{ props.stats.totalProjects }}
                             </span>
@@ -90,13 +87,9 @@
                             <span v-else-if="element.widget_type === 'pending_tasks'">
                                 {{ props.stats.pendingTasks }}
                             </span>
-
                         </h2>
-
                     </div>
-
                 </template>
-
             </draggable>
 
             <!-- Main Dashboard Content -->
@@ -163,12 +156,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { router } from "@inertiajs/vue3";
 import { useThemeStore } from "../stores/theme";
 import Sidebar from "./components/Sidebar.vue";
 import { useNotificationStore } from '@/stores/notificationStore';
 import draggable from 'vuedraggable';
+import { Head } from '@inertiajs/vue3';
 
 const notificationStore = useNotificationStore();
 
@@ -177,7 +171,15 @@ const props = defineProps({
     widgets: Array
 });
 
-const widgets = ref([...props.widgets]);
+const widgets = ref([]);
+
+watch(
+    () => props.widgets,
+    (value) => {
+        widgets.value = value ? [...value] : [];
+    },
+    { immediate: true }
+);
 
 const saveWidgetOrder = () => {
     router.post('/dashboard/widgets/reorder', {
@@ -202,9 +204,6 @@ const handleClickOutside = () => {
     showProfileMenu.value = false;
 };
 
-const logout = () => {
-    router.post("/logout");
-};
 onMounted(() => {
     document.addEventListener("click", handleClickOutside);
 });
@@ -212,6 +211,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
     document.removeEventListener("click", handleClickOutside);
 });
+
+const logout = () => {
+    router.post("/logout");
+};
 </script>
 
 <style scoped>

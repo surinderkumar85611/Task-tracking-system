@@ -1,4 +1,5 @@
 <template>
+    <Head title="2-Factor-Auth" />
   <div class="auth-page dark">
     <div class="left-panel">
       <div class="content">
@@ -14,10 +15,10 @@
 
         <form @submit.prevent="submitOtp">
           <div class="field-group">
-            <input 
-              type="text" 
-              v-model="form.code" 
-              placeholder="000000" 
+            <input
+              type="text"
+              v-model="form.code"
+              placeholder="000000"
               maxlength="6"
               @input="cleanInput"
               @blur="validateOtp"
@@ -45,6 +46,7 @@
 import { reactive, ref } from "vue";
 import { router, Link } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
+import { Head } from '@inertiajs/vue3';
 
 const toast = useToast();
 const error = ref("");

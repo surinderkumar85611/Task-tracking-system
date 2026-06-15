@@ -1,4 +1,5 @@
 <template>
+    <Head title="Reset-Password" />
   <div class="auth-page dark">
     <div class="left-panel">
       <div class="content">
@@ -101,6 +102,7 @@
 import { reactive, computed, ref, onMounted } from "vue";
 import { router, Link, usePage } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
+import { Head } from '@inertiajs/vue3';
 
 const toast = useToast();
 const page = usePage();
