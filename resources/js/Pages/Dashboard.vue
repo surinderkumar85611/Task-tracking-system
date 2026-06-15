@@ -1,169 +1,155 @@
 <template>
-    <div class="dashboard" :class="theme.themeClass">
+  <div class="dashboard" :class="theme.themeClass">
+    <Sidebar />
 
-        <Sidebar />
+    <main class="main-content">
+      <div class="content-wrapper">
+        
+        <header class="header">
+          <div class="header-welcome">
+            <h1>Admin Dashboard</h1>
+            <p>Welcome back, manage your dashboard.</p>
+          </div>
+          
+          <div class="header-right">
+            <div class="search-container">
+              <input v-model="search" type="text" placeholder="Search projects..." class="search-box" />
+            </div>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Header -->
-            <header class="header">
-                <div>
-                    <h1>Dashboard</h1>
-                    <p>Welcome back, manage your dashboard.</p>
+            <button class="theme-btn" @click="theme.toggleTheme">
+              {{ theme.isDark ? "☀️" : "🌙" }}
+            </button>
+
+            <div class="notification-bell-container"
+              v-click-outside="() => notificationStore.showBellDropdown = false">
+              <button class="icon-btn"
+                @click="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
+                🔔
+                <span v-if="notificationStore.activeUrgentTasks.length > 0" class="bell-alert-badge-dot">
+                  {{ notificationStore.activeUrgentTasks.length }}
+                </span>
+              </button>
+
+              <div v-if="notificationStore.showBellDropdown" class="notification-dropdown-panel">
+                <div class="notification-dropdown-header">
+                  <h3>Urgent Task Alerts</h3>
                 </div>
-                <div class="header-right">
-                    <button class="theme-btn" @click="theme.toggleTheme">
-                        {{ theme.isDark ? "☀️" : "🌙" }}
-                    </button>
-                    <input type="text" placeholder="Search..." />
-
-                    <div class="notification-bell-container"
-                        v-click-outside="() => notificationStore.showBellDropdown = false">
-                        <button class="icon-btn"
-                            @click="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
-                            🔔
-                            <span v-if="notificationStore.activeUrgentTasks.length > 0" class="bell-alert-badge-dot">
-                                {{ notificationStore.activeUrgentTasks.length }}
-                            </span>
-                        </button>
-
-                        <div v-if="notificationStore.showBellDropdown" class="notification-dropdown-panel">
-                            <div class="notification-dropdown-header">
-                                <h3>Urgent Task Alerts</h3>
-                            </div>
-                            <div class="notification-dropdown-body">
-                                <div v-for="task in notificationStore.activeUrgentTasks" :key="task.id"
-                                    class="notification-alert-item">
-                                    <div class="alert-item-indicator">⚠️</div>
-                                    <div class="alert-item-details">
-                                        <p class="alert-task-title">{{ task.title }}</p>
-                                        <p class="alert-task-time-left"
-                                            :style="{ color: notificationStore.getLiveTaskMetrics(task).color }">
-                                            Only {{ notificationStore.getLiveTaskMetrics(task).string }} left!
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div v-if="notificationStore.activeUrgentTasks.length === 0"
-                                    class="notification-empty-state">
-                                    🎉 No urgent deadlines right now. Everything is under control!
-                                </div>
-                            </div>
-                        </div>
+                <div class="notification-dropdown-body">
+                  <div v-for="task in notificationStore.activeUrgentTasks" :key="task.id"
+                    class="notification-alert-item">
+                    <div class="alert-item-indicator">⚠️</div>
+                    <div class="alert-item-details">
+                      <p class="alert-task-title">{{ task.title }}</p>
+                      <p class="alert-task-time-left"
+                        :style="{ color: notificationStore.getLiveTaskMetrics(task).color }">
+                        Only {{ notificationStore.getLiveTaskMetrics(task).string }} left!
+                      </p>
                     </div>
+                  </div>
 
-                    <div class="profile-container">
-                        <img src="https://i.pravatar.cc/100" class="avatar"
-                            @click.stop="showProfileMenu = !showProfileMenu" />
-                        <div v-if="showProfileMenu" class="profile-dropdown">
-                            <button @click="logout">
-                                Logout
-                            </button>
-                        </div>
-                    </div>
+                  <div v-if="notificationStore.activeUrgentTasks.length === 0"
+                    class="notification-empty-state">
+                    🎉 No urgent deadlines right now. Everything is under control!
+                  </div>
                 </div>
-            </header>
+              </div>
+            </div>
 
-            <!-- Stats Cards -->
-            <draggable v-model="widgets" item-key="id" class="stats" @end="saveWidgetOrder">
+            <div class="profile-container">
+              <img src="https://i.pravatar.cc/100" class="avatar"
+                @click.stop="showProfileMenu = !showProfileMenu" />
+              <div v-if="showProfileMenu" class="profile-dropdown">
+                <button @click="logout">Logout</button>
+              </div>
+            </div>
+          </div>
+        </header>
 
-                <template #item="{ element }">
+        <draggable v-model="widgets" item-key="id" class="stats-grid" @end="saveWidgetOrder">
+          <template #item="{ element }">
+            <div class="stat-card" :class="element.widget_type.replace(/_/g, '-') + '-card'">
+              <div class="stat-glow"></div>
+              <div class="stat-inner">
+                <span class="stat-label">{{ element.title }}</span>
+                <h2 class="stat-value">
+                  <span v-if="element.widget_type === 'total_projects'">
+                    {{ props.stats.totalProjects }}
+                  </span>
+                  <span v-else-if="element.widget_type === 'team_members'">
+                    {{ props.stats.teamMembers }}
+                  </span>
+                  <span v-else-if="element.widget_type === 'completed_tasks'">
+                    {{ props.stats.completedTasks }}
+                  </span>
+                  <span v-else-if="element.widget_type === 'pending_tasks'">
+                    {{ props.stats.pendingTasks }}
+                  </span>
+                </h2>
+              </div>
+            </div>
+          </template>
+        </draggable>
 
-                    <div class="card">
-
-                        <p>{{ element.title }}</p>
-
-                        <h2>
-
-                            <span v-if="element.widget_type === 'total_projects'">
-                                {{ props.stats.totalProjects }}
-                            </span>
-
-                            <span v-else-if="element.widget_type === 'team_members'">
-                                {{ props.stats.teamMembers }}
-                            </span>
-
-                            <span v-else-if="element.widget_type === 'completed_tasks'">
-                                {{ props.stats.completedTasks }}
-                            </span>
-
-                            <span v-else-if="element.widget_type === 'pending_tasks'">
-                                {{ props.stats.pendingTasks }}
-                            </span>
-
-                        </h2>
-
-                    </div>
-
-                </template>
-
-            </draggable>
-
-            <!-- Main Dashboard Content -->
-            <section class="dashboard-content">
-                <!-- Projects -->
-                <div class="projects">
-                    <div class="projects-header">
-                        <h2>Active Projects</h2>
-                        <button>New Project</button>
-                    </div>
-                    <div class="project-list">
-                        <div class="project-card" v-for="(board, index) in boards" :key="index">
-                            <div class="project-header">
-                                <h3>{{ board.title }}</h3>
-                                <span>{{ board.progress }}%</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress" :style="{ width: board.progress + '%' }"></div>
-                            </div>
-                        </div>
-                    </div>
+        <div class="dashboard-layout-split">
+          
+          <div class="panel-container active-projects-panel">
+            <div class="panel-header">
+              <h2>Active Projects</h2>
+              <button class="action-btn-primary">New Project</button>
+            </div>
+            
+            <div class="projects-compact-list">
+              <div class="project-strip-item" v-for="(board, index) in boards" :key="index">
+                <div class="project-strip-meta">
+                  <h3>{{ board.title }}</h3>
+                  <span class="project-percentage-badge">{{ board.progress }}%</span>
                 </div>
-
-                <!-- Sidebar Right -->
-                <div class="sidebar-right">
-                    <div class="productivity">
-                        <p>Productivity</p>
-                        <h2>86%</h2>
-                        <small>Team performance increased this month.</small>
-                        <button>View Report</button>
-                    </div>
-
-                    <div class="team">
-                        <h2>Team Members</h2>
-                        <div class="team-member">
-                            <img src="https://i.pravatar.cc/50?img=1" />
-                            <div>
-                                <p>Sarah</p>
-                                <small>UI Designer</small>
-                            </div>
-                            <span class="status online">Online</span>
-                        </div>
-                        <div class="team-member">
-                            <img src="https://i.pravatar.cc/50?img=2" />
-                            <div>
-                                <p>David</p>
-                                <small>Developer</small>
-                            </div>
-                            <span class="status away">Away</span>
-                        </div>
-                        <div class="team-member">
-                            <img src="https://i.pravatar.cc/50?img=3" />
-                            <div>
-                                <p>Emma</p>
-                                <small>Manager</small>
-                            </div>
-                            <span class="status online">Online</span>
-                        </div>
-                    </div>
+                <div class="progress-track-line">
+                  <div class="progress-track-fill" :style="{ width: board.progress + '%' }"></div>
                 </div>
-            </section>
-        </main>
-    </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-right-stack">
+            
+            <div class="productivity-card">
+              <div class="prod-top-row">
+                <span class="prod-title">Productivity</span>
+                <h2 class="prod-percentage">86%</h2>
+              </div>
+              <p class="prod-desc-text">Team performance increased this month.</p>
+              <button class="prod-view-btn">View Report</button>
+            </div>
+
+            <div class="panel-container team-members-panel">
+              <div class="panel-header">
+                <h2>Team Members</h2>
+              </div>
+              <div class="team-members-list">
+                <div class="member-strip-card" v-for="(member, idx) in teamMembersList" :key="idx">
+                  <img :src="member.avatar" class="member-avatar-mask" />
+                  <div class="member-profile-details">
+                    <h4>{{ member.name }}</h4>
+                    <p>{{ member.role }}</p>
+                  </div>
+                  <span class="status-pill" :class="member.status.toLowerCase()">
+                    {{ member.status }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted, onBeforeUnmount } from "vue";
 import { router } from "@inertiajs/vue3";
 import { useThemeStore } from "../stores/theme";
 import Sidebar from "./components/Sidebar.vue";
@@ -173,293 +159,385 @@ import draggable from 'vuedraggable';
 const notificationStore = useNotificationStore();
 
 const props = defineProps({
-    stats: Object,
-    widgets: Array
+  stats: Object,
+  widgets: Array
 });
 
 const widgets = ref([...props.widgets]);
+const search = ref("");
 
 const saveWidgetOrder = () => {
-    router.post('/dashboard/widgets/reorder', {
-        widgets: widgets.value.map((widget, index) => ({
-            id: widget.id,
-            position: index + 1
-        }))
-    });
+  router.post('/dashboard/widgets/reorder', {
+    widgets: widgets.value.map((widget, index) => ({
+      id: widget.id,
+      position: index + 1
+    }))
+  });
 };
 
 const boards = [
-    { title: "Website Redesign", progress: 75 },
-    { title: "Mobile App", progress: 42 },
-    { title: "Marketing Campaign", progress: 91 },
-    { title: "CRM Dashboard", progress: 63 },
+  { title: "Website Redesign", progress: 75 },
+  { title: "Mobile App", progress: 42 },
+  { title: "Marketing Campaign", progress: 91 },
+  { title: "CRM Dashboard", progress: 63 },
+];
+
+const teamMembersList = [
+  { name: "Sarah", role: "UI Designer", status: "Online", avatar: "https://i.pravatar.cc/50?img=1" },
+  { name: "David", role: "Developer", status: "Away", avatar: "https://i.pravatar.cc/50?img=2" },
+  { name: "Emma", role: "Manager", status: "Online", avatar: "https://i.pravatar.cc/50?img=3" }
 ];
 
 const theme = useThemeStore();
 const showProfileMenu = ref(false);
 
 const handleClickOutside = () => {
-    showProfileMenu.value = false;
+  showProfileMenu.value = false;
 };
 
 const logout = () => {
-    router.post("/logout");
+  router.post("/logout");
 };
+
 onMounted(() => {
-    document.addEventListener("click", handleClickOutside);
+  document.addEventListener("click", handleClickOutside);
 });
 
 onBeforeUnmount(() => {
-    document.removeEventListener("click", handleClickOutside);
+  document.removeEventListener("click", handleClickOutside);
 });
 </script>
 
 <style scoped>
-/* Stats Cards */
-.stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 20px;
-    padding: 20px 40px;
+/* --- Design Theme Configuration Mapping Variables --- */
+.theme-dark {
+  --dashboard-bg: #0b0f19;
+  --panel-bg: rgba(15, 23, 42, 0.4);
+  --card-bg: rgba(22, 30, 49, 0.5);
+  --input-bg: rgba(17, 24, 39, 0.6);
+  --border-color: rgba(255, 255, 255, 0.04);
+  --text-main: #f1f5f9;
+  --text-muted: #64748b;
+  --header-title-color: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+  --shadow-profile: rgba(0, 0, 0, 0.5);
 }
 
-.stats .card p {
-    color: rgba(255, 255, 255, 0.8);
-    margin-bottom: 10px;
-    transition: color 0.3s ease;
+.theme-light {
+  --dashboard-bg: #f8fafc;
+  --panel-bg: #ffffff;
+  --card-bg: #f1f5f9;
+  --input-bg: #e2e8f0;
+  --border-color: rgba(15, 23, 42, 0.06);
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --header-title-color: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+  --shadow-profile: rgba(15, 23, 42, 0.08);
 }
 
-.theme-light .stats .card p {
-    color: var(--card-text-inverse);
+/* --- Core Shell Structure Framework --- */
+.dashboard {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--dashboard-bg);
+  color: var(--text-main);
+  overflow: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.theme-dark .stats .card p {
-    color: var(--card-text-inverse);
+.main-content {
+  flex: 1;
+  padding: 40px;
+  overflow-y: auto;
+  height: 100%;
 }
 
-/* Dashboard Content */
-.dashboard-content {
-    display: flex;
-    padding: 20px 40px;
-    gap: 20px;
-    flex-wrap: wrap;
+.content-wrapper {
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
-.projects {
-    flex: 2;
-    background: var(--sidebar);
-    border-radius: 15px;
-    padding: 20px;
+/* --- Layout Header Sections --- */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 36px;
 }
 
-.projects-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
+.header-welcome h1 {
+  font-size: 30px;
+  font-weight: 800;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.5px;
+  background: var(--header-title-color);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.projects-header button {
-    background: #06b6d4;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: 0.3s;
+.header-welcome p {
+  color: var(--text-muted);
+  font-weight: 500;
+  margin: 0;
+  font-size: 14px;
 }
 
-.projects-header button:hover {
-    background: #0ea5e9;
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
-.project-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+.search-box {
+  width: 250px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-main);
+  outline: none;
+  font-size: 13.5px;
+  transition: all 0.2s ease;
 }
 
-.project-card {
-    background: var(--card);
-    border-radius: 12px;
-    padding: 15px;
-    transition: transform 0.3s;
-    cursor: pointer;
+.search-box:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
-.project-card:hover {
-    transform: translateY(-5px);
+.theme-btn, .icon-btn {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
-.project-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
+.theme-btn:hover, .icon-btn:hover {
+  transform: translateY(-1px);
 }
 
-.progress-bar {
-    height: 6px;
-    background: #374151;
-    border-radius: 5px;
-    overflow: hidden;
+/* --- Premium Stats Metric Grid Blocks --- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 36px;
 }
 
-.progress {
-    height: 100%;
-    background: linear-gradient(90deg, #06b6d4, #3b82f6);
-    border-radius: 5px;
+@media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .stats-grid { grid-template-columns: 1fr; } }
+
+.stat-card {
+  position: relative;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 22px;
+  overflow: hidden;
+  cursor: grab;
+  box-shadow: 0 10px 20px -5px var(--shadow-profile);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-/* Right Sidebar */
-.sidebar-right {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+.stat-card:active { cursor: grabbing; }
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 24px -5px var(--shadow-profile);
 }
 
-.productivity {
-    background: linear-gradient(135deg, #06b6d4, #2563eb);
-    border-radius: 15px;
-    padding: 25px;
-    text-align: left;
+.stat-glow {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  opacity: 0.06; pointer-events: none;
 }
 
-.productivity p {
-    opacity: 0.8;
+.total-projects-card .stat-glow { background: radial-gradient(circle at top right, #3b82f6 0%, transparent 60%); }
+.total-projects-card { border-left: 4px solid #3b82f6; }
+
+.team-members-card .stat-glow { background: radial-gradient(circle at top right, #06b6d4 0%, transparent 60%); }
+.team-members-card { border-left: 4px solid #06b6d4; }
+
+.completed-tasks-card .stat-glow { background: radial-gradient(circle at top right, #10b981 0%, transparent 60%); }
+.completed-tasks-card { border-left: 4px solid #10b981; }
+
+.pending-tasks-card .stat-glow { background: radial-gradient(circle at top right, #f59e0b 0%, transparent 60%); }
+.pending-tasks-card { border-left: 4px solid #f59e0b; }
+
+.stat-label {
+  display: block; font-size: 11px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.75px; margin-bottom: 10px;
 }
 
-.productivity h2 {
-    font-size: 52px;
-    margin: 15px 0;
+.stat-value { font-size: 32px; font-weight: 800; color: var(--text-main); margin: 0; letter-spacing: -0.5px; }
+
+/* --- Dual Column Grid System Structure --- */
+.dashboard-layout-split {
+  display: grid;
+  grid-template-columns: 1.62fr 1fr;
+  gap: 28px;
 }
 
-.productivity small {
-    opacity: 0.9;
-    display: block;
-    margin-bottom: 20px;
+@media (max-width: 1150px) { .dashboard-layout-split { grid-template-columns: 1fr; } }
+
+.panel-container {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 30px -10px var(--shadow-profile);
+  backdrop-filter: blur(12px);
 }
 
-.productivity button {
-    background: #fff;
-    color: #111827;
-    border: none;
-    padding: 10px 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: 0.3s;
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
-.productivity button:hover {
-    transform: scale(1.05);
+.panel-header h2 { font-size: 18px; font-weight: 700; margin: 0; color: var(--text-main); letter-spacing: -0.2px; }
+
+.action-btn-primary {
+  background: #06b6d4; color: #ffffff; border: none;
+  padding: 8px 16px; border-radius: 10px; font-weight: 600; font-size: 12.5px;
+  cursor: pointer; transition: background-color 0.15s, transform 0.15s;
+}
+.action-btn-primary:hover { background: #0ea5e9; transform: translateY(-0.5px); }
+
+/* --- Compact Sizing Fix for Active Projects Elements --- */
+.projects-compact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* Team */
-.team {
-    background: var(--sidebar);
-    border-radius: 15px;
-    padding: 20px;
+.project-strip-item {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid #3b82f6;
+  border-radius: 12px;
+  padding: 14px 18px; /* Balanced padding bounds to decrease component visual density */
+  transition: all 0.2s;
 }
 
-.team h2 {
-    margin-bottom: 20px;
+.project-strip-item:hover {
+  transform: translateX(3px);
+  background: var(--input-bg);
 }
 
-.team-member {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 15px;
-    background: var(--card);
-    padding: 12px;
-    border-radius: 12px;
-    transition: 0.3s;
+.project-strip-meta { display: flex; justify-content: space-between; align-items: center; }
+.project-strip-item h3 { font-size: 14px; margin: 0; color: var(--text-main); font-weight: 600; }
+.project-percentage-badge {
+  font-size: 11px; font-weight: 700; color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1); padding: 3px 8px; border-radius: 6px;
 }
 
-.team-member:hover {
-    transform: translateX(5px);
-    background: #273449;
+.progress-track-line { height: 5px; background: var(--input-bg); border-radius: 4px; margin-top: 10px; overflow: hidden; }
+.progress-track-fill { height: 100%; background: linear-gradient(90deg, #06b6d4, #3b82f6); border-radius: 4px; }
+
+/* --- Right Sidebar Column Panel Component Chain Stack --- */
+.sidebar-right-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
 }
 
-.team-member img {
-    width: 45px;
-    height: 45px;
-    border-radius: 12px;
-    margin-right: 12px;
+/* Productivity Highlight Card Size Reduction Fix */
+.productivity-card {
+  background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%);
+  border-radius: 20px;
+  padding: 22px 24px; /* Scaled down slightly to fit cleanly */
+  color: #ffffff;
+  box-shadow: 0 10px 25px rgba(6, 182, 212, 0.2);
 }
 
-.team-member div {
-    flex: 1;
+.prod-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
 }
 
-.team-member p {
-    font-weight: 600;
+.prod-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85; }
+.prod-percentage { font-size: 36px; font-weight: 800; margin: 0; color: #ffffff; letter-spacing: -0.5px; }
+.prod-desc-text { margin: 0 0 16px 0; font-size: 13.5px; opacity: 0.85; font-weight: 500; }
+
+.prod-view-btn {
+  background: #ffffff; color: #0f172a; border: none;
+  padding: 10px 20px; border-radius: 10px; font-weight: 700; font-size: 12px;
+  cursor: pointer; transition: transform 0.2s;
+}
+.prod-view-btn:hover { transform: translateY(-1px); }
+
+/* --- Team Roster Block Components Layout Alignment --- */
+.team-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.team-member small {
-    color: #9ca3af;
+.member-strip-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px; /* Scaled parameters down precisely to balance typography blocks */
+  border-radius: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s;
 }
 
-.status {
-    font-size: 12px;
-    padding: 5px 10px;
-    border-radius: 20px;
+.member-strip-card:hover {
+  transform: translateX(3px);
+  background: var(--input-bg);
 }
 
-.online {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
-}
+.member-avatar-mask { width: 36px; height: 36px; border-radius: 10px; object-fit: cover; }
+.member-profile-details { flex: 1; }
+.member-profile-details h4 { font-size: 13.5px; font-weight: 600; margin: 0 0 1px 0; color: var(--text-main); }
+.member-profile-details p { color: var(--text-muted); font-size: 11.5px; margin: 0; }
 
-.away {
-    background: rgba(251, 191, 36, 0.2);
-    color: #fbbf24;
-}
+.status-pill { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+.status-pill.online { background: rgba(34, 197, 94, 0.12); color: #22c55e; }
+.status-pill.away { background: rgba(251, 191, 36, 0.12); color: #fbbf24; }
 
-.profile-container {
-    position: relative;
-}
-
-.avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid var(--card);
-    transition: 0.2s ease;
-}
-
-.avatar:hover {
-    transform: scale(1.05);
-}
+/* --- Dynamic Overlay Dropdown Utilities --- */
+.profile-container { position: relative; }
+.avatar { width: 40px; height: 40px; border-radius: 12px; cursor: pointer; border: 1px solid var(--border-color); }
 
 .profile-dropdown {
-    position: absolute;
-    top: 58px;
-    right: 0;
-    width: 140px;
-    background: var(--sidebar);
-    border: 1px solid var(--card);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
-    z-index: 100;
+  position: absolute; right: 0; top: 50px; background: var(--panel-bg);
+  border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; z-index: 60;
+  box-shadow: 0 10px 25px var(--shadow-profile);
 }
 
 .profile-dropdown button {
-    width: 100%;
-    padding: 12px 16px;
-    background: transparent;
-    border: none;
-    color: var(--text);
-    text-align: left;
-    cursor: pointer;
-    font-size: 14px;
-    transition: 0.2s ease;
+  background: transparent; border: none; color: var(--text-main); padding: 10px 20px;
+  cursor: pointer; width: 100%; font-size: 13px; text-align: left;
+}
+.profile-dropdown button:hover { background: var(--input-bg); color: #ef4444; }
+
+.notification-dropdown-panel {
+  position: absolute; right: 0; top: 50px; width: 320px; background: var(--panel-bg);
+  border: 1px solid var(--border-color); border-radius: 14px; box-shadow: 0 20px 40px var(--shadow-profile); z-index: 50; overflow: hidden;
 }
 
-.profile-dropdown button:hover {
-    background: var(--card);
-    color: #ef4444;
+.notification-dropdown-header { padding: 14px 18px; border-bottom: 1px solid var(--border-color); }
+.notification-dropdown-header h3 { margin: 0; font-size: 14px; font-weight: 600; color: var(--text-main); }
+.notification-dropdown-body { padding: 12px; max-height: 300px; overflow-y: auto; }
+.notification-alert-item { display: flex; gap: 10px; padding: 10px 6px; border-bottom: 1px solid var(--border-color); }
+.bell-alert-badge-dot {
+  position: absolute; top: -3px; right: -3px; background: #ef4444; color: white; font-size: 10px;
+  font-weight: 700; padding: 1px 5px; border-radius: 7px; border: 2px solid var(--dashboard-bg);
 }
+.notification-empty-state { font-size: 12.5px; color: var(--text-muted); text-align: center; padding: 14px 0; }
 </style>

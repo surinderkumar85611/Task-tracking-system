@@ -25,7 +25,7 @@ use App\Http\Controllers\LeaderDashboardController;
 use App\Models\Member;
 
 use App\Http\Controllers\DashboardController;
-
+use App\Http\Controllers\NotificationController;
 
 Route::get('/', function () {
     if (auth()->check()) return redirect('/dashboard');
@@ -140,22 +140,23 @@ Route::middleware(['auth'])->group(function () {
     });
 
 });
-
 Route::middleware(['auth'])->group(function () {
 
     Route::get('/settings', function () {
 
         $user = auth()->user();
+
+        if ($user->role === 'ADMIN') {
+            return app(\App\Http\Controllers\SettingsController::class)->index();
+        }
+
         $member = Member::where('email', $user->email)->first();
 
-        if (!$member) abort(403);
-
-        if ($member->role === 'TL') {
+        if ($member && $member->role === 'TL') {
             return app(\App\Http\Controllers\Leader\SettingsController::class)->index();
         }
 
-        return app(SettingsController::class)->index();
-
+        abort(403, 'Unauthorized access');
     })->name('settings');
 
 });
@@ -183,7 +184,7 @@ Route::middleware(['auth'])->group(function () {
         return app(TeamController::class)->index();
 
     });
-
+    Route::post('/team/request', [TeamRequestController::class, 'store'])->name('team.request.store');
 });
 
 Route::post('/user/change-password', [UserController::class, 'changePassword']);
@@ -239,3 +240,4 @@ Route::post(
 )->middleware('auth');
 
 Route::post('/editor/upload', [EditorController::class, 'upload']);
+Route::get('/notifications', [NotificationController::class, 'index']);
