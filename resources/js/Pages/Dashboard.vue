@@ -9,7 +9,7 @@
             <header class="header">
                 <div>
                     <h1>Dashboard</h1>
-                    <p>Welcome back, manage your workspace.</p>
+                    <p>Welcome back, manage your dashboard.</p>
                 </div>
                 <div class="header-right">
                     <button class="theme-btn" @click="theme.toggleTheme">
@@ -65,24 +65,39 @@
             </header>
 
             <!-- Stats Cards -->
-            <section class="stats">
-                <div class="card blue">
-                    <p>Total Projects</p>
-                    <h2>48</h2>
-                </div>
-                <div class="card purple">
-                    <p>Team Members</p>
-                    <h2>126</h2>
-                </div>
-                <div class="card green">
-                    <p>Tasks Completed</p>
-                    <h2>1,204</h2>
-                </div>
-                <div class="card orange">
-                    <p>Pending Tasks</p>
-                    <h2>32</h2>
-                </div>
-            </section>
+            <draggable v-model="widgets" item-key="id" class="stats" @end="saveWidgetOrder">
+
+                <template #item="{ element }">
+
+                    <div class="card">
+
+                        <p>{{ element.title }}</p>
+
+                        <h2>
+
+                            <span v-if="element.widget_type === 'total_projects'">
+                                {{ props.stats.totalProjects }}
+                            </span>
+
+                            <span v-else-if="element.widget_type === 'team_members'">
+                                {{ props.stats.teamMembers }}
+                            </span>
+
+                            <span v-else-if="element.widget_type === 'completed_tasks'">
+                                {{ props.stats.completedTasks }}
+                            </span>
+
+                            <span v-else-if="element.widget_type === 'pending_tasks'">
+                                {{ props.stats.pendingTasks }}
+                            </span>
+
+                        </h2>
+
+                    </div>
+
+                </template>
+
+            </draggable>
 
             <!-- Main Dashboard Content -->
             <section class="dashboard-content">
@@ -153,8 +168,25 @@ import { router } from "@inertiajs/vue3";
 import { useThemeStore } from "../stores/theme";
 import Sidebar from "./components/Sidebar.vue";
 import { useNotificationStore } from '@/stores/notificationStore';
+import draggable from 'vuedraggable';
 
 const notificationStore = useNotificationStore();
+
+const props = defineProps({
+    stats: Object,
+    widgets: Array
+});
+
+const widgets = ref([...props.widgets]);
+
+const saveWidgetOrder = () => {
+    router.post('/dashboard/widgets/reorder', {
+        widgets: widgets.value.map((widget, index) => ({
+            id: widget.id,
+            position: index + 1
+        }))
+    });
+};
 
 const boards = [
     { title: "Website Redesign", progress: 75 },
