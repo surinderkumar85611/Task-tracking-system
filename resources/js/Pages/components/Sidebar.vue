@@ -19,7 +19,7 @@
             </button>
 
             <select v-if="!isCollapsed" class="workspace-select" v-model="selectedWorkspace" @change="changeWorkspace">
-                <option disabled value="">Create Workspace</option>
+                <option disabled value="">Select Workspace</option>
                 <option v-for="workspace in workspaces" :key="workspace.id" :value="workspace.id">
                     {{ workspace.name }}
                 </option>
@@ -59,19 +59,19 @@
             </button>
         </div>
 
-        <div v-if="showCreateWorkspaceModal" class="modal-overlay" @click.self="showCreateWorkspaceModal = false">
+        <div v-if="showCreateWorkspaceModal" class="modal-overlay">
             <div class="modal">
                 <h2>Create Workspace</h2>
                 <input v-model="workspaceForm.name" type="text" placeholder="Workspace Name" />
                 <textarea v-model="workspaceForm.description" placeholder="Description"></textarea>
                 <div class="modal-actions">
-                    <button class="cancel-btn" @click="showCreateWorkspaceModal = false">Cancel</button>
+                    <!-- <button class="cancel-btn" @click="showCreateWorkspaceModal = false">Cancel</button> -->
                     <button class="create-btn" @click="createWorkspace">Create</button>
                 </div>
             </div>
         </div>
 
-        <div v-if="showSelectWorkspaceModal" class="modal-overlay" @click.self="showSelectWorkspaceModal = false">
+        <div v-if="showSelectWorkspaceModal" class="modal-overlay">
             <div class="modal">
                 <h2>Select Workspace</h2>
                 <select v-model="selectedWorkspace" class="workspace-select sticky-modal-select">
@@ -81,7 +81,7 @@
                     </option>
                 </select>
                 <div class="modal-actions">
-                    <button class="cancel-btn" @click="showSelectWorkspaceModal = false">Cancel</button>
+                    <!-- <button class="cancel-btn" @click="showSelectWorkspaceModal = false">Cancel</button> -->
                     <button class="create-btn" @click="changeWorkspace" :disabled="!selectedWorkspace">Continue</button>
                 </div>
             </div>
@@ -92,7 +92,9 @@
 <script setup>
 import { ref, reactive } from "vue";
 import { Link, usePage, router } from "@inertiajs/vue3";
+import { useToast } from "vue-toastification";
 
+const toast = useToast();
 const page = usePage();
 
 const isCollapsed = ref(localStorage.getItem("sidebar_collapsed") === "true");
@@ -104,8 +106,16 @@ const toggleSidebar = () => {
 const workspaces = page.props.workspaces || [];
 const selectedWorkspace = ref(page.props.currentWorkspace || "");
 
-const showCreateWorkspaceModal = ref(false);
-const showSelectWorkspaceModal = ref(!page.props.currentWorkspace);
+// const showCreateWorkspaceModal = ref(false);
+// const showSelectWorkspaceModal = ref(!page.props.currentWorkspace);
+
+const showCreateWorkspaceModal = ref(workspaces.length === 0);
+
+const showSelectWorkspaceModal = ref(
+    workspaces.length > 0 && !page.props.currentWorkspace
+);
+
+// const showSelectWorkspaceModal = ref(!page.props.currentWorkspace);
 
 const workspaceForm = reactive({
     name: "",
@@ -124,6 +134,7 @@ const createWorkspace = () => {
             workspaceForm.name = "";
             workspaceForm.description = "";
         },
+        onError: () => { toast.error("Creation failed. Check fields."); }
     });
 };
 
