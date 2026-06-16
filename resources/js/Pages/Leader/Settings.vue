@@ -10,7 +10,6 @@
 
                 <div>
                     <h1>Settings</h1>
-
                     <p>
                         Manage security, notifications and account settings.
                     </p>
@@ -28,7 +27,6 @@
                     👤 Profile
                 </button>
 
-
                 <button :class="{ active: activeTab === 'security' }" @click="activeTab = 'security'">
                     🔒 Security
                 </button>
@@ -37,48 +35,37 @@
                     🔔 Notifications
                 </button>
 
-
-
             </div>
 
+            <!-- PROFILE TAB -->
             <section v-if="activeTab === 'profile'" class="settings-card">
 
                 <div class="card-header">
-
                     <div>
                         <h2>Profile Information</h2>
-
-                        <p>
-                            Update your personal details.
-                        </p>
+                        <p>Update your personal details.</p>
                     </div>
-
                 </div>
 
                 <div class="avatar-section">
-
                     <div class="avatar-circle">
                         {{ userInitials }}
                     </div>
-
                     <div>
                         <h3>{{ profile.name }}</h3>
                         <span>{{ profile.email }}</span>
                     </div>
-
                 </div>
 
                 <div class="settings-grid">
 
                     <div class="form-group">
                         <label>Full Name</label>
-
                         <input type="text" v-model="profile.name" />
                     </div>
 
                     <div class="form-group">
                         <label>Email Address</label>
-
                         <input type="email" v-model="profile.email" />
                     </div>
 
@@ -94,68 +81,47 @@
 
                 </div>
 
-                <!-- <div class="card-footer">
-                    <button class="primary-btn" @click="updateProfile">
-                        Save Changes
-                    </button>
-                </div> -->
-
+               
             </section>
 
+            <!-- WORKSPACE TAB -->
             <section v-if="activeTab === 'workspace'" class="settings-card">
 
                 <div class="card-header">
                     <div>
                         <h2>Workspace Settings</h2>
-                        <p>
-                            Configure your workspace details.
-                        </p>
+                        <p>Configure your workspace details.</p>
                     </div>
                 </div>
 
-                <!-- WORKSPACE DISPLAY -->
                 <div class="workspace-banner" v-if="selectedWorkspace">
-
                     <div>
                         <h3>{{ selectedWorkspace.name }}</h3>
-
-                        <p>
-                            {{ selectedWorkspace.description }}
-                        </p>
+                        <p>{{ selectedWorkspace.description }}</p>
                     </div>
-
                     <span class="workspace-badge">
                         Active Workspace
                     </span>
-
                 </div>
 
                 <div class="settings-grid" v-if="selectedWorkspace">
-
                     <div class="form-group">
                         <label>Workspace Name</label>
-
                         <input type="text" v-model="selectedWorkspace.name" />
                     </div>
 
                     <div class="form-group">
                         <label>Workspace URL</label>
-
                         <input type="text" v-model="selectedWorkspace.slug" />
                     </div>
-
                 </div>
 
                 <div class="form-group full-width" v-if="selectedWorkspace">
-
                     <label>Description</label>
-
                     <textarea rows="5" v-model="selectedWorkspace.description"></textarea>
-
                 </div>
 
                 <div class="stats-row">
-
                     <div class="stat-card">
                         <h4>Total Members</h4>
                         <span>{{ stats.members }}</span>
@@ -170,7 +136,6 @@
                         <h4>Total Tasks</h4>
                         <span>{{ stats.tasks }}</span>
                     </div>
-
                 </div>
 
                 <div class="card-footer">
@@ -180,243 +145,182 @@
                 </div>
 
             </section>
+
+            <!-- SECURITY TAB -->
             <section v-if="activeTab === 'security'" class="settings-card">
 
                 <div class="card-header">
-
                     <div>
                         <h2>Security Settings</h2>
-
-                        <p>
-                            Update your password and account security.
-                        </p>
+                        <p>Update your password and account security.</p>
                     </div>
-
                 </div>
 
-                <div class="settings-grid">
+                <div class="password-form-block">
+                    <div class="settings-grid">
 
-                    <div class="form-group">
-
-                        <label>Current Password</label>
-
-                        <div class="password-wrapper">
-                            <input :type="showCurrentPassword ? 'text' : 'password'" v-model="security.currentPassword"
-                                placeholder="Enter current password" @blur="
-                                    validateCurrentPassword();
-                                handlePasswordBlur('currentPassword')
-                                    " @input="validateCurrentPassword" />
-
-                            <button type="button" class="eye-btn" @click="showCurrentPassword = !showCurrentPassword">
-                                {{ showCurrentPassword ? '👁️' : '👁️' }}
-                            </button>
-
+                        <div class="form-group">
+                            <label>Current Password</label>
+                            <div class="password-wrapper">
+                                <input :type="showCurrentPassword ? 'text' : 'password'" v-model="security.currentPassword"
+                                    placeholder="Enter current password" @blur="
+                                        validateCurrentPassword();
+                                        handlePasswordBlur('currentPassword')
+                                        " @input="validateCurrentPassword" />
+                                <button type="button" class="eye-btn" @click="showCurrentPassword = !showCurrentPassword">
+                                    {{ showCurrentPassword ? '👁️' : '👁️' }}
+                                </button>
+                            </div>
+                            <p v-if="passwordErrors.currentPassword && passwordTouched.currentPassword" class="error-text">
+                                {{ passwordErrors.currentPassword }}
+                            </p>
                         </div>
 
-                        <p v-if="
-                            passwordErrors.currentPassword &&
-                            passwordTouched.currentPassword
-                        " class="error-text">
-                            {{ passwordErrors.currentPassword }}
-                        </p>
-
-                    </div>
-
-                    <div class="form-group">
-
-                        <label>New Password</label>
-
-                        <div class="password-wrapper">
-
-                            <input :type="showNewPassword ? 'text' : 'password'" v-model="security.newPassword"
-                                placeholder="Enter new password" @blur="
-                                    validateNewPassword();
-                                handlePasswordBlur('newPassword')
-                                    " @input="validateNewPassword" />
-
-                            <button type="button" class="eye-btn" @click="showNewPassword = !showNewPassword">
-                                {{ showNewPassword ? '👁️' : '👁️' }}
-                            </button>
-
+                        <div class="form-group">
+                            <label>New Password</label>
+                            <div class="password-wrapper">
+                                <input :type="showNewPassword ? 'text' : 'password'" v-model="security.newPassword"
+                                    placeholder="Enter new password" @blur="
+                                        validateNewPassword();
+                                        handlePasswordBlur('newPassword')
+                                        " @input="validateNewPassword" />
+                                <button type="button" class="eye-btn" @click="showNewPassword = !showNewPassword">
+                                    {{ showNewPassword ? '👁️' : '👁️' }}
+                                </button>
+                            </div>
+                            <p v-if="passwordErrors.newPassword && passwordTouched.newPassword" class="error-text">
+                                {{ passwordErrors.newPassword }}
+                            </p>
                         </div>
 
-                        <p v-if="
-                            passwordErrors.newPassword &&
-                            passwordTouched.newPassword
-                        " class="error-text">
-                            {{ passwordErrors.newPassword }}
-                        </p>
-
-                    </div>
-
-                    <div class="form-group">
-
-                        <label>Confirm Password</label>
-
-                        <div class="password-wrapper">
-
-                            <input :type="showConfirmPassword ? 'text' : 'password'" v-model="security.confirmPassword"
-                                placeholder="Confirm new password" @blur="
-                                    validateConfirmPassword();
-                                handlePasswordBlur('confirmPassword')
-                                    " @input="validateConfirmPassword" />
-                            <button type="button" class="eye-btn" @click="showConfirmPassword = !showConfirmPassword">
-                                {{ showConfirmPassword ? '👁️' : '👁️' }}
-                            </button>
-
+                        <div class="form-group">
+                            <label>Confirm Password</label>
+                            <div class="password-wrapper">
+                                <input :type="showConfirmPassword ? 'text' : 'password'" v-model="security.confirmPassword"
+                                    placeholder="Confirm new password" @blur="
+                                        validateConfirmPassword();
+                                        handlePasswordBlur('confirmPassword')
+                                        " @input="validateConfirmPassword" />
+                                <button type="button" class="eye-btn" @click="showConfirmPassword = !showConfirmPassword">
+                                    {{ showConfirmPassword ? '👁️' : '👁️' }}
+                                </button>
+                            </div>
+                            <p v-if="passwordErrors.confirmPassword && passwordTouched.confirmPassword" class="error-text">
+                                {{ passwordErrors.confirmPassword }}
+                            </p>
                         </div>
 
-                        <p v-if="
-                            passwordErrors.confirmPassword &&
-                            passwordTouched.confirmPassword
-                        " class="error-text">
-                            {{ passwordErrors.confirmPassword }}
-                        </p>
-                    </div>
+                        <!-- Action button placed perfectly to fill the grid space shown in image_bb4fad.png -->
+                        <div class="form-group password-btn-alignment">
+                            <button class="primary-btn" @click="updatePassword">
+                                Update Security
+                            </button>
+                        </div>
 
+                    </div>
                 </div>
 
-                <div class="security-cards">
-
-
-                    <div class="card-footer">
-                        <button class="primary-btn" @click="updatePassword">
-                            Update Security
-                        </button>
-                    </div>
-
-                    <!-- TWO FACTOR AUTHENTICATION -->
-                    <div class="twofa-box">
-
+                <!-- TWO FACTOR AUTHENTICATION -->
+                <div class="twofa-box">
+                    <div class="twofa-header">
                         <h3>Two Factor Authentication (2FA)</h3>
+                    </div>
 
-                        <!-- NEW: If 2FA is active, show the active status and the Disable Button -->
+                    <div class="twofa-content">
                         <div v-if="twoFA.enabled" class="twofa-enabled-container">
                             <p style="color: #4caf50; font-weight: bold; margin-bottom: 12px;">
                                 🔒 Two-Factor Authentication is currently active on your account.
                             </p>
-                            <button class="primary-btn" style="background-color: #dc3545;" @click="disable2FA" :disabled="twoFA.loading">
+                            <button class="primary-btn danger-btn" @click="disable2FA" :disabled="twoFA.loading">
                                 {{ twoFA.loading ? "Disabling..." : "Disable 2FA" }}
                             </button>
                         </div>
 
-                        <!-- NEW: Wrapped original code inside v-else so it only shows when 2FA is off -->
                         <div v-else>
-                            <p>
-                                Secure your account using Google Authenticator.
+                            <p class="twofa-desc">
+                                Secure your account using Google Authenticator code validation protocols.
                             </p>
 
-                            <!-- STEP 1 BUTTON -->
-                            <button class="primary-btn" @click="generate2FA" :disabled="twoFA.loading">
+                            <button class="primary-btn setup-btn" @click="generate2FA" :disabled="twoFA.loading">
                                 Generate QR Code
                             </button>
 
-                            <!-- SHOW QR -->
                             <div v-if="twoFA.qr" class="qr-box">
-
                                 <p>Scan this QR in Google Authenticator:</p>
-
                                 <qrcode-vue :value="twoFA.qr" :size="200" level="H" />
-                                <p><strong>Or enter manually:</strong></p>
+                                
+                                <p class="manual-code"><strong>Or enter manually:</strong></p>
                                 <code>{{ twoFA.secret }}</code>
 
-                                <div class="form-group">
+                                <div class="form-group inline-verification-input">
                                     <label>Enter 6-digit code</label>
-
                                     <input v-model="twoFA.code" placeholder="123456" />
                                 </div>
 
-                                <button class="primary-btn" @click="enable2FA" :disabled="twoFA.loading">
+                                <button class="primary-btn success-btn" @click="enable2FA" :disabled="twoFA.loading">
                                     Enable 2FA
                                 </button>
-
                             </div>
                         </div>
-
                     </div>
                 </div>
 
-
             </section>
 
+            <!-- NOTIFICATIONS TAB -->
             <section v-if="activeTab === 'notifications'" class="settings-card">
 
                 <div class="card-header">
-
                     <div>
                         <h2>Notification Preferences</h2>
-
-                        <p>
-                            Control how and when you receive updates.
-                        </p>
+                        <p>Control how and when you receive updates.</p>
                     </div>
-
                 </div>
 
                 <div class="notification-list">
 
                     <div class="notify-item">
-
                         <div>
                             <h4>Email Notifications</h4>
-                            <p>
-                                Receive updates by email.
-                            </p>
+                            <p>Receive updates by email.</p>
                         </div>
-
                         <label class="switch">
                             <input type="checkbox" v-model="notifications.email">
                             <span></span>
                         </label>
-
                     </div>
 
                     <div class="notify-item">
-
                         <div>
                             <h4>Task Assignments</h4>
-                            <p>
-                                Notify when tasks are assigned.
-                            </p>
+                            <p>Notify when tasks are assigned.</p>
                         </div>
-
                         <label class="switch">
                             <input type="checkbox" v-model="notifications.tasks">
                             <span></span>
                         </label>
-
                     </div>
 
                     <div class="notify-item">
-
                         <div>
                             <h4>Project Updates</h4>
-                            <p>
-                                Notify on project status changes.
-                            </p>
+                            <p>Notify on project status changes.</p>
                         </div>
-
                         <label class="switch">
                             <input type="checkbox" v-model="notifications.projects">
                             <span></span>
                         </label>
-
                     </div>
 
                     <div class="notify-item">
-
                         <div>
                             <h4>Weekly Reports</h4>
-                            <p>
-                                Receive productivity summaries.
-                            </p>
+                            <p>Receive productivity summaries.</p>
                         </div>
-
                         <label class="switch">
                             <input type="checkbox" v-model="notifications.reports">
                             <span></span>
                         </label>
-
                     </div>
 
                 </div>
@@ -429,27 +333,21 @@
 
             </section>
 
-
-
         </main>
 
     </div>
 </template>
+
 <script setup>
 import {
     ref,
     reactive,
     computed,
-    onMounted,
-    watch
+    onMounted
 } from "vue";
 import axios from "axios";
 import Sidebar from "./Sidebar.vue";
-import {
-    useThemeStore
-}
-    from "../../stores/theme.js";
-
+import { useThemeStore } from "../../stores/theme.js";
 import { useToast } from "vue-toastification";
 import QrcodeVue from 'qrcode.vue';
 import { Head } from '@inertiajs/vue3';
@@ -460,6 +358,7 @@ const theme = useThemeStore();
 const activeTab = ref("profile");
 const workspaces = ref([]);
 const selectedWorkspace = ref(null);
+
 const fetchWorkspaces = async () => {
     try {
         const res = await axios.get("/workspaces");
@@ -468,11 +367,11 @@ const fetchWorkspaces = async () => {
         if (workspaces.value.length > 0) {
             selectedWorkspace.value = workspaces.value[0];
         }
-
     } catch (err) {
         console.error("Failed to fetch workspaces:", err);
     }
 };
+
 const profile = reactive({
     id: null,
     name: "",
@@ -480,6 +379,7 @@ const profile = reactive({
     department: "",
     role: "",
 });
+
 const security = reactive({
     currentPassword: "",
     newPassword: "",
@@ -487,6 +387,7 @@ const security = reactive({
     twoFactor: false,
     loginAlerts: true,
 });
+
 const fetchProfile = async () => {
     try {
         const [userRes, memberRes] = await Promise.all([
@@ -496,9 +397,6 @@ const fetchProfile = async () => {
 
         const user = userRes.data;
         const member = memberRes.data;
-
-        // 🔍 This will print the backend data in your browser console
-        console.log("--- BACKEND USER DATA RESPONDED WITH: ---", user);
 
         profile.id = user.id;
         profile.name = user.name;
@@ -517,79 +415,46 @@ const fetchProfile = async () => {
         console.error("fetchProfile error:", error);
     }
 };
+
 const updateProfile = async () => {
-
     try {
-
-        await axios.put(
-            "/user/profile",
-            profile
-        );
-
-        alert("Profile updated");
-
+        await axios.put("/user/profile", profile);
+        toast.success("Profile updated successfully");
     } catch (error) {
-
         console.error(error);
-
+        toast.error("Failed to update profile");
     }
-
 };
 
 const validateCurrentPassword = () => {
     if (!security.currentPassword) {
-        passwordErrors.currentPassword =
-            "Current password is required";
+        passwordErrors.currentPassword = "Current password is required";
     } else {
         passwordErrors.currentPassword = "";
     }
 };
 
 const validateNewPassword = () => {
-
-    const regex =
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
     if (!security.newPassword) {
-
-        passwordErrors.newPassword =
-            "Password is required";
-
+        passwordErrors.newPassword = "Password is required";
     } else if (security.newPassword.length < 8) {
-
-        passwordErrors.newPassword =
-            "Password must be at least 8 characters";
-
+        passwordErrors.newPassword = "Password must be at least 8 characters";
     } else if (!regex.test(security.newPassword)) {
-
-        passwordErrors.newPassword =
-            "Must include uppercase, lowercase, number & special character";
-
+        passwordErrors.newPassword = "Must include uppercase, lowercase, number & special character";
     } else {
-
         passwordErrors.newPassword = "";
     }
-
     validateConfirmPassword();
 };
 
 const validateConfirmPassword = () => {
-
     if (!security.confirmPassword) {
-
-        passwordErrors.confirmPassword =
-            "Confirm password is required";
-
-    } else if (
-        security.newPassword !==
-        security.confirmPassword
-    ) {
-
-        passwordErrors.confirmPassword =
-            "Passwords do not match";
-
+        passwordErrors.confirmPassword = "Confirm password is required";
+    } else if (security.newPassword !== security.confirmPassword) {
+        passwordErrors.confirmPassword = "Passwords do not match";
     } else {
-
         passwordErrors.confirmPassword = "";
     }
 };
@@ -597,6 +462,7 @@ const validateConfirmPassword = () => {
 const handlePasswordBlur = (field) => {
     passwordTouched[field] = true;
 };
+
 const passwordErrors = reactive({
     currentPassword: "",
     newPassword: "",
@@ -608,8 +474,8 @@ const passwordTouched = reactive({
     newPassword: false,
     confirmPassword: false,
 });
-const updatePassword = async () => {
 
+const updatePassword = async () => {
     passwordTouched.currentPassword = true;
     passwordTouched.newPassword = true;
     passwordTouched.confirmPassword = true;
@@ -618,29 +484,16 @@ const updatePassword = async () => {
     validateNewPassword();
     validateConfirmPassword();
 
-    if (
-        passwordErrors.currentPassword ||
-        passwordErrors.newPassword ||
-        passwordErrors.confirmPassword
-    ) {
+    if (passwordErrors.currentPassword || passwordErrors.newPassword || passwordErrors.confirmPassword) {
         return;
     }
 
     try {
-
-        const response = await axios.post(
-            "/user/change-password",
-            {
-                current_password:
-                    security.currentPassword,
-
-                password:
-                    security.newPassword,
-
-                password_confirmation:
-                    security.confirmPassword
-            }
-        );
+        const response = await axios.post("/user/change-password", {
+            current_password: security.currentPassword,
+            password: security.newPassword,
+            password_confirmation: security.confirmPassword
+        });
 
         security.currentPassword = "";
         security.newPassword = "";
@@ -654,27 +507,13 @@ const updatePassword = async () => {
         passwordTouched.newPassword = false;
         passwordTouched.confirmPassword = false;
 
-        toast.success(
-            response.data.message ||
-            "Password updated successfully"
-        );
-
+        toast.success(response.data.message || "Password updated successfully");
     } catch (error) {
-
-        if (
-            error.response?.data?.message ===
-            "Current password is incorrect"
-        ) {
-
-            passwordErrors.currentPassword =
-                "Current password does not match";
-
-            passwordTouched.currentPassword =
-                true;
-
+        if (error.response?.data?.message === "Current password is incorrect") {
+            passwordErrors.currentPassword = "Current password does not match";
+            passwordTouched.currentPassword = true;
             return;
         }
-
         console.error(error);
     }
 };
@@ -704,10 +543,6 @@ const userInitials = computed(() => {
         .toUpperCase();
 });
 
-onMounted(() => {
-    fetchProfile();
-    fetchWorkspaces();
-});
 const twoFA = reactive({
     qr: null,
     secret: null,
@@ -715,21 +550,14 @@ const twoFA = reactive({
     enabled: false,
     loading: false
 });
+
 const generate2FA = async () => {
     try {
         twoFA.loading = true;
-
         const res = await axios.get("/leader/2fa/generate");
-
-        console.log("2FA Response:", res.data);
-
         twoFA.qr = res.data.qr;
         twoFA.secret = res.data.secret;
-
-        console.log("QR URL:", twoFA.qr);
-
         toast.success("QR generated. Scan it in Google Authenticator");
-
     } catch (err) {
         console.error(err);
         toast.error("Failed to generate QR");
@@ -746,15 +574,9 @@ const enable2FA = async () => {
 
     try {
         twoFA.loading = true;
-
-        const res = await axios.post("/leader/2fa/enable", {
-            code: twoFA.code
-        });
-
+        await axios.post("/leader/2fa/enable", { code: twoFA.code });
         twoFA.enabled = true;
-
         toast.success("2FA enabled successfully");
-
     } catch (err) {
         toast.error(err.response?.data?.message || "Invalid code");
     } finally {
@@ -762,7 +584,6 @@ const enable2FA = async () => {
     }
 };
 
-// NEW: This is the logic that communicates with your server to disable 2FA
 const disable2FA = async () => {
     if (!confirm("Are you sure you want to disable Two-Factor Authentication?")) {
         return;
@@ -771,13 +592,10 @@ const disable2FA = async () => {
     try {
         twoFA.loading = true;
         await axios.post("/leader/2fa/disable");
-
-        // Reset UI setup properties back to initial state
         twoFA.enabled = false;
         twoFA.qr = null;
         twoFA.secret = null;
         twoFA.code = "";
-
         toast.success("2FA has been disabled successfully");
     } catch (err) {
         console.error(err);
@@ -790,7 +608,6 @@ const disable2FA = async () => {
 const saveNotificationPreferences = async () => {
     try {
         await axios.put("/user/notification-preferences", notifications);
-
         toast.success("Updated successfully, we will notify you about this.");
     } catch (error) {
         console.error("Failed to save preferences:", error);
@@ -800,9 +617,7 @@ const saveNotificationPreferences = async () => {
 
 const checkForProjectAlerts = async () => {
     try {
-        // Fetches new alert messages generated by the admin actions
         const res = await axios.get("/user/unread-alerts");
-
         if (res.data.alerts && res.data.alerts.length > 0) {
             res.data.alerts.forEach(alert => {
                 toast.info(alert.message);
@@ -814,10 +629,13 @@ const checkForProjectAlerts = async () => {
 };
 
 onMounted(() => {
+    fetchProfile();
+    fetchWorkspaces();
     checkForProjectAlerts();
-    setInterval(checkForProjectAlerts, 30000); // 30000ms = 30 seconds
+    setInterval(checkForProjectAlerts, 30000);
 });
 </script>
+
 <style scoped>
 .main-content {
     flex: 1;
@@ -854,7 +672,6 @@ onMounted(() => {
     font-size: 18px;
 }
 
-
 .settings-tabs {
     display: flex;
     gap: 12px;
@@ -864,17 +681,18 @@ onMounted(() => {
 
 .settings-tabs button {
     border: none;
-    padding: 12px 18px;
+    padding: 12px 20px;
     border-radius: 12px;
     cursor: pointer;
     font-weight: 600;
     background: var(--card);
     color: var(--text);
-    transition: 0.25s;
+    transition: 0.2s ease-in-out;
 }
 
 .settings-tabs button:hover {
-    transform: translateY(-2px);
+    background: var(--border);
+    transform: translateY(-1px);
 }
 
 .settings-tabs button.active {
@@ -882,26 +700,42 @@ onMounted(() => {
     color: #fff;
 }
 
-
-
-
-.card-header {
+.settings-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
     margin-bottom: 24px;
 }
 
+.card-header {
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+}
+
 .card-header h2 {
-    font-size: 24px;
+    font-size: 22px;
+    font-weight: 600;
     margin-bottom: 6px;
+    color: var(--text);
 }
 
 .card-header p {
     color: var(--subtext);
+    font-size: 14px;
 }
 
 .card-footer {
     margin-top: 30px;
     display: flex;
     justify-content: flex-end;
+}
+
+.card-footer-inline {
+    margin-top: 24px;
+    display: flex;
+    justify-content: flex-start;
 }
 
 .avatar-section {
@@ -912,22 +746,49 @@ onMounted(() => {
 }
 
 .avatar-circle {
-    width: 70px;
-    height: 70px;
-    border-radius: 18px;
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
     background: #06b6d4;
     color: white;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 22px;
+    font-size: 24px;
     font-weight: bold;
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+}
+
+.avatar-section h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.avatar-section span {
+    font-size: 14px;
+    color: var(--subtext);
 }
 
 .settings-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
+    gap: 24px;
+}
+
+.password-form-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 30px;
+}
+
+/* Aligns button inline with the Confirm Password field */
+.password-btn-alignment {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
 }
 
 .form-group {
@@ -941,41 +802,60 @@ onMounted(() => {
 
 .form-group label {
     margin-bottom: 8px;
-    color: var(--subtext);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
 }
 
 .form-group input,
 .form-group textarea {
-    padding: 14px;
-    border-radius: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
     border: 1px solid var(--border);
-    background: var(--bg);
+    background: var(--card);
     color: var(--text);
     outline: none;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: #06b6d4;
+}
+
+.form-group input:disabled {
+    background: var(--border);
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .form-group textarea {
     resize: none;
 }
 
-
 .primary-btn {
     background: #06b6d4;
     color: white;
     border: none;
-    padding: 13px 24px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.secondary-btn {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 10px 18px;
+    padding: 12px 24px;
     border-radius: 10px;
     cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: opacity 0.2s;
+}
+
+.primary-btn:hover {
+    opacity: 0.9;
+}
+
+.danger-btn {
+    background-color: #ef4444 !important;
+}
+
+.success-btn {
+    background-color: #22c55e !important;
 }
 
 .workspace-banner {
@@ -992,9 +872,10 @@ onMounted(() => {
 .workspace-badge {
     background: #22c55e;
     color: white;
-    padding: 8px 14px;
+    padding: 6px 14px;
     border-radius: 999px;
     font-size: 12px;
+    font-weight: 600;
 }
 
 .stats-row {
@@ -1014,30 +895,77 @@ onMounted(() => {
 .stat-card h4 {
     color: var(--subtext);
     margin-bottom: 10px;
+    font-size: 14px;
 }
 
 .stat-card span {
     font-size: 28px;
     font-weight: bold;
+    color: var(--text);
 }
 
-
-.security-cards {
-    margin-top: 25px;
-    display: grid;
-    gap: 15px;
-}
-
-.mini-card {
-    background: var(--bg);
+.twofa-box {
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 18px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    background: var(--bg);
+    overflow: hidden;
 }
 
+.twofa-header {
+    background: rgba(6, 182, 212, 0.05);
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.twofa-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.twofa-content {
+    padding: 24px;
+}
+
+.twofa-desc {
+    color: var(--subtext);
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.setup-btn {
+    background: #475569;
+}
+
+.qr-box {
+    margin-top: 20px;
+    padding: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 400px;
+}
+
+.manual-code {
+    margin-top: 8px;
+}
+
+.qr-box code {
+    background: var(--bg);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-family: monospace;
+    font-size: 14px;
+    color: #ec4899;
+}
+
+.inline-verification-input {
+    margin: 8px 0;
+}
 
 .notification-list {
     display: flex;
@@ -1049,18 +977,29 @@ onMounted(() => {
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 18px;
+    padding: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
+.notify-item h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.notify-item p {
+    font-size: 13px;
+    color: var(--subtext);
+}
 
 .switch {
     position: relative;
     display: inline-block;
-    width: 56px;
-    height: 30px;
+    width: 50px;
+    height: 26px;
 }
 
 .switch input {
@@ -1070,22 +1009,22 @@ onMounted(() => {
 .switch span {
     position: absolute;
     inset: 0;
-    background: #64748b;
+    background: #cbd5e1;
     border-radius: 30px;
     cursor: pointer;
-    transition: .3s;
+    transition: .2s;
 }
 
 .switch span::before {
     content: "";
     position: absolute;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     left: 3px;
     top: 3px;
     background: white;
     border-radius: 50%;
-    transition: .3s;
+    transition: .2s;
 }
 
 .switch input:checked+span {
@@ -1093,47 +1032,10 @@ onMounted(() => {
 }
 
 .switch input:checked+span::before {
-    transform: translateX(26px);
+    transform: translateX(24px);
 }
-
-
-.theme-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 25px;
-}
-
-.theme-option {
-    background: var(--bg);
-    border: 2px solid var(--border);
-    border-radius: 18px;
-    padding: 20px;
-    text-align: center;
-}
-
-.theme-option.selected {
-    border-color: #06b6d4;
-}
-
-.theme-preview {
-    height: 120px;
-    border-radius: 12px;
-    margin-bottom: 15px;
-}
-
-.dark-preview {
-    background: #0f172a;
-}
-
-.light-preview {
-    background: #f8fafc;
-    border: 1px solid #dbeafe;
-}
-
-
 
 @media (max-width: 992px) {
-
     .settings-grid {
         grid-template-columns: 1fr;
     }
@@ -1142,11 +1044,10 @@ onMounted(() => {
         grid-template-columns: 1fr;
     }
 
-    .theme-grid {
-        grid-template-columns: 1fr;
+    .password-btn-alignment {
+        justify-content: flex-start;
+        margin-top: 10px;
     }
-
-
 }
 
 .password-wrapper {
@@ -1156,18 +1057,23 @@ onMounted(() => {
 
 .password-wrapper input {
     width: 100%;
-    padding-right: 50px;
+    padding-right: 46px;
 }
 
 .eye-btn {
     position: absolute;
-    right: 12px;
+    right: 14px;
     top: 50%;
     transform: translateY(-50%);
     border: none;
     background: transparent;
     cursor: pointer;
     font-size: 16px;
+    opacity: 0.7;
+}
+
+.eye-btn:hover {
+    opacity: 1;
 }
 
 .error-text {

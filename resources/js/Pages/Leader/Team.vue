@@ -1,20 +1,18 @@
 <template>
-    <Head title="Team" />
-  <div class="dashboard" :class="theme.themeClass">
 
+<Head title="Team" />
+
+  <div class="dashboard" :class="{ 'dark': theme.isDark, 'light': !theme.isDark }">
     <Sidebar />
 
     <main class="main-content">
-
       <header class="header">
-
-        <div>
+        <div class="header-welcome">
           <h1>Team Overview</h1>
           <p>Manage team leaders, members and task assignments.</p>
         </div>
 
         <div class="header-right">
-
           <input v-model="search" type="text" placeholder="Search team..." class="search-box" />
 
           <button class="theme-btn" @click="theme.toggleTheme">
@@ -22,108 +20,79 @@
           </button>
 
           <div class="profile-container" ref="profileContainer">
-
             <img src="https://i.pravatar.cc/100" class="avatar" @click.stop="showProfileMenu = !showProfileMenu" />
-
             <div v-if="showProfileMenu" class="profile-dropdown">
-              <button @click="logout">
-                Logout
-              </button>
+              <button @click="logout">Logout</button>
             </div>
-
           </div>
-
         </div>
-
       </header>
 
-
-      <section class="request-section">
-
+      <section class="dashboard-card request-section">
         <div class="request-header">
-          <h2>Team Requests</h2>
-
+          <div>
+            <h2>Team Requests</h2>
+            <p class="request-box">
+              Send requests to admin for adding/removing members, defining eligibility and department requirements.
+            </p>
+          </div>
           <button class="request-btn" @click="showRequestModal = true">
-            + New Request
+            <span>+</span> New Request
           </button>
         </div>
-
-        <div class="request-box">
-          <p>
-            Send requests to admin for adding/removing members, defining eligibility and department requirements.
-          </p>
-        </div>
-
       </section>
+
       <section class="leader-grid">
-
         <div v-for="leader in teamLeaders" :key="leader.id" class="leader-card">
-
           <div class="leader-header">
-            <div class="avatar">
+            <div class="leader-avatar-box">
               {{ initials(leader.first_name, leader.last_name) }}
             </div>
-
             <div>
               <h3 v-html="highlightText(`${leader.first_name} ${leader.last_name}`)"></h3>
-              <small v-html="highlightText(leader.department)"></small>
+              <span class="department-badge" v-html="highlightText(leader.department)"></span>
             </div>
           </div>
 
           <div class="members-section">
-
             <h4>Team Members</h4>
 
             <div v-if="leader.team_members?.length" class="members-grid">
-
               <div v-for="member in leader.team_members" :key="member.id" class="member-container">
-
                 <div class="member-card">
-
                   <div class="member-header">
                     <div class="member-avatar">
                       {{ initials(member.first_name, member.last_name) }}
                     </div>
-
                     <div>
                       <p class="name" v-html="highlightText(`${member.first_name} ${member.last_name}`)"></p>
-                      <small v-html="highlightText(member.department)"></small>
+                      <small class="member-dept" v-html="highlightText(member.department)"></small>
                     </div>
                   </div>
 
                   <div class="tasks">
-
                     <div v-if="getMemberTasks(member).length">
-
                       <div v-for="task in getMemberTasks(member)" :key="task.id" class="task-item">
-                        <div>
+                        <div class="task-info">
                           <p class="task-title" v-html="highlightText(task.title)"></p>
-
                           <span class="task-status" :class="task.status">
                             {{ formatStatus(task.status) }}
                           </span>
                         </div>
-
                         <div class="deadline">
                           {{ formatDate(task.due_date || task.deadline) }}
                         </div>
                       </div>
-
                     </div>
-
                     <div v-else class="no-tasks">
                       No tasks assigned
                     </div>
-
                   </div>
-
                 </div>
 
                 <div class="performance-card">
                   <h5>Performance Analysis</h5>
-
                   <div class="performance-content">
-
                     <div class="pie-chart" :style="getPieChartStyle(getMemberStats(member))">
                       <div class="pie-center">
                         <span>
@@ -135,53 +104,42 @@
                     </div>
 
                     <div class="stats-legend">
-
                       <div class="legend-item">
                         <span class="dot total-dot"></span>
-                        Assigned:
+                        <span class="legend-label">Assigned:</span>
                         <strong>{{ getMemberStats(member).total }}</strong>
                       </div>
-
                       <div class="legend-item">
                         <span class="dot progress-dot"></span>
-                        In Progress:
+                        <span class="legend-label">In Progress:</span>
                         <strong>{{ getMemberStats(member).inProgress }}</strong>
                       </div>
-
                       <div class="legend-item">
                         <span class="dot completed-dot"></span>
-                        Completed:
+                        <span class="legend-label">Completed:</span>
                         <strong>{{ getMemberStats(member).completed }}</strong>
                       </div>
-
                     </div>
-
                   </div>
                 </div>
-
               </div>
-
             </div>
 
             <div v-else class="empty">
               No team members assigned yet
             </div>
-
           </div>
-
         </div>
-
       </section>
+
       <div v-if="showRequestModal" class="modal-overlay" @click="showRequestModal = false">
         <div class="modal" @click.stop>
-
           <div class="modal-header">
             <h3>Team Request</h3>
             <p>Send a request to admin for team changes</p>
           </div>
 
           <div class="modal-body">
-
             <div class="form-group">
               <label>Request Type</label>
               <select v-model="request.type">
@@ -215,19 +173,16 @@
               <label>Reason</label>
               <textarea v-model="request.reason" placeholder="Explain your request..."></textarea>
             </div>
-
           </div>
 
           <div class="modal-footer">
             <button class="btn-secondary" @click="showRequestModal = false">
               Cancel
             </button>
-
             <button class="btn-primary" @click="submitRequest">
               Send Request
             </button>
           </div>
-
         </div>
       </div>
     </main>
@@ -379,7 +334,7 @@ const getMemberStats = (member) => {
 const getPieChartStyle = (stats) => {
   if (stats.total === 0) {
     return {
-      background: "rgba(255,255,255,0.1)"
+      background: "var(--empty-pie)"
     }
   }
 
@@ -392,7 +347,7 @@ const getPieChartStyle = (stats) => {
 
   return {
     background: `conic-gradient(
-      #22c55e 0deg ${completedPct}deg,
+      #10b981 0deg ${completedPct}deg,
       #3b82f6 ${completedPct}deg ${progressPct}deg,
       #f59e0b ${progressPct}deg 360deg
     )`
@@ -423,7 +378,7 @@ const highlightText = (text) => {
   }
 
   const escaped = search.value.replace(
-    /[-\/\\^$*+?.()|[\]{}]/g,
+    /Ref[-\/\\^$*+?.()|[\]{}]/g,
     "\\$&"
   )
 
@@ -449,338 +404,538 @@ onBeforeUnmount(() => {
   document.removeEventListener("click", handleClickOutside)
 })
 </script>
+
 <style scoped>
+/* ==========================================================================
+   Dynamic Theme Variable Tokens
+   ========================================================================== */
+.dashboard {
+  /* Default Dark Mode Color Definitions */
+  --bg-main: #0b0f19;
+  --text-main: #f1f5f9;
+  --text-heading: #ffffff;
+  --text-muted: #64748b;
+  --card-gradient-start: rgba(15, 22, 36, 0.5);
+  --card-gradient-end: rgba(11, 17, 30, 0.7);
+  --nested-card: rgba(255, 255, 255, 0.02);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --input-bg: rgba(17, 24, 39, 0.6);
+  --dropdown-bg: #111827;
+  --empty-pie: rgba(255, 255, 255, 0.05);
+  --heading-gradient: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+  --shadow-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Explicit Rule for when light class is applied to the main wrapper */
+.dashboard.light {
+  --bg-main: #f8fafc;
+  --text-main: #334155;
+  --text-heading: #0f172a;
+  --text-muted: #64748b;
+  --card-gradient-start: #ffffff;
+  --card-gradient-end: #f1f5f9;
+  --nested-card: #ffffff;
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --input-bg: #ffffff;
+  --dropdown-bg: #ffffff;
+  --empty-pie: rgba(0, 0, 0, 0.05);
+  --heading-gradient: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+  --shadow-color: rgba(15, 23, 42, 0.06);
+}
+
+/* Explicit Rule for when dark class is applied to the main wrapper */
+.dashboard.dark {
+  --bg-main: #0b0f19;
+  --text-main: #f1f5f9;
+  --text-heading: #ffffff;
+  --text-muted: #64748b;
+  --card-gradient-start: rgba(15, 22, 36, 0.5);
+  --card-gradient-end: rgba(11, 17, 30, 0.7);
+  --nested-card: rgba(255, 255, 255, 0.02);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --input-bg: rgba(17, 24, 39, 0.6);
+  --dropdown-bg: #111827;
+  --empty-pie: rgba(255, 255, 255, 0.05);
+  --heading-gradient: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+  --shadow-color: rgba(0, 0, 0, 0.5);
+}
+
+/* ==========================================================================
+   Structural & Component Layout
+   ========================================================================== */
+.dashboard {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
 .main-content {
-  padding: 25px;
-}
-
-.leader-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
-}
-
-.leader-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-  transition: 0.2s ease;
-}
-
-.leader-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #3b82f6);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-}
-
-.members-section h4 {
-  margin: 0 0 14px 0;
-  font-size: 14px;
-  opacity: 0.8;
-}
-
-.members-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
-}
-
-.member-container {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.member-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  padding: 16px;
-  border-radius: 10px;
-  height: 100%;
-}
-
-.member-header {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.member-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #10b981;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 12px;
-}
-
-.performance-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  padding: 16px;
-  border-radius: 10px;
-}
-
-.performance-card h5 {
-  margin: 0 0 12px 0;
-  font-size: 13px;
-  opacity: 0.9;
-}
-
-.performance-content {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.pie-chart {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.pie-center {
-  width: 46px;
-  height: 46px;
-  background: var(--bg, #111827);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: bold;
-}
-
-.stats-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.total-dot {
-  background: #f59e0b;
-}
-
-.progress-dot {
-  background: #3b82f6;
-}
-
-.completed-dot {
-  background: #22c55e;
-}
-
-.task-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.04);
-  margin-top: 6px;
-  align-items: center;
-}
-
-.task-title {
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.task-status {
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 6px;
-  margin-top: 4px;
-  display: inline-block;
-}
-
-.todo {
-  background: #f59e0b33;
-  color: #f59e0b;
-}
-
-.in_progress {
-  background: #3b82f633;
-  color: #3b82f6;
-}
-
-.completed {
-  background: #22c55e33;
-  color: #22c55e;
-}
-
-.deadline {
-  font-size: 11px;
-  opacity: 0.6;
-}
-
-.no-tasks,
-.empty {
-  font-size: 12px;
-  opacity: 0.6;
-  padding: 6px;
+  flex: 1;
+  padding: 40px;
+  overflow-y: auto;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 40px;
+}
+
+.header h1 {
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.75px;
+  background: var(--heading-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.header p {
+  color: var(--text-muted);
+  font-weight: 500;
+  margin: 0;
+  font-size: 15px;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .search-box {
-  width: 260px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: inherit;
+  width: 280px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle);
+  background: var(--input-bg);
+  color: var(--text-heading);
+  outline: none;
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+}
+
+.search-box:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
 }
 
 .theme-btn {
-  border: none;
+  background: var(--input-bg);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-heading);
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
   cursor: pointer;
-  border-radius: 8px;
-  padding: 10px;
-  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.theme-btn:hover {
+  background: var(--border-subtle);
 }
 
 .profile-container {
   position: relative;
 }
 
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  cursor: pointer;
+  border: 1px solid var(--border-subtle);
+}
+
 .profile-dropdown {
   position: absolute;
-  top: 52px;
   right: 0;
-  min-width: 140px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  top: 55px;
+  background: var(--dropdown-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
   overflow: hidden;
-  z-index: 999;
+  z-index: 10;
+  box-shadow: 0 10px 25px var(--shadow-color);
 }
 
 .profile-dropdown button {
-  width: 100%;
-  padding: 12px;
-  border: none;
   background: transparent;
-  color: inherit;
+  border: none;
+  color: var(--text-heading);
+  padding: 12px 24px;
   cursor: pointer;
+  width: 100%;
   text-align: left;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .profile-dropdown button:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--border-subtle);
 }
 
-:deep(.search-highlight) {
-  background: #facc15;
-  color: #000;
-  padding: 1px 3px;
-  border-radius: 3px;
-  font-weight: 600;
+.dashboard-card {
+  background: linear-gradient(145deg, var(--card-gradient-start) 0%, var(--card-gradient-end) 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 20px 40px -20px var(--shadow-color);
+  backdrop-filter: blur(12px);
 }
 
 .request-section {
-  margin: 20px 0;
-  padding: 16px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  margin-bottom: 32px;
+  border-left: 4px solid #3b82f6;
 }
 
 .request-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 24px;
 }
 
-.request-btn {
-  padding: 6px 12px;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+.request-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  color: var(--text-heading);
 }
 
 .request-box {
-  margin-top: 10px;
-  font-size: 13px;
-  opacity: 0.7;
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+.request-btn {
   display: flex;
-  justify-content: center;
   align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  white-space: nowrap;
 }
 
-.modal {
-  background: var(--card);
+.request-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+}
+
+.request-btn span {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.leader-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.leader-card {
+  background: linear-gradient(145deg, var(--card-gradient-start) 0%, var(--card-gradient-end) 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 20px 40px -20px var(--shadow-color);
+}
+
+.leader-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.leader-avatar-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+}
+
+.leader-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  color: var(--text-heading);
+}
+
+.department-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.12);
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.members-section h4 {
+  margin: 0 0 20px 0;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.75px;
+  color: var(--text-muted);
+}
+
+.members-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+.member-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.member-card, .performance-card {
+  background: var(--nested-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
   padding: 20px;
+  box-shadow: 0 4px 20px var(--shadow-color);
+}
+
+.member-card {
+  border-left: 4px solid #06b6d4;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.performance-card {
+  border-left: 4px solid #8b5cf6;
+}
+
+.member-header {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.member-avatar {
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
-  width: 400px;
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
+}
+
+.member-header .name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-heading);
+  margin: 0 0 2px 0;
+}
+
+.member-dept {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tasks {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.modal-actions {
+.task-item {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-subtle);
 }
 
+.task-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-heading);
+  margin: 0;
+}
+
+.task-status {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.task-status.todo {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+
+.task-status.in_progress, .task-status.in-progress {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+
+.task-status.completed {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+.deadline {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.performance-card h5 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.performance-content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.pie-chart {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px var(--shadow-color);
+}
+
+.pie-center {
+  width: 50px;
+  height: 50px;
+  background: var(--dropdown-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.stats-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+}
+
+.legend-label {
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.legend-item strong {
+  color: var(--text-heading);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.total-dot { background: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.4); }
+.progress-dot { background: #3b82f6; box-shadow: 0 0 8px rgba(59, 130, 246, 0.4); }
+.completed-dot { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+
+.no-tasks, .empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-align: center;
+  padding: 12px;
+  border: 1px dashed var(--border-subtle);
+  border-radius: 12px;
+}
+
+.empty {
+  padding: 24px;
+}
+
+:deep(.search-highlight) {
+  background: rgba(250, 204, 21, 0.2);
+  color: #eab308;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Modals & Overlays
+   ========================================================================== */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(15, 23, 42, 0.65);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -789,87 +944,110 @@ onBeforeUnmount(() => {
 }
 
 .modal {
-  width: 420px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  width: 440px;
+  background: var(--dropdown-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 25px 50px -12px var(--shadow-color);
 }
 
 .modal-header {
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 24px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-heading);
 }
 
 .modal-header p {
-  margin: 4px 0 0;
-  font-size: 12px;
-  opacity: 0.7;
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 .modal-body {
-  padding: 16px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .form-group label {
-  font-size: 12px;
-  opacity: 0.8;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: inherit;
-  font-size: 13px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-main);
+  color: var(--text-heading);
+  font-size: 14px;
   outline: none;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
 }
 
 .form-group textarea {
-  min-height: 80px;
+  min-height: 100px;
   resize: none;
 }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 14px 16px;
-  border-top: 1px solid var(--border);
+  gap: 12px;
+  padding: 18px 24px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--card-gradient-end);
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   color: white;
   border: none;
-  padding: 8px 14px;
-  border-radius: 8px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
 .btn-secondary {
   background: transparent;
-  border: 1px solid var(--border);
-  padding: 8px 14px;
-  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--border-subtle);
+  color: var(--text-heading);
 }
 </style>

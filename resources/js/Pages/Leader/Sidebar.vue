@@ -3,23 +3,9 @@
 
     <div class="logo">
       <h2>Leader Panel</h2>
-      <p>Workspace Control</p>
     </div>
 
-    <div class="workspace-section">
-
-      <select v-if="workspaces.length"
-              v-model="selectedWorkspace"
-              class="workspace-select"
-              @change="changeWorkspace">
-
-        <option v-for="w in workspaces" :key="w.id" :value="w.id">
-          {{ w.name }}
-        </option>
-
-      </select>
-
-    </div>
+  
 
     <nav class="nav">
 

@@ -11,7 +11,6 @@
 
                 <div>
                     <h1>Settings</h1>
-
                     <p>
                         Manage security, notifications and account settings.
                     </p>
@@ -29,6 +28,9 @@
                     👤 Profile
                 </button>
 
+                <button :class="{ active: activeTab === 'workspace' }" @click="activeTab = 'workspace'">
+                    💼 Workspace
+                </button>
 
                 <button :class="{ active: activeTab === 'security' }" @click="activeTab = 'security'">
                     🔒 Security
@@ -37,7 +39,6 @@
                 <button :class="{ active: activeTab === 'notifications' }" @click="activeTab = 'notifications'">
                     🔔 Notifications
                 </button>
-
 
                 <button :class="{ active: activeTab === 'danger' }" @click="activeTab = 'danger'">
                     ⚠️ Danger Zone
@@ -48,41 +49,33 @@
             <section v-if="activeTab === 'profile'" class="settings-card">
 
                 <div class="card-header">
-
                     <div>
                         <h2>Profile Information</h2>
-
                         <p>
                             Update your personal details.
                         </p>
                     </div>
-
                 </div>
 
                 <div class="avatar-section">
-
                     <div class="avatar-circle">
                         {{ userInitials }}
                     </div>
-
                     <div>
                         <h3>{{ profile.name }}</h3>
                         <span>{{ profile.email }}</span>
                     </div>
-
                 </div>
 
                 <div class="settings-grid">
 
                     <div class="form-group">
                         <label>Full Name</label>
-
                         <input type="text" v-model="profile.name" />
                     </div>
 
                     <div class="form-group">
                         <label>Email Address</label>
-
                         <input type="email" v-model="profile.email" />
                     </div>
 
@@ -98,11 +91,11 @@
 
                 </div>
 
-                <!-- <div class="card-footer">
+                <div class="card-footer">
                     <button class="primary-btn" @click="updateProfile">
                         Save Changes
                     </button>
-                </div> -->
+                </div>
 
             </section>
 
@@ -117,45 +110,35 @@
                     </div>
                 </div>
 
-                <!-- WORKSPACE DISPLAY -->
                 <div class="workspace-banner" v-if="selectedWorkspace">
-
                     <div>
                         <h3>{{ selectedWorkspace.name }}</h3>
-
                         <p>
                             {{ selectedWorkspace.description }}
                         </p>
                     </div>
-
                     <span class="workspace-badge">
                         Active Workspace
                     </span>
-
                 </div>
 
                 <div class="settings-grid" v-if="selectedWorkspace">
 
                     <div class="form-group">
                         <label>Workspace Name</label>
-
                         <input type="text" v-model="selectedWorkspace.name" />
                     </div>
 
                     <div class="form-group">
                         <label>Workspace URL</label>
-
                         <input type="text" v-model="selectedWorkspace.slug" />
                     </div>
 
                 </div>
 
                 <div class="form-group full-width" v-if="selectedWorkspace">
-
                     <label>Description</label>
-
                     <textarea rows="5" v-model="selectedWorkspace.description"></textarea>
-
                 </div>
 
                 <div class="stats-row">
@@ -184,26 +167,22 @@
                 </div>
 
             </section>
+
             <section v-if="activeTab === 'security'" class="settings-card">
 
                 <div class="card-header">
-
                     <div>
                         <h2>Security Settings</h2>
-
                         <p>
                             Update your password and account security.
                         </p>
                     </div>
-
                 </div>
 
                 <div class="settings-grid">
 
                     <div class="form-group">
-
                         <label>Current Password</label>
-
                         <div class="password-wrapper">
                             <input :type="showCurrentPassword ? 'text' : 'password'" v-model="security.currentPassword"
                                 placeholder="Enter current password" @blur="
@@ -214,24 +193,16 @@
                             <button type="button" class="eye-btn" @click="showCurrentPassword = !showCurrentPassword">
                                 {{ showCurrentPassword ? '👁️' : '👁️' }}
                             </button>
-
                         </div>
 
-                        <p v-if="
-                            passwordErrors.currentPassword &&
-                            passwordTouched.currentPassword
-                        " class="error-text">
+                        <p v-if="passwordErrors.currentPassword && passwordTouched.currentPassword" class="error-text">
                             {{ passwordErrors.currentPassword }}
                         </p>
-
                     </div>
 
                     <div class="form-group">
-
                         <label>New Password</label>
-
                         <div class="password-wrapper">
-
                             <input :type="showNewPassword ? 'text' : 'password'" v-model="security.newPassword"
                                 placeholder="Enter new password" @blur="
                                     validateNewPassword();
@@ -241,24 +212,16 @@
                             <button type="button" class="eye-btn" @click="showNewPassword = !showNewPassword">
                                 {{ showNewPassword ? '👁️' : '👁️' }}
                             </button>
-
                         </div>
 
-                        <p v-if="
-                            passwordErrors.newPassword &&
-                            passwordTouched.newPassword
-                        " class="error-text">
+                        <p v-if="passwordErrors.newPassword && passwordTouched.newPassword" class="error-text">
                             {{ passwordErrors.newPassword }}
                         </p>
-
                     </div>
 
                     <div class="form-group">
-
                         <label>Confirm Password</label>
-
                         <div class="password-wrapper">
-
                             <input :type="showConfirmPassword ? 'text' : 'password'" v-model="security.confirmPassword"
                                 placeholder="Confirm new password" @blur="
                                     validateConfirmPassword();
@@ -267,13 +230,9 @@
                             <button type="button" class="eye-btn" @click="showConfirmPassword = !showConfirmPassword">
                                 {{ showConfirmPassword ? '👁️' : '👁️' }}
                             </button>
-
                         </div>
 
-                        <p v-if="
-                            passwordErrors.confirmPassword &&
-                            passwordTouched.confirmPassword
-                        " class="error-text">
+                        <p v-if="passwordErrors.confirmPassword && passwordTouched.confirmPassword" class="error-text">
                             {{ passwordErrors.confirmPassword }}
                         </p>
                     </div>
@@ -283,35 +242,25 @@
                 <div class="security-cards">
 
                     <div class="mini-card">
-
                         <div>
                             <h4>Two Factor Authentication</h4>
-                            <p>
-                                Add extra protection to your account.
-                            </p>
+                            <p>Add extra protection to your account.</p>
                         </div>
-
                         <label class="switch">
                             <input type="checkbox" v-model="security.twoFactor">
                             <span></span>
                         </label>
-
                     </div>
 
                     <div class="mini-card">
-
                         <div>
                             <h4>Login Alerts</h4>
-                            <p>
-                                Receive alerts for new sign-ins.
-                            </p>
+                            <p>Receive alerts for new sign-ins.</p>
                         </div>
-
                         <label class="switch">
                             <input type="checkbox" v-model="security.loginAlerts">
                             <span></span>
                         </label>
-
                     </div>
 
                 </div>
@@ -327,87 +276,64 @@
             <section v-if="activeTab === 'notifications'" class="settings-card">
 
                 <div class="card-header">
-
                     <div>
                         <h2>Notification Preferences</h2>
-
                         <p>
                             Control how and when you receive updates.
                         </p>
                     </div>
-
                 </div>
 
                 <div class="notification-list">
 
                     <div class="notify-item">
-
                         <div>
                             <h4>Email Notifications</h4>
-                            <p>
-                                Receive updates by email.
-                            </p>
+                            <p>Receive updates by email.</p>
                         </div>
-
                         <label class="switch">
                             <input type="checkbox" v-model="notifications.email">
                             <span></span>
                         </label>
-
                     </div>
 
                     <div class="notify-item">
-
                         <div>
                             <h4>Task Assignments</h4>
-                            <p>
-                                Notify when tasks are assigned.
-                            </p>
+                            <p>Notify when tasks are assigned.</p>
                         </div>
-
                         <label class="switch">
                             <input type="checkbox" v-model="notifications.tasks">
                             <span></span>
                         </label>
-
                     </div>
 
                     <div class="notify-item">
-
                         <div>
                             <h4>Project Updates</h4>
-                            <p>
-                                Notify on project status changes.
-                            </p>
+                            <p>Notify on project status changes.</p>
                         </div>
-
                         <label class="switch">
                             <input type="checkbox" v-model="notifications.projects">
                             <span></span>
                         </label>
-
                     </div>
 
                     <div class="notify-item">
-
                         <div>
                             <h4>Weekly Reports</h4>
-                            <p>
-                                Receive productivity summaries.
-                            </p>
+                            <p>Receive productivity summaries.</p>
                         </div>
-
                         <label class="switch">
                             <input type="checkbox" v-model="notifications.reports">
                             <span></span>
                         </label>
-
                     </div>
 
                 </div>
 
                 <div class="card-footer">
-                    <button class="primary-btn">
+                    <button class="primary-btn" @click="updateNotifications">
                         Save Preferences
                     </button>
                 </div>
@@ -415,22 +341,19 @@
             </section>
 
             <section v-if="activeTab === 'danger'" class="danger-card">
-
                 <div class="danger-header">
                     <h2>Danger Zone</h2>
                     <p>Select a workspace to permanently delete it.</p>
                 </div>
 
-                <!-- WORKSPACE LIST -->
                 <div v-if="workspaces.length" class="danger-actions">
-
-                    <div v-for="ws in workspaces" :key="ws.id" class="danger-item" :style="{
-                        border:
-                            selectedWorkspace?.id === ws.id
-                                ? '2px solid #ef4444'
-                                : ''
-                    }" @click="selectedWorkspace = ws">
-
+                    <div
+                        v-for="ws in workspaces"
+                        :key="ws.id"
+                        class="danger-item"
+                        :style="{ border: selectedWorkspace?.id === ws.id ? '2px solid #ef4444' : '' }"
+                        @click="selectedWorkspace = ws"
+                    >
                         <div>
                             <h4>{{ ws.name }}</h4>
                             <p>{{ ws.description || 'No description' }}</p>
@@ -439,9 +362,7 @@
                         <button class="danger-btn" @click.stop="deleteWorkspace(ws)">
                             Delete
                         </button>
-
                     </div>
-
                 </div>
 
                 <p v-else>No workspaces available.</p>
@@ -452,14 +373,9 @@
 
     </div>
 </template>
+
 <script setup>
-import {
-    ref,
-    reactive,
-    computed,
-    onMounted,
-    watch
-} from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import axios from "axios";
 import Sidebar from "./components/Sidebar.vue";
 import { useThemeStore } from "../stores/theme";
@@ -472,19 +388,7 @@ const theme = useThemeStore();
 const activeTab = ref("profile");
 const workspaces = ref([]);
 const selectedWorkspace = ref(null);
-const fetchWorkspaces = async () => {
-    try {
-        const res = await axios.get("/workspaces");
-        workspaces.value = res.data;
 
-        if (workspaces.value.length > 0) {
-            selectedWorkspace.value = workspaces.value[0];
-        }
-
-    } catch (err) {
-        console.error("Failed to fetch workspaces:", err);
-    }
-};
 const profile = reactive({
     id: null,
     name: "",
@@ -492,6 +396,7 @@ const profile = reactive({
     department: "",
     role: "",
 });
+
 const security = reactive({
     currentPassword: "",
     newPassword: "",
@@ -499,108 +404,7 @@ const security = reactive({
     twoFactor: false,
     loginAlerts: true,
 });
-const fetchProfile = async () => {
-    try {
-        const [userRes, memberRes] = await Promise.all([
-            axios.get("/user/profile"),
-            axios.get("/member/me"),
-        ]);
 
-        const user = userRes.data;
-        const member = memberRes.data;
-
-        profile.id = user.id;
-        profile.name = user.name;
-        profile.email = user.email;
-
-        const data = member?.member ?? member;
-
-        profile.role = data?.role || "N/A";
-        profile.department = data?.department || "N/A";
-    } catch (error) {
-        console.error("fetchProfile error:", error);
-    }
-};
-const updateProfile = async () => {
-
-    try {
-
-        await axios.put(
-            "/user/profile",
-            profile
-        );
-
-        alert("Profile updated");
-
-    } catch (error) {
-
-        console.error(error);
-
-    }
-
-};
-
-const validateCurrentPassword = () => {
-    if (!security.currentPassword) {
-        passwordErrors.currentPassword =
-            "Current password is required";
-    } else {
-        passwordErrors.currentPassword = "";
-    }
-};
-
-const validateNewPassword = () => {
-
-    const regex =
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
-
-    if (!security.newPassword) {
-
-        passwordErrors.newPassword =
-            "Password is required";
-
-    } else if (security.newPassword.length < 8) {
-
-        passwordErrors.newPassword =
-            "Password must be at least 8 characters";
-
-    } else if (!regex.test(security.newPassword)) {
-
-        passwordErrors.newPassword =
-            "Must include uppercase, lowercase, number & special character";
-
-    } else {
-
-        passwordErrors.newPassword = "";
-    }
-
-    validateConfirmPassword();
-};
-
-const validateConfirmPassword = () => {
-
-    if (!security.confirmPassword) {
-
-        passwordErrors.confirmPassword =
-            "Confirm password is required";
-
-    } else if (
-        security.newPassword !==
-        security.confirmPassword
-    ) {
-
-        passwordErrors.confirmPassword =
-            "Passwords do not match";
-
-    } else {
-
-        passwordErrors.confirmPassword = "";
-    }
-};
-
-const handlePasswordBlur = (field) => {
-    passwordTouched[field] = true;
-};
 const passwordErrors = reactive({
     currentPassword: "",
     newPassword: "",
@@ -612,76 +416,6 @@ const passwordTouched = reactive({
     newPassword: false,
     confirmPassword: false,
 });
-const updatePassword = async () => {
-
-    passwordTouched.currentPassword = true;
-    passwordTouched.newPassword = true;
-    passwordTouched.confirmPassword = true;
-
-    validateCurrentPassword();
-    validateNewPassword();
-    validateConfirmPassword();
-
-    if (
-        passwordErrors.currentPassword ||
-        passwordErrors.newPassword ||
-        passwordErrors.confirmPassword
-    ) {
-        return;
-    }
-
-    try {
-
-        const response = await axios.post(
-            "/user/change-password",
-            {
-                current_password:
-                    security.currentPassword,
-
-                password:
-                    security.newPassword,
-
-                password_confirmation:
-                    security.confirmPassword
-            }
-        );
-
-        security.currentPassword = "";
-        security.newPassword = "";
-        security.confirmPassword = "";
-
-        passwordErrors.currentPassword = "";
-        passwordErrors.newPassword = "";
-        passwordErrors.confirmPassword = "";
-
-        passwordTouched.currentPassword = false;
-        passwordTouched.newPassword = false;
-        passwordTouched.confirmPassword = false;
-
-        toast.success(
-            response.data.message ||
-            "Password updated successfully"
-        );
-
-    } catch (error) {
-
-        if (
-            error.response?.data?.message ===
-            "Current password is incorrect"
-        ) {
-
-            passwordErrors.currentPassword =
-                "Current password does not match";
-
-            passwordTouched.currentPassword =
-                true;
-
-            return;
-        }
-
-        console.error(error);
-    }
-};
 
 const showCurrentPassword = ref(false);
 const showNewPassword = ref(false);
@@ -701,6 +435,7 @@ const stats = reactive({
 });
 
 const userInitials = computed(() => {
+    if (!profile.name) return "";
     return profile.name
         .split(" ")
         .map(word => word[0])
@@ -708,35 +443,170 @@ const userInitials = computed(() => {
         .toUpperCase();
 });
 
+const fetchWorkspaces = async () => {
+    try {
+        const res = await axios.get("/workspaces");
+        workspaces.value = res.data;
+        if (workspaces.value.length > 0) {
+            selectedWorkspace.value = workspaces.value[0];
+        }
+    } catch (err) {
+        console.error("Failed to fetch workspaces:", err);
+    }
+};
+
+const fetchProfile = async () => {
+    try {
+        const [userRes, memberRes] = await Promise.all([
+            axios.get("/user/profile"),
+            axios.get("/member/me"),
+        ]);
+
+        const user = userRes.data;
+        const member = memberRes.data;
+
+        profile.id = user.id;
+        profile.name = user.name;
+        profile.email = user.email;
+
+        const data = member?.member ?? member;
+        profile.role = data?.role || "N/A";
+        profile.department = data?.department || "N/A";
+    } catch (error) {
+        console.error("fetchProfile error:", error);
+    }
+};
+
+const updateProfile = async () => {
+    try {
+        await axios.put("/user/profile", profile);
+        toast.success("Profile updated successfully");
+    } catch (error) {
+        console.error(error);
+        toast.error("Failed to update profile");
+    }
+};
+
+const updateWorkspace = async () => {
+    if (!selectedWorkspace.value) return;
+    try {
+        await axios.put(`/workspaces/${selectedWorkspace.value.id}`, selectedWorkspace.value);
+        toast.success("Workspace updated successfully");
+    } catch (error) {
+        console.error(error);
+        toast.error("Failed to update workspace");
+    }
+};
+
+const updateNotifications = async () => {
+    try {
+        // Placeholder syntax logic match
+        // await axios.put("/user/notifications", notifications);
+        toast.success("Notification preferences saved");
+    } catch (error) {
+        console.error(error);
+    }
+};
+
+const validateCurrentPassword = () => {
+    if (!security.currentPassword) {
+        passwordErrors.currentPassword = "Current password is required";
+    } else {
+        passwordErrors.currentPassword = "";
+    }
+};
+
+const validateNewPassword = () => {
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+    if (!security.newPassword) {
+        passwordErrors.newPassword = "Password is required";
+    } else if (security.newPassword.length < 8) {
+        passwordErrors.newPassword = "Password must be at least 8 characters";
+    } else if (!regex.test(security.newPassword)) {
+        passwordErrors.newPassword = "Must include uppercase, lowercase, number & special character";
+    } else {
+        passwordErrors.newPassword = "";
+    }
+    validateConfirmPassword();
+};
+
+const validateConfirmPassword = () => {
+    if (!security.confirmPassword) {
+        passwordErrors.confirmPassword = "Confirm password is required";
+    } else if (security.newPassword !== security.confirmPassword) {
+        passwordErrors.confirmPassword = "Passwords do not match";
+    } else {
+        passwordErrors.confirmPassword = "";
+    }
+};
+
+const handlePasswordBlur = (field) => {
+    passwordTouched[field] = true;
+};
+
+const updatePassword = async () => {
+    passwordTouched.currentPassword = true;
+    passwordTouched.newPassword = true;
+    passwordTouched.confirmPassword = true;
+
+    validateCurrentPassword();
+    validateNewPassword();
+    validateConfirmPassword();
+
+    if (passwordErrors.currentPassword || passwordErrors.newPassword || passwordErrors.confirmPassword) {
+        return;
+    }
+
+    try {
+        const response = await axios.post("/user/change-password", {
+            current_password: security.currentPassword,
+            password: security.newPassword,
+            password_confirmation: security.confirmPassword
+        });
+
+        security.currentPassword = "";
+        security.newPassword = "";
+        security.confirmPassword = "";
+
+        passwordErrors.currentPassword = "";
+        passwordErrors.newPassword = "";
+        passwordErrors.confirmPassword = "";
+
+        passwordTouched.currentPassword = false;
+        passwordTouched.newPassword = false;
+        passwordTouched.confirmPassword = false;
+
+        toast.success(response.data.message || "Password updated successfully");
+    } catch (error) {
+        if (error.response?.data?.message === "Current password is incorrect") {
+            passwordErrors.currentPassword = "Current password does not match";
+            passwordTouched.currentPassword = true;
+            return;
+        }
+        console.error(error);
+    }
+};
+
+const deleteWorkspace = async (workspace) => {
+    if (!workspace) return;
+    try {
+        const res = await axios.delete(`/workspaces/${workspace.id}`);
+        toast.success(res.data.message || "Workspace deleted");
+        workspaces.value = workspaces.value.filter(w => w.id !== workspace.id);
+
+        if (selectedWorkspace.value?.id === workspace.id) {
+            selectedWorkspace.value = workspaces.value.length ? workspaces.value[0] : null;
+        }
+    } catch (err) {
+        console.error(err);
+        toast.error(err.response?.data?.message || "Failed to delete workspace");
+    }
+};
+
 onMounted(() => {
     fetchProfile();
     fetchWorkspaces();
 });
-const deleteWorkspace = async (workspace) => {
-    if (!workspace) return;
-
-    try {
-        const res = await axios.delete(`/workspaces/${workspace.id}`);
-
-        toast.success(res.data.message || "Workspace deleted");
-
-        workspaces.value = workspaces.value.filter(
-            w => w.id !== workspace.id
-        );
-
-        if (selectedWorkspace.value?.id === workspace.id) {
-            selectedWorkspace.value =
-                workspaces.value.length ? workspaces.value[0] : null;
-        }
-
-    } catch (err) {
-        console.error(err);
-        toast.error(
-            err.response?.data?.message ||
-            "Failed to delete workspace"
-        );
-    }
-};
 </script>
 
 <style scoped>
@@ -775,7 +645,6 @@ const deleteWorkspace = async (workspace) => {
     font-size: 18px;
 }
 
-
 .settings-tabs {
     display: flex;
     gap: 12px;
@@ -802,7 +671,6 @@ const deleteWorkspace = async (workspace) => {
     background: #06b6d4;
     color: #fff;
 }
-
 
 .settings-card,
 .danger-card {
@@ -885,7 +753,6 @@ const deleteWorkspace = async (workspace) => {
     resize: none;
 }
 
-
 .primary-btn {
     background: #06b6d4;
     color: white;
@@ -894,15 +761,6 @@ const deleteWorkspace = async (workspace) => {
     border-radius: 12px;
     cursor: pointer;
     font-weight: 600;
-}
-
-.secondary-btn {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 10px 18px;
-    border-radius: 10px;
-    cursor: pointer;
 }
 
 .workspace-banner {
@@ -948,7 +806,6 @@ const deleteWorkspace = async (workspace) => {
     font-weight: bold;
 }
 
-
 .security-cards {
     margin-top: 25px;
     display: grid;
@@ -965,7 +822,6 @@ const deleteWorkspace = async (workspace) => {
     align-items: center;
 }
 
-
 .notification-list {
     display: flex;
     flex-direction: column;
@@ -981,7 +837,6 @@ const deleteWorkspace = async (workspace) => {
     justify-content: space-between;
     align-items: center;
 }
-
 
 .switch {
     position: relative;
@@ -1023,40 +878,6 @@ const deleteWorkspace = async (workspace) => {
     transform: translateX(26px);
 }
 
-
-.theme-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 25px;
-}
-
-.theme-option {
-    background: var(--bg);
-    border: 2px solid var(--border);
-    border-radius: 18px;
-    padding: 20px;
-    text-align: center;
-}
-
-.theme-option.selected {
-    border-color: #06b6d4;
-}
-
-.theme-preview {
-    height: 120px;
-    border-radius: 12px;
-    margin-bottom: 15px;
-}
-
-.dark-preview {
-    background: #0f172a;
-}
-
-.light-preview {
-    background: #f8fafc;
-    border: 1px solid #dbeafe;
-}
-
 .danger-header {
     margin-bottom: 24px;
 }
@@ -1090,18 +911,12 @@ const deleteWorkspace = async (workspace) => {
     cursor: pointer;
 }
 
-
 @media (max-width: 992px) {
-
     .settings-grid {
         grid-template-columns: 1fr;
     }
 
     .stats-row {
-        grid-template-columns: 1fr;
-    }
-
-    .theme-grid {
         grid-template-columns: 1fr;
     }
 

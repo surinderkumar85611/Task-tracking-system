@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Member;
 use App\Models\Project;
 use Inertia\Inertia;
+use App\Models\Notification;
 
 class LeaderDashboardController extends Controller
 {
@@ -63,7 +64,10 @@ class LeaderDashboardController extends Controller
                 ->where('status', 'Completed')
                 ->count(),
         ];
-
+        $notifications = Notification::where('user_id', $leader->user_id ?? $leader->id)
+            ->where('workspace_id', session('workspace_id'))
+            ->orderBy('created_at', 'desc')
+            ->get();
         return Inertia::render(
             'Leader/Dashboard',
             [
@@ -72,7 +76,7 @@ class LeaderDashboardController extends Controller
                 'projects' => $projects,
 
                 'teamMembers' => $teamMembers,
-
+                'notifications' => $notifications,
                 'currentWorkspaceId' => session('workspace_id'),
 
                 'stats' => [
