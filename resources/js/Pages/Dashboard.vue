@@ -1,4 +1,6 @@
 <template>
+
+  <Head title="Dashboard" />
   <div class="dashboard" :class="theme.themeClass">
     <Sidebar />
 
@@ -33,6 +35,9 @@
               <div v-if="notificationStore.showBellDropdown" class="notification-dropdown-panel">
                 <div class="notification-dropdown-header">
                   <h3>Urgent Task Alerts</h3>
+
+
+
                 </div>
                 <div class="notification-dropdown-body">
                   <div v-for="task in notificationStore.activeUrgentTasks" :key="task.id"
@@ -149,12 +154,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { router } from "@inertiajs/vue3";
 import { useThemeStore } from "../stores/theme";
 import Sidebar from "./components/Sidebar.vue";
 import { useNotificationStore } from '@/stores/notificationStore';
 import draggable from 'vuedraggable';
+import { Head } from '@inertiajs/vue3';
 
 const notificationStore = useNotificationStore();
 
@@ -163,8 +169,16 @@ const props = defineProps({
   widgets: Array
 });
 
-const widgets = ref([...props.widgets]);
 const search = ref("");
+const widgets = ref([]);
+
+watch(
+    () => props.widgets,
+    (value) => {
+        widgets.value = value ? [...value] : [];
+    },
+    { immediate: true }
+);
 
 const saveWidgetOrder = () => {
   router.post('/dashboard/widgets/reorder', {
@@ -194,11 +208,6 @@ const showProfileMenu = ref(false);
 const handleClickOutside = () => {
   showProfileMenu.value = false;
 };
-
-const logout = () => {
-  router.post("/logout");
-};
-
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
 });
@@ -206,6 +215,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener("click", handleClickOutside);
 });
+
+const logout = () => {
+    router.post("/logout");
+};
 </script>
 
 <style scoped>

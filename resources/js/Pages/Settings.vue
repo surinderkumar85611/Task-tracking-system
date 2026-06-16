@@ -1,4 +1,6 @@
 <template>
+
+    <Head title="Settings" />
     <div class="dashboard" :class="theme.themeClass">
 
         <Sidebar />
@@ -339,7 +341,6 @@
             </section>
 
             <section v-if="activeTab === 'danger'" class="danger-card">
-
                 <div class="danger-header">
                     <h2>Danger Zone</h2>
                     <p>Select a workspace to permanently delete it.</p>
@@ -379,6 +380,7 @@ import axios from "axios";
 import Sidebar from "./components/Sidebar.vue";
 import { useThemeStore } from "../stores/theme";
 import { useToast } from "vue-toastification";
+import { Head } from '@inertiajs/vue3';
 
 const toast = useToast();
 const theme = useThemeStore();

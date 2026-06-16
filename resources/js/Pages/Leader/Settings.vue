@@ -1,4 +1,5 @@
 <template>
+    <Head title="Settings" />
     <div class="dashboard" :class="theme.themeClass">
 
         <Sidebar />
@@ -349,6 +350,7 @@ import Sidebar from "./Sidebar.vue";
 import { useThemeStore } from "../../stores/theme.js";
 import { useToast } from "vue-toastification";
 import QrcodeVue from 'qrcode.vue';
+import { Head } from '@inertiajs/vue3';
 
 const toast = useToast();
 const theme = useThemeStore();
@@ -400,9 +402,9 @@ const fetchProfile = async () => {
         profile.name = user.name;
         profile.email = user.email;
 
-        twoFA.enabled = 
-            user.two_factor_enabled === 1 || 
-            user.two_factor_enabled === true || 
+        twoFA.enabled =
+            user.two_factor_enabled === 1 ||
+            user.two_factor_enabled === true ||
             user.two_factor_enabled === "1";
 
         const data = member?.member ?? member;
@@ -1078,5 +1080,27 @@ onMounted(() => {
     color: #ef4444;
     margin-top: 6px;
     font-size: 13px;
+}
+
+.twofa-box {
+    margin-top: 20px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+}
+
+.qr-box {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.qr-box img {
+    width: 180px;
+    height: 180px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
 }
 </style>

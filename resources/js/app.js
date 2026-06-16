@@ -12,6 +12,7 @@ import "vue-toastification/dist/index.css"
 import { createPinia } from "pinia";
 
 createInertiaApp({
+    title: (title) => title ? `${title} | Time Tracker` : 'Time Tracker',
     resolve: name =>
         resolvePageComponent(
             `./Pages/${name}.vue`,

@@ -15,6 +15,19 @@ class AdminController extends Controller
 
         $workspaceId = session('workspace_id');
 
+        if (!$workspaceId) {
+
+            return Inertia::render('Dashboard', [
+                'widgets' => [],
+                'stats' => [
+                    'totalProjects' => 0,
+                    'teamMembers' => 0,
+                    'completedTasks' => 0,
+                    'pendingTasks' => 0,
+                ]
+            ]);
+        }
+
         $widgets = DashboardWidget::where(
             'workspace_id',
             $workspaceId
@@ -22,6 +35,48 @@ class AdminController extends Controller
             ->where('active', true)
             ->orderBy('position')
             ->get();
+
+        if ($widgets->isEmpty()) {
+
+            DashboardWidget::insert([
+                [
+                    'workspace_id' => $workspaceId,
+                    'title' => 'Total Projects',
+                    'widget_type' => 'total_projects',
+                    'position' => 1,
+                    'active' => true,
+                ],
+                [
+                    'workspace_id' => $workspaceId,
+                    'title' => 'Team Members',
+                    'widget_type' => 'team_members',
+                    'position' => 2,
+                    'active' => true,
+                ],
+                [
+                    'workspace_id' => $workspaceId,
+                    'title' => 'Completed Tasks',
+                    'widget_type' => 'completed_tasks',
+                    'position' => 3,
+                    'active' => true,
+                ],
+                [
+                    'workspace_id' => $workspaceId,
+                    'title' => 'Pending Tasks',
+                    'widget_type' => 'pending_tasks',
+                    'position' => 4,
+                    'active' => true,
+                ],
+            ]);
+
+            $widgets = DashboardWidget::where(
+                'workspace_id',
+                $workspaceId
+            )
+                ->where('active', true)
+                ->orderBy('position')
+                ->get();
+        }
 
         return Inertia::render('Dashboard', [
 

@@ -1,4 +1,5 @@
 <template>
+    <Head title="Project" />
     <div class="dashboard" :class="theme.themeClass">
 
         <Sidebar />
@@ -582,6 +583,7 @@ import Sidebar from "./components/Sidebar.vue";
 import { useThemeStore } from "../stores/theme";
 import { useNotificationStore } from '@/stores/notificationStore';
 import * as XLSX from 'xlsx';
+import { Head } from '@inertiajs/vue3';
 
 // 🟢 STEP 1: Keep a native reference to your editor instance instance
 const editorInstance = ref(null);

@@ -106,16 +106,11 @@ const toggleSidebar = () => {
 const workspaces = page.props.workspaces || [];
 const selectedWorkspace = ref(page.props.currentWorkspace || "");
 
-// const showCreateWorkspaceModal = ref(false);
-// const showSelectWorkspaceModal = ref(!page.props.currentWorkspace);
-
 const showCreateWorkspaceModal = ref(workspaces.length === 0);
 
 const showSelectWorkspaceModal = ref(
     workspaces.length > 0 && !page.props.currentWorkspace
 );
-
-// const showSelectWorkspaceModal = ref(!page.props.currentWorkspace);
 
 const workspaceForm = reactive({
     name: "",
@@ -145,8 +140,10 @@ const changeWorkspace = () => {
         "/workspace/select",
         { workspace_id: selectedWorkspace.value },
         {
+            preserveState: false,
+            preserveScroll: false,
             onSuccess: () => {
-                showSelectWorkspaceModal.value = false;
+                router.visit('/dashboard');
             },
         }
     );

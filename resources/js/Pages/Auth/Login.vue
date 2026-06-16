@@ -1,4 +1,5 @@
 <template>
+    <Head title="Login" />
   <div class="auth-page dark">
     <div class="left-panel">
       <div class="content">
@@ -55,6 +56,7 @@
 import { reactive, computed, ref } from "vue";
 import { router, Link } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
+import { Head } from '@inertiajs/vue3';
 
 const toast = useToast();
 
