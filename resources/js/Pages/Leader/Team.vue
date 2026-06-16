@@ -1,4 +1,5 @@
 <template>
+    <Head title="Team" />
   <div class="dashboard" :class="theme.themeClass">
 
     <Sidebar />
@@ -239,6 +240,7 @@ import { useThemeStore } from "@/stores/theme"
 import { ref, computed, onMounted, onBeforeUnmount } from "vue"
 import { router } from "@inertiajs/vue3"
 import { useToast } from "vue-toastification"
+import { Head } from '@inertiajs/vue3';
 
 const toast = useToast()
 const theme = useThemeStore()

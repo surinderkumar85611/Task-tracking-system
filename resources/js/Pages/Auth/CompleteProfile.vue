@@ -1,4 +1,5 @@
 <template>
+    <Head title="Complete-Profile" />
     <div class="auth-page dark">
         <div class="left-panel">
             <div class="content">
@@ -113,6 +114,7 @@
 import { reactive, computed, ref } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
+import { Head } from '@inertiajs/vue3';
 
 const page = usePage();
 const toast = useToast();

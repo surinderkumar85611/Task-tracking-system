@@ -1,4 +1,5 @@
 <template>
+    <Head title="Settings" />
     <div class="dashboard" :class="theme.themeClass">
 
         <Sidebar />
@@ -451,6 +452,7 @@ import {
 
 import { useToast } from "vue-toastification";
 import QrcodeVue from 'qrcode.vue';
+import { Head } from '@inertiajs/vue3';
 
 const toast = useToast();
 const theme = useThemeStore();
@@ -502,9 +504,9 @@ const fetchProfile = async () => {
         profile.name = user.name;
         profile.email = user.email;
 
-        twoFA.enabled = 
-            user.two_factor_enabled === 1 || 
-            user.two_factor_enabled === true || 
+        twoFA.enabled =
+            user.two_factor_enabled === 1 ||
+            user.two_factor_enabled === true ||
             user.two_factor_enabled === "1";
 
         const data = member?.member ?? member;

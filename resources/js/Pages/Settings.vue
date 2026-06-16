@@ -1,4 +1,6 @@
 <template>
+
+    <Head title="Settings" />
     <div class="dashboard" :class="theme.themeClass">
 
         <Sidebar />
@@ -412,48 +414,39 @@
 
             </section>
 
-<section v-if="activeTab === 'danger'" class="danger-card">
+            <section v-if="activeTab === 'danger'" class="danger-card">
 
-    <div class="danger-header">
-        <h2>Danger Zone</h2>
-        <p>Select a workspace to permanently delete it.</p>
-    </div>
+                <div class="danger-header">
+                    <h2>Danger Zone</h2>
+                    <p>Select a workspace to permanently delete it.</p>
+                </div>
 
-    <!-- WORKSPACE LIST -->
-    <div v-if="workspaces.length" class="danger-actions">
+                <!-- WORKSPACE LIST -->
+                <div v-if="workspaces.length" class="danger-actions">
 
-        <div
-            v-for="ws in workspaces"
-            :key="ws.id"
-            class="danger-item"
-            :style="{
-                border:
-                    selectedWorkspace?.id === ws.id
-                        ? '2px solid #ef4444'
-                        : ''
-            }"
-            @click="selectedWorkspace = ws"
-        >
+                    <div v-for="ws in workspaces" :key="ws.id" class="danger-item" :style="{
+                        border:
+                            selectedWorkspace?.id === ws.id
+                                ? '2px solid #ef4444'
+                                : ''
+                    }" @click="selectedWorkspace = ws">
 
-            <div>
-                <h4>{{ ws.name }}</h4>
-                <p>{{ ws.description || 'No description' }}</p>
-            </div>
+                        <div>
+                            <h4>{{ ws.name }}</h4>
+                            <p>{{ ws.description || 'No description' }}</p>
+                        </div>
 
-            <button
-                class="danger-btn"
-                @click.stop="deleteWorkspace(ws)"
-            >
-                Delete
-            </button>
+                        <button class="danger-btn" @click.stop="deleteWorkspace(ws)">
+                            Delete
+                        </button>
 
-        </div>
+                    </div>
 
-    </div>
+                </div>
 
-    <p v-else>No workspaces available.</p>
+                <p v-else>No workspaces available.</p>
 
-</section>
+            </section>
 
         </main>
 
@@ -471,6 +464,7 @@ import axios from "axios";
 import Sidebar from "./components/Sidebar.vue";
 import { useThemeStore } from "../stores/theme";
 import { useToast } from "vue-toastification";
+import { Head } from '@inertiajs/vue3';
 
 const toast = useToast();
 const theme = useThemeStore();
@@ -519,10 +513,10 @@ const fetchProfile = async () => {
         profile.name = user.name;
         profile.email = user.email;
 
-       const data = member?.member ?? member;
+        const data = member?.member ?? member;
 
-profile.role = data?.role || "N/A";
-profile.department = data?.department || "N/A";
+        profile.role = data?.role || "N/A";
+        profile.department = data?.department || "N/A";
     } catch (error) {
         console.error("fetchProfile error:", error);
     }
