@@ -24,8 +24,8 @@
                         <button class="icon-btn"
                             @click="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
                             🔔
-                            <span v-if="notificationStore.activeUrgentTasks.length > 0" class="bell-alert-badge-dot">
-                                {{ notificationStore.activeUrgentTasks.length }}
+                            <span v-if="(notifications || []).filter(n => !n.is_read).length > 0" class="bell-alert-badge-dot">
+                                {{ notifications.filter(n => !n.is_read) }}
                             </span>
                         </button>
 
@@ -69,17 +69,17 @@
             <section class="stats-grid">
                 <div class="stat-card">
                     <h3>Total Projects</h3>
-                    <h1>{{ projects.length }}</h1>
+                    <h1>{{ props.projects.length }}</h1>
                 </div>
 
                 <div class="stat-card">
                     <h3>In Progress</h3>
-                    <h1>{{projects.filter(p => p.status === 'In Progress').length}}</h1>
+                    <h1>{{ props.projects.filter(p => p.status === 'In Progress').length }}</h1>
                 </div>
 
                 <div class="stat-card">
                     <h3>Completed</h3>
-                    <h1>{{projects.filter(p => p.status === 'Completed').length}}</h1>
+                    <h1>{{ props.projects.filter(p => p.status === 'Completed').length }}</h1>
                 </div>
 
                 <div class="stat-card">
@@ -469,10 +469,9 @@
                             <label for="task-textarea">Write a new update or modify directions:</label>
                             <div class="editor-modal-canvas-frame" style="width: 100%; min-height: 200px; display: block; background-color: #151521;">
     <textarea
-        id="modalRichEditor"
-        v-model="newCommentText"
-        placeholder="Type your message or project notes here..."
-    ></textarea>
+    id="modalRichEditor"
+    v-model="updatesDraftText"
+></textarea>
 </div>
                         </div>
                     </div>
@@ -600,7 +599,7 @@ const initCKEditor = () => {
 
             // Sync content updates back to your reactive variable on input change triggers
             editor.model.document.on('change:data', () => {
-                newCommentText.value = editor.getData();
+              updatesDraftText.value = editor.getData();
             });
         })
         .catch(error => {
@@ -796,6 +795,7 @@ const getProjectScopeMembers = (project) => {
 
 const appendNewEmptyTask = (project) => {
     const rawPayload = {
+        workspace_id: project.workspace_id,
         project_id: project.id,
         title: "New Item Row",
         member_id: [],

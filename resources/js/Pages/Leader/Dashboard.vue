@@ -1,5 +1,6 @@
 <template>
-    <Head title="Dashboard" />
+
+  <Head title="Dashboard" />
   <div class="dashboard" :class="theme.themeClass">
     <Sidebar />
 
@@ -30,8 +31,8 @@
                 🔔
 
                 <!-- BADGE FIX -->
-                <span v-if="(props.notifications || []).length" class="bell-alert-badge-dot">
-                  {{ (props.notifications || []).length }}
+                <span v-if="unreadNotifications.length" class="bell-alert-badge-dot">
+                  {{ unreadNotifications.length }}
                 </span>
 
               </button>
@@ -42,15 +43,14 @@
                 <div class="notification-dropdown-header">
                   <h3>Notifications</h3>
                 </div>
-
+                <button @click="markAllRead" class="mark-all-btn">
+                  Mark all read
+                </button>
                 <div class="notification-dropdown-body">
 
                   <!-- UPDATED NOTIFICATION LIST -->
-                  <div
-                    v-for="notification in (props.notifications || [])"
-                    :key="notification.id"
-                    class="notification-alert-item"
-                  >
+                  <div v-for="notification in unreadNotifications" :key="notification.id"
+                    class="notification-alert-item" @click="markAsRead(notification.id)">
                     <div class="alert-item-indicator">🔔</div>
 
                     <div class="alert-item-details">
@@ -65,7 +65,7 @@
                   </div>
 
                   <!-- EMPTY STATE FIX -->
-                  <div v-if="!(props.notifications || []).length" class="notification-empty-state">
+                  <div v-if="unreadNotifications.length === 0" class="notification-empty-state">
                     🎉 No notifications right now.
                   </div>
 
@@ -291,6 +291,19 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener("click", handleClickOutside);
 });
+const unreadNotifications = computed(() => {
+  return (props.notifications || []).filter(n => !n.is_read);
+});
+const markAsRead = (id) => {
+  router.put(`/notifications/${id}/read`, {}, {
+    preserveScroll: true,
+  });
+};
+const markAllRead = () => {
+  router.put('/notifications/read-all', {}, {
+    preserveScroll: true,
+  });
+};
 </script>
 
 <style scoped>

@@ -14,7 +14,7 @@ class NotificationService
             'type' => $type,
             'title' => $title,
             'message' => $message,
-            'data' => $data ? json_encode($data) : null,
+           'data' => $data,
             'is_read' => 0,
         ]);
     }

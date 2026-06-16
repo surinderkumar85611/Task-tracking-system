@@ -11,14 +11,14 @@ class LeaderDashboardController extends Controller
 {
     public function index()
     {
-        $user = auth()->user();
+       $user = auth()->user();
 
-        // TEMPORARY BYPASS
-        $leader = Member::where(
-            'email',
-            $user->email
-        )->first();
+$leader = Member::where('email', $user->email)->first();
 
+$notifications = Notification::where('user_id', $leader->id)
+    ->where('workspace_id', session('workspace_id'))
+    ->latest()
+    ->get();
         if (!$leader || $leader->role !== 'TL') {
             abort(403, 'Access Denied');
         }
@@ -31,9 +31,7 @@ class LeaderDashboardController extends Controller
             })
             ->where('team_leader_id', $leader->id)
             ->get();
-        $teamMembers = $leader
-            ? $leader->teamMembers
-            : collect();
+        $teamMembers = $leader->teamMembers ?? collect();
 
         $allTasks = collect();
 
@@ -64,10 +62,10 @@ class LeaderDashboardController extends Controller
                 ->where('status', 'Completed')
                 ->count(),
         ];
-        $notifications = Notification::where('user_id', $leader->user_id ?? $leader->id)
+        $notifications = Notification::where('user_id', $user->id)
             ->where('workspace_id', session('workspace_id'))
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get(['id', 'title', 'message', 'is_read', 'created_at']);
         return Inertia::render(
             'Leader/Dashboard',
             [
@@ -87,7 +85,9 @@ class LeaderDashboardController extends Controller
                 ],
 
                 'statusBreakdown' => $statusBreakdown,
+
             ]
+
         );
     }
 }
