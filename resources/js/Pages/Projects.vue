@@ -1,4 +1,5 @@
 <template>
+
     <Head title="Project" />
     <div class="dashboard" :class="theme.themeClass">
 
@@ -189,9 +190,9 @@
                                             <div class="modal-pills-row">
                                                 <div v-for="mId in task.member_id" :key="mId" class="member-pill-badge">
                                                     <span class="pill-avatar-dot">{{ getMemberInitials(project, mId)
-                                                        }}</span>
+                                                    }}</span>
                                                     <span class="pill-name-text">{{ getMemberFirstNameOnly(project, mId)
-                                                        }}</span>
+                                                    }}</span>
                                                     <span class="pill-remove-btn"
                                                         @click.stop="toggleMemberAssignment(task, mId)">×</span>
                                                 </div>
@@ -411,14 +412,31 @@
                 </div>
             </div>
 
-            <div v-if="showDeleteModal" class="modal-overlay" @click.self="showDeleteModal = false">
+            <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteProjectModal">
                 <div class="monday-modal confirmation-variant">
                     <h3>Confirm Board Deletion</h3>
-                    <p>Are you absolute in your intent to drop this project tracking sheet? This operation will
-                        instantly clear any nested task matrix records permanently.</p>
+                    <p>
+                        Are you absolute in your intent to drop this project tracking sheet? This operation will
+                        instantly clear any nested task matrix records permanently.
+                    </p>
+
+                    <div class="delete-verification-wrapper" style="margin: 16px 0; text-align: left;">
+                        <label style="color: #e1e3e7; font-size: 13px; display: block; margin-bottom: 6px;">
+                            Type <strong style="color: #ef4444; user-select: none;">{{ selectedProjectName }}</strong>
+                            to confirm:
+                        </label>
+                        <input type="text" v-model="confirmProjectName" placeholder="Enter exact project name"
+                            style="background-color: #151521; border: 1px solid #4a4e69; color: #ffffff; border-radius: 4px; padding: 8px 12px; font-size: 13px; width: 100%; outline: none;"
+                            @keyup.enter="isDeleteMatching && deleteProject()" />
+                    </div>
+
                     <div class="monday-modal-footer">
-                        <button class="btn-flat-cancel" @click="showDeleteModal = false">Cancel</button>
-                        <button class="monday-btn-danger" @click="deleteProject">Confirm Purge</button>
+                        <button class="btn-flat-cancel" @click="closeDeleteProjectModal">Cancel</button>
+                        <button class="monday-btn-danger" :disabled="!isDeleteMatching"
+                            :style="{ opacity: isDeleteMatching ? 1 : 0.4, cursor: isDeleteMatching ? 'pointer' : 'not-allowed' }"
+                            @click="deleteProject">
+                            Confirm
+                        </button>
                     </div>
                 </div>
             </div>
@@ -467,13 +485,14 @@
 
                         <div class="notes-editor-section">
                             <label for="task-textarea">Write a new update or modify directions:</label>
-                            <div class="editor-modal-canvas-frame" style="width: 100%; min-height: 200px; display: block; background-color: #151521;">
-    <textarea
-        id="modalRichEditor"
-        v-model="newCommentText"
-        placeholder="Type your message or project notes here..."
-    ></textarea>
-</div>
+                            <div class="editor-modal-canvas-frame"
+                                style="width: 100%; min-height: 200px; display: block; color: #000000;">
+
+                                <!-- 🟢 NATIVE VUE COMPONENT INTEGRATION -->
+                                <ckeditor v-if="showUpdatesSidebarPane" v-model="updatesDraftText" :editor="editor"
+                                    :config="editorConfig" />
+
+                            </div>
                         </div>
                     </div>
 
@@ -576,7 +595,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
+import { reactive, ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 import Sidebar from "./components/Sidebar.vue";
@@ -584,54 +603,17 @@ import { useThemeStore } from "../stores/theme";
 import { useNotificationStore } from '@/stores/notificationStore';
 import * as XLSX from 'xlsx';
 import { Head } from '@inertiajs/vue3';
+import { ClassicEditor, Bold, Italic, Essentials, Paragraph, Heading, Link, List, BlockQuote, Undo } from 'ckeditor5';
+import { Ckeditor as CkeditorComponent } from '@ckeditor/ckeditor5-vue';
+import 'ckeditor5/ckeditor5.css';
 
-// 🟢 STEP 1: Keep a native reference to your editor instance instance
-const editorInstance = ref(null);
+const ckeditor = CkeditorComponent;
+const editor = ClassicEditor;
 
-// 🟢 STEP 2: Dynamically load and safely build the engine onto the DOM instance element
-const initCKEditor = () => {
-    if (window.ClassicEditor) {
-        window.ClassicEditor.create(document.querySelector('#modalRichEditor'), {
-            placeholder: 'Type your message or project notes here...',
-            toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', '|', 'undo', 'redo']
-        })
-        .then(editor => {
-            editorInstance.value = editor;
-
-            // Sync content updates back to your reactive variable on input change triggers
-            editor.model.document.on('change:data', () => {
-                newCommentText.value = editor.getData();
-            });
-        })
-        .catch(error => {
-            console.error("CKEditor initialization failed:", error);
-        });
-    }
+const editorConfig = {
+    plugins: [Essentials, Paragraph, Heading, Bold, Italic, Link, List, BlockQuote, Undo],
+    toolbar: ['undo', 'redo', '|', 'heading', '|', 'bold', 'italic', '|', 'link', 'bulletedList', 'numberedList', 'blockQuote']
 };
-
-onMounted(() => {
-    // If script isn't loaded yet, pull it dynamically from CDN
-    if (!window.ClassicEditor) {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.ckeditor.com/ckeditor5/44.0.0/classic/ckeditor.js';
-        script.onload = () => {
-            // Give the DOM a tiny fraction of time to handle context loops
-            setTimeout(initCKEditor, 100);
-        };
-        document.head.appendChild(script);
-    } else {
-        setTimeout(initCKEditor, 100);
-    }
-});
-
-// Clean up memory leaks when the modal closes or component unmounts
-onBeforeUnmount(() => {
-    if (editorInstance.value) {
-        editorInstance.value.destroy()
-            .then(() => { editorInstance.value = null; })
-            .catch(err => console.error(err));
-    }
-});
 
 const theme = useThemeStore();
 const toast = useToast();
@@ -712,20 +694,6 @@ const filteredProjects = computed(() => {
         const matchesProjectFilter = selectedActiveProjectFilter.value ? project.id === selectedActiveProjectFilter.value : true;
         return matchesSearch && matchesProjectFilter;
     });
-});
-
-let clockInterval = null;
-
-onMounted(() => {
-    clockInterval = setInterval(() => {
-        currentTimeLiveTick.value = Date.now();
-    }, 1000);
-
-    notificationStore.setProjectsSource(projectsData.value);
-});
-
-onBeforeUnmount(() => {
-    if (clockInterval) clearInterval(clockInterval);
 });
 
 watch(() => projectsData.value, (newVal) => {
@@ -927,19 +895,40 @@ const updateProject = () => {
 
 const showDeleteModal = ref(false);
 const selectedProjectId = ref(null);
+const selectedProjectName = ref("");
+const confirmProjectName = ref("");
+
+const isDeleteMatching = computed(() => {
+    return confirmProjectName.value.trim() === selectedProjectName.value;
+});
+
 const openDeleteModal = (id) => {
     selectedProjectId.value = id;
+
+    const targetProject = projectsData.value.find(p => p.id === id);
+    selectedProjectName.value = targetProject ? targetProject.name : "";
+
+    confirmProjectName.value = "";
     showDeleteModal.value = true;
 };
 
+const closeDeleteProjectModal = () => {
+    showDeleteModal.value = false;
+    selectedProjectId.value = null;
+    selectedProjectName.value = "";
+    confirmProjectName.value = "";
+};
+
 const deleteProject = () => {
+    if (!isDeleteMatching.value) return;
+
     router.delete(`/project/${selectedProjectId.value}`, {
         preserveScroll: true,
         onSuccess: () => {
-            showDeleteModal.value = false;
-            selectedProjectId.value = null;
+            closeDeleteProjectModal();
+            toast.success("Project deleted successfully.");
         },
-        onError: () => { toast.error("Failed to remove project."); }
+        onError: () => { toast.error("Failed to remove project from core registry."); }
     });
 };
 
@@ -961,6 +950,17 @@ const closeUpdatesSidebar = () => {
     activeProjectForUpdates.value = null;
     updatesDraftText.value = "";
 };
+
+let clockInterval = null;
+onMounted(() => {
+    clockInterval = setInterval(() => {
+        currentTimeLiveTick.value = Date.now();
+    }, 1000);
+    notificationStore.setProjectsSource(projectsData.value);
+});
+onBeforeUnmount(() => {
+    if (clockInterval) clearInterval(clockInterval);
+});
 
 const saveTaskNotesUpdate = () => {
     if (!activeTaskForUpdates.value || !updatesDraftText.value.trim()) return;
@@ -1242,13 +1242,8 @@ const importTasks = () => {
     });
 };
 
-// 🟢 STEP 3: Ensure that if the modal opens/closes, the editor reinstantiates accurately
 watch(() => showEditModal?.value, (newVal) => {
-    if (newVal) {
-        setTimeout(initCKEditor, 150);
-    } else if (editorInstance.value) {
-        editorInstance.value.destroy().then(() => { editorInstance.value = null; });
-    }
+
 });
 
 const logout = () => {
@@ -2827,7 +2822,6 @@ tbody tr {
     transition: all .25s ease;
 }
 
-/* --- 🟢 FORCE THE EDITOR CONTAINER OUT OF AN INVISIBLE LAYER STATUS --- */
 :deep(.ck-reset_all) {
     display: block !important;
     visibility: visible !important;
@@ -2848,8 +2842,8 @@ tbody tr {
 :deep(.ck-editor__editable_inline) {
     min-height: 150px !important;
     max-height: 300px !important;
-    background-color: #151521 !important; /* Dark dashboard inputs background */
-    color: #ffffff !important; /* White text contrast */
+    background-color: #151521 !important;
+    color: #ffffff !important;
     border: 1px solid #32324d !important;
     text-align: left;
     padding: 10px 14px !important;
@@ -2860,41 +2854,36 @@ tbody tr {
     border: 1px solid #32324d !important;
 }
 
-:deep(.ck-toolbar__items button), :deep(.ck-icon) {
+:deep(.ck-toolbar__items button),
+:deep(.ck-icon) {
     color: #ffffff !important;
 }
 
 :deep(.ck-button:hover) {
     background-color: #2b2b40 !important;
 }
-</style>
 
-<style>
-/* Forces the editor structural frame elements visible */
 .ck-editor {
     display: block !important;
     width: 100% !important;
 }
 
-/* Style the text editing box input canvas area */
 .ck-editor__editable.ck-editor__editable_inline {
     min-height: 180px !important;
     max-height: 300px !important;
-    background-color: #151521 !important; /* Dark theme field fill */
-    color: #ffffff !important; /* White typing color contrast */
+    background-color: #151521 !important;
+    color: #ffffff !important;
     border: 1px solid #32324d !important;
     padding: 14px !important;
     text-align: left !important;
 }
 
-/* Enforce the dark application design rules onto the controls header container */
 .ck.ck-toolbar {
     background-color: #1a1a27 !important;
     border: 1px solid #32324d !important;
     display: flex !important;
 }
 
-/* White options tool buttons */
 .ck.ck-toolbar .ck-button,
 .ck.ck-icon {
     color: #ffffff !important;
