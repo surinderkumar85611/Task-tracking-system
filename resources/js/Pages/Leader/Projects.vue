@@ -1,4 +1,5 @@
 <template>
+
     <Head title="Project" />
     <div class="dashboard" :class="theme.themeClass">
 
@@ -79,7 +80,7 @@
                             projects.reduce((acc, p) =>
                                 acc + (p.tasks?.filter(t => t.status?.toLowerCase() === 'in progress' || t.status?.toLowerCase()
                                     === 'in_progress').length || 0), 0
-                        )
+                            )
                         }}
                     </h1>
                 </div>
@@ -102,7 +103,7 @@
                             projects.reduce((acc, p) =>
                                 acc + (p.tasks?.filter(t => t.status?.toLowerCase() === 'todo' || t.status?.toLowerCase() ===
                                     'planning' || !t.status).length || 0), 0
-                        )
+                            )
                         }}
                     </h1>
                 </div>
@@ -194,9 +195,9 @@
                                             <div class="modal-pills-row">
                                                 <div v-for="mId in task.member_id" :key="mId" class="member-pill-badge">
                                                     <span class="pill-avatar-dot">{{ getMemberInitials(project, mId)
-                                                    }}</span>
+                                                        }}</span>
                                                     <span class="pill-name-text">{{ getMemberFirstNameOnly(project, mId)
-                                                    }}</span>
+                                                        }}</span>
                                                     <span class="pill-remove-btn"
                                                         @click.stop="toggleMemberAssignment(task, mId)">×</span>
                                                 </div>
@@ -461,9 +462,7 @@
                                         </span>
                                         <span class="chat-bubble-time">{{ formatDate(note.created_at) }}</span>
                                     </div>
-                                    <div class="chat-bubble-body">
-                                        {{ note.text }}
-                                    </div>
+                                    <div class="chat-bubble-body" v-html="note.text"></div>
                                 </div>
 
                             </div>
@@ -474,9 +473,8 @@
                         </div>
 
                         <div class="notes-editor-section">
-                            <label for="task-textarea">Write a new update or modify directions:</label>
-                            <textarea id="task-textarea" v-model="updatesDraftText"
-                                placeholder="Share an update, flag blockers, or drop context for the team..."></textarea>
+                            <label>Write a new update or modify directions:</label>
+                            <ckeditor :editor="editor" v-model="updatesDraftText" :config="editorConfig"></ckeditor>
                         </div>
                     </div>
 
@@ -513,7 +511,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
+import { reactive, ref, shallowRef, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 import Sidebar from "./Sidebar.vue";
@@ -521,10 +519,36 @@ import { useThemeStore } from "../../stores/theme";
 import { useNotificationStore } from "../../stores/notificationStore";
 import { Head } from '@inertiajs/vue3';
 
+import { Ckeditor } from '@ckeditor/ckeditor5-vue';
+import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 const theme = useThemeStore();
 const toast = useToast();
 const page = usePage();
 const notificationStore = useNotificationStore();
+const editor = shallowRef(ClassicEditor);
+
+const editorConfig = ref({
+    toolbar: {
+        items: [
+            'undo', 'redo',
+            '|', 'heading',
+            '|', 'bold', 'italic', 'underline', 'strikethrough',
+            '|', 'bulletedList', 'numberedList', 'blockQuote',
+            '|', 'uploadImage', 'insertTable', 'mediaEmbed', 
+            '|', 'outdent', 'indent'
+        ]
+    },
+    placeholder: 'Share an update, flag blockers, or drop context for the team...',
+    
+    simpleUpload: {
+        uploadUrl: '/api/v1/task-attachments', 
+        
+        headers: {
+            'X-CSRF-TOKEN': page.props.auth?.csrf_token || ''
+        }
+    }
+});
+
 
 const props = defineProps({
     projects: { type: Array, default: () => [] },
@@ -2326,5 +2350,16 @@ tbody tr {
     justify-content: flex-end;
     gap: 12px;
     margin-top: 20px;
+}
+
+:deep(.ck-editor__editable_inline) {
+    min-height: 200px;
+    color: #1a1d20 !important;
+    background-color: #ffffff !important;
+}
+
+:deep(.ck.ck-toolbar) {
+    background: #f4f5f7 !important;
+    border-color: #ccced1 !important;
 }
 </style>

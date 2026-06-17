@@ -25,8 +25,8 @@
                         <button class="icon-btn"
                             @click="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
                             🔔
-                            <span v-if="notificationStore.activeUrgentTasks.length > 0" class="bell-alert-badge-dot">
-                                {{ notificationStore.activeUrgentTasks.length }}
+                            <span v-if="(notifications || []).filter(n => !n.is_read).length > 0" class="bell-alert-badge-dot">
+                                {{ notifications.filter(n => !n.is_read) }}
                             </span>
                         </button>
 
@@ -70,17 +70,17 @@
             <section class="stats-grid">
                 <div class="stat-card">
                     <h3>Total Projects</h3>
-                    <h1>{{ projects.length }}</h1>
+                    <h1>{{ props.projects.length }}</h1>
                 </div>
 
                 <div class="stat-card">
                     <h3>In Progress</h3>
-                    <h1>{{projects.filter(p => p.status === 'In Progress').length}}</h1>
+                    <h1>{{ props.projects.filter(p => p.status === 'In Progress').length }}</h1>
                 </div>
 
                 <div class="stat-card">
                     <h3>Completed</h3>
-                    <h1>{{projects.filter(p => p.status === 'Completed').length}}</h1>
+                    <h1>{{ props.projects.filter(p => p.status === 'Completed').length }}</h1>
                 </div>
 
                 <div class="stat-card">
@@ -485,14 +485,14 @@
 
                         <div class="notes-editor-section">
                             <label for="task-textarea">Write a new update or modify directions:</label>
-                            <div class="editor-modal-canvas-frame"
-                                style="width: 100%; min-height: 200px; display: block; color: #000000;">
 
-                                <!-- 🟢 NATIVE VUE COMPONENT INTEGRATION -->
-                                <ckeditor v-if="showUpdatesSidebarPane" v-model="updatesDraftText" :editor="editor"
-                                    :config="editorConfig" />
+                            <div class="editor-modal-canvas-frame" style="width: 100%; min-height: 200px; display: block; background-color: #151521;">
+    <textarea
+    id="modalRichEditor"
+    v-model="updatesDraftText"
+></textarea>
+</div>
 
-                            </div>
                         </div>
                     </div>
 
@@ -607,8 +607,46 @@ import { ClassicEditor, Bold, Italic, Essentials, Paragraph, Heading, Link, List
 import { Ckeditor as CkeditorComponent } from '@ckeditor/ckeditor5-vue';
 import 'ckeditor5/ckeditor5.css';
 
-const ckeditor = CkeditorComponent;
-const editor = ClassicEditor;
+
+// 🟢 STEP 1: Keep a native reference to your editor instance instance
+const editorInstance = ref(null);
+
+// 🟢 STEP 2: Dynamically load and safely build the engine onto the DOM instance element
+const initCKEditor = () => {
+    if (window.ClassicEditor) {
+        window.ClassicEditor.create(document.querySelector('#modalRichEditor'), {
+            placeholder: 'Type your message or project notes here...',
+            toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', '|', 'undo', 'redo']
+        })
+        .then(editor => {
+            editorInstance.value = editor;
+
+            // Sync content updates back to your reactive variable on input change triggers
+            editor.model.document.on('change:data', () => {
+              updatesDraftText.value = editor.getData();
+            });
+        })
+        .catch(error => {
+            console.error("CKEditor initialization failed:", error);
+        });
+    }
+};
+
+onMounted(() => {
+    // If script isn't loaded yet, pull it dynamically from CDN
+    if (!window.ClassicEditor) {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.ckeditor.com/ckeditor5/44.0.0/classic/ckeditor.js';
+        script.onload = () => {
+            // Give the DOM a tiny fraction of time to handle context loops
+            setTimeout(initCKEditor, 100);
+        };
+        document.head.appendChild(script);
+    } else {
+        setTimeout(initCKEditor, 100);
+    }
+});
+
 
 const editorConfig = {
     plugins: [Essentials, Paragraph, Heading, Bold, Italic, Link, List, BlockQuote, Undo],
@@ -764,6 +802,7 @@ const getProjectScopeMembers = (project) => {
 
 const appendNewEmptyTask = (project) => {
     const rawPayload = {
+        workspace_id: project.workspace_id,
         project_id: project.id,
         title: "New Item Row",
         member_id: [],

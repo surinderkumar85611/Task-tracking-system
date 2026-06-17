@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
 use App\Models\Task;
 use Carbon\Carbon;
+use App\Services\NotificationService;
+use App\Models\Member;
 
 class TaskController extends Controller
 {
@@ -52,44 +54,25 @@ class TaskController extends Controller
                         $date = trim($task['due_date']);
 
                         if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $date)) {
-
-                            $task['due_date'] =
-                                Carbon::createFromFormat(
-                                    'd-m-Y',
-                                    $date
-                                )->format('Y-m-d');
+                            $task['due_date'] = Carbon::createFromFormat('d-m-Y', $date)->format('Y-m-d');
                         } elseif (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $date)) {
-
-                            $task['due_date'] =
-                                Carbon::createFromFormat(
-                                    'd/m/Y',
-                                    $date
-                                )->format('Y-m-d');
+                            $task['due_date'] = Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d');
                         } else {
-
-                            $task['due_date'] =
-                                Carbon::parse($date)
-                                ->format('Y-m-d');
+                            $task['due_date'] = Carbon::parse($date)->format('Y-m-d');
                         }
                     } catch (\Exception $e) {
-
                         $task['due_date'] = null;
                     }
                 }
             }
 
             if (!empty($task['allocated_duration'])) {
-
                 preg_match('/\d+/', $task['allocated_duration'], $matches);
-
-                $task['allocated_duration'] =
-                    isset($matches[0])
-                    ? (int)$matches[0]
-                    : null;
+                $task['allocated_duration'] = isset($matches[0]) ? (int)$matches[0] : null;
             }
 
             Task::create([
-                'workspace_id' => session('workspace_id'),
+                'workspace_id' => $request->workspace_id,
                 'project_id' => $task['project_id'],
                 'title' => $task['title'],
                 'priority' => $task['priority'] ?? 'Medium',
@@ -105,29 +88,62 @@ class TaskController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'project_id'            => 'required',
-            'title'                 => 'required',
-            'member_id'             => 'nullable|array',
-            'notes'                 => 'nullable|string',
-            'allocated_duration'    => 'nullable|string',
-            'timer_started_at'      => 'nullable|string',
-            'review'                => 'nullable|string',
+            'project_id' => 'required',
+            'title' => 'required',
+            'member_id' => 'nullable|array',
+            'notes' => 'nullable|string',
+            'allocated_duration' => 'nullable|string',
+            'timer_started_at' => 'nullable|string',
+            'review' => 'nullable|string',
+            'workspace_id' => 'required',
         ]);
 
-        Task::create([
-            'workspace_id'         => session('workspace_id'),
-            'project_id'           => $request->project_id,
-            'member_id'            => $request->member_id ?: null,
-            'title'                => $request->title,
-            'description'          => $request->description,
-            'priority'             => $request->priority ?? 'Medium',
-            'status'               => $request->status ?? 'Todo',
-            'due_date'             => $request->deadline,
-            'allocated_duration'   => $request->allocated_duration,
-            'timer_started_at'     => $request->timer_started_at,
-            'notes'                => $request->notes ? [['sender' => 'Admin', 'text' => $request->notes, 'created_at' => now()->toIso8601String()]] : [],
-            'review'               => $request->review,
+        $task = Task::create([
+            'workspace_id' => $request->workspace_id,
+            'project_id' => $request->project_id,
+            'member_id' => is_array($request->member_id) ? array_values($request->member_id) : [],
+            'title' => $request->title,
+            'description' => $request->description,
+            'priority' => $request->priority ?? 'Medium',
+            'status' => $request->status ?? 'Todo',
+            'due_date' => $request->deadline,
+            'allocated_duration' => $request->allocated_duration,
+            'timer_started_at' => $request->timer_started_at,
+            'notes' => $request->notes ? [
+                [
+                    'sender' => 'Admin',
+                    'text' => $request->notes,
+                    'created_at' => now()->toIso8601String()
+                ]
+            ] : [],
+            'review' => $request->review,
         ]);
+
+        if (!empty($request->member_id)) {
+            foreach ($request->member_id as $memberId) {
+                NotificationService::create(
+                    $memberId,
+                    session('workspace_id'),
+                    'task_assigned',
+                    'New Task Assigned',
+                    'You have been assigned a task: ' . $task->title,
+                    ['task_id' => $task->id]
+                );
+            }
+        }
+
+        if (($request->priority ?? 'Medium') === 'High') {
+            foreach ((array)$request->member_id as $memberId) {
+                NotificationService::create(
+                    $memberId,
+                    session('workspace_id'),
+                    'task_urgent',
+                    'Urgent Task Assigned',
+                    'You have been assigned an URGENT task: ' . $task->title,
+                    ['task_id' => $task->id]
+                );
+            }
+        }
 
         return back();
     }
@@ -138,42 +154,65 @@ class TaskController extends Controller
 
         $request->validate([
             'project_id' => 'required',
-            'title'      => 'required',
-            'member_id'  => 'nullable',
-            'notes'      => 'nullable|string',
+            'title' => 'required',
+            'member_id' => 'nullable',
+            'notes' => 'nullable|string',
         ]);
+
+        $oldPriority = $task->priority;
+        $oldStatus = $task->status;
 
         $existingNotes = $task->notes ?? [];
 
         if ($request->has('notes') && !empty(trim($request->notes))) {
             $user = auth()->user();
-            $senderName = 'Admin';
+            $senderName = $user->first_name ?? $user->name ?? $user->username ?? 'Team Member';
 
-            if ($user) {
-                $senderName = $user->first_name ?? $user->name ?? $user->username ?? 'Team Member';
-            }
-
-            $newComment = [
-                'sender'     => $senderName,
-                'text'       => trim($request->notes),
+            $existingNotes[] = [
+                'sender' => $senderName,
+                'text' => trim($request->notes),
                 'created_at' => now()->toIso8601String(),
             ];
-
-            array_unshift($existingNotes, $newComment);
         }
 
         $task->update([
-            'project_id'          => $request->project_id,
-            'member_id'           => $request->member_id,
-            'title'               => $request->title,
-            'status'              => $request->status,
-            'priority'            => $request->priority,
-            'due_date'            => $request->deadline,
-            'allocated_duration'  => $request->allocated_duration,
-            'timer_started_at'    => $request->timer_started_at,
-            'notes'               => $existingNotes,
-            'review'              => $request->review,
+            'project_id' => $request->project_id,
+            'member_id' => $request->member_id,
+            'title' => $request->title,
+            'status' => $request->status,
+            'priority' => $request->priority,
+            'due_date' => $request->deadline,
+            'allocated_duration' => $request->allocated_duration,
+            'timer_started_at' => $request->timer_started_at,
+            'notes' => $existingNotes,
+            'review' => $request->review,
         ]);
+
+        if ($request->status && $oldStatus !== $request->status) {
+            foreach ((array)$task->member_id as $memberId) {
+                NotificationService::create(
+                    $memberId,
+                    session('workspace_id'),
+                    'task_status_updated',
+                    'Task Updated',
+                    'Task status changed to: ' . $request->status,
+                    ['task_id' => $task->id]
+                );
+            }
+        }
+
+        if ($request->priority === 'High' && $oldPriority !== 'High') {
+            foreach ((array)$task->member_id as $memberId) {
+                NotificationService::create(
+                    $memberId,
+                    session('workspace_id'),
+                    'task_urgent',
+                    'Task Became Urgent',
+                    'Priority changed to HIGH: ' . $task->title,
+                    ['task_id' => $task->id]
+                );
+            }
+        }
 
         return back();
     }

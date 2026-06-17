@@ -26,7 +26,7 @@ use App\Models\Member;
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
-
+use App\Http\Controllers\TaskAttachmentController;
 Route::get('/', function () {
     if (auth()->check()) return redirect('/dashboard');
     return redirect('/login');
@@ -241,3 +241,11 @@ Route::post(
 
 Route::post('/editor/upload', [EditorController::class, 'upload']);
 Route::get('/notifications', [NotificationController::class, 'index']);
+Route::get('/notifications', [NotificationController::class, 'index']);
+
+Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+
+Route::put('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+
+
+Route::post('/api/v1/task-attachments', [TaskAttachmentController::class, 'upload']);
