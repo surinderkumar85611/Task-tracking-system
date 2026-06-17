@@ -27,6 +27,7 @@ use App\Models\Member;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskAttachmentController;
+
 Route::get('/', function () {
     if (auth()->check()) return redirect('/dashboard');
     return redirect('/login');
@@ -92,7 +93,6 @@ Route::middleware(['auth'])->group(function () {
         }
 
         return app(AdminController::class)->dashboard();
-
     })->name('dashboard');
 
     Route::get('/member', function () {
@@ -100,6 +100,15 @@ Route::middleware(['auth'])->group(function () {
         $member = Member::where('email', $user->email)->first();
         if ($member && $member->role !== 'ADMIN') abort(403);
         return app(MemberController::class)->index();
+    });
+
+    Route::post('/member', function (Request $request) {
+        $user = auth()->user();
+        $member = Member::where('email', $user->email)->first();
+
+        if ($member && $member->role !== 'ADMIN') abort(403);
+
+        return app(MemberController::class)->store($request);
     });
 
     Route::post('/workspace', function () {
@@ -128,6 +137,12 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/project/{project}', [ProjectController::class, 'update']);
     Route::delete('/project/{project}', [ProjectController::class, 'destroy']);
 
+    Route::middleware('auth')->prefix('task')->group(function () {
+        Route::post('/', [TaskController::class, 'store']);
+        Route::put('/{task}', [TaskController::class, 'update'])->name('task.update');
+        Route::delete('/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
+    });
+
     Route::post('/task', [TaskController::class, 'store']);
     Route::put('/task/{task}', [TaskController::class, 'update'])->name('task.update');
     Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
@@ -138,8 +153,8 @@ Route::middleware(['auth'])->group(function () {
         $request->session()->regenerateToken();
         return redirect('/login');
     });
-
 });
+
 Route::middleware(['auth'])->group(function () {
 
     Route::get('/settings', function () {
@@ -147,7 +162,7 @@ Route::middleware(['auth'])->group(function () {
         $user = auth()->user();
 
         if ($user->role === 'ADMIN') {
-            return app(\App\Http\Controllers\SettingsController::class)->index();
+            return app(SettingsController::class)->index();
         }
 
         $member = Member::where('email', $user->email)->first();
@@ -158,7 +173,6 @@ Route::middleware(['auth'])->group(function () {
 
         abort(403, 'Unauthorized access');
     })->name('settings');
-
 });
 
 Route::middleware(['auth'])->group(function () {
@@ -171,7 +185,6 @@ Route::middleware(['auth'])->group(function () {
         if (!$member || $member->role !== 'TL') abort(403);
 
         return app(LprojectController::class)->index();
-
     });
 
     Route::get('/team', function () {
@@ -182,7 +195,6 @@ Route::middleware(['auth'])->group(function () {
         if (!$member || $member->role !== 'TL') abort(403);
 
         return app(TeamController::class)->index();
-
     });
     Route::post('/team/request', [TeamRequestController::class, 'store'])->name('team.request.store');
 });
@@ -199,13 +211,13 @@ Route::get('/invite/accept/{token}', [InvitationController::class, 'accept']);
 Route::get('/complete-profile', [AuthController::class, 'showCompleteProfile']);
 Route::post('/complete-profile', [AuthController::class, 'completeProfile']);
 
-Route::get('/workspaces', [WorkspaceController::class, 'index']);
-Route::get('/workspaces/{workspace}', [WorkspaceController::class, 'show']);
-Route::put('/workspaces/{workspace}', [WorkspaceController::class, 'update']);
-Route::delete('/workspaces/{workspace}', [WorkspaceController::class, 'destroy']);
-
-Route::get('/task-fields', [TaskController::class, 'getTaskFields']);
-Route::post('/task/import', [TaskController::class, 'import'])->name('task.import');
+/** Workspace Route */
+Route::middleware('auth')->prefix('workspaces')->group(function () {
+    Route::get('/', [WorkspaceController::class, 'index']);
+    Route::get('/{workspace}', [WorkspaceController::class, 'show']);
+    Route::put('/{workspace}', [WorkspaceController::class, 'update']);
+    Route::delete('/{workspace}', [WorkspaceController::class, 'destroy']);
+});
 
 Route::get('/two-factor-challenge', [AuthController::class, 'showTwoFactorChallenge'])->name('two-factor.challenge');
 Route::post('/two-factor-challenge', [AuthController::class, 'verifyTwoFactorChallenge']);
@@ -224,15 +236,10 @@ Route::middleware(['auth'])->prefix('leader')->group(function () {
     Route::get('/2fa/generate', [TwoFactorController::class, 'generateSecret']);
     Route::post('/2fa/enable', [TwoFactorController::class, 'enable']);
     Route::post('/2fa/disable', [TwoFactorController::class, 'disable']);
-
 });
 
 Route::get('/task-fields', [TaskController::class, 'getTaskFields']);
-Route::post('/task/import', [TaskController::class, 'import'])
-    ->name('task.import');
-
-Route::get('/two-factor-challenge', [\App\Http\Controllers\AuthController::class, 'showTwoFactorChallenge'])->name('two-factor.challenge');
-Route::post('/two-factor-challenge', [\App\Http\Controllers\AuthController::class, 'verifyTwoFactorChallenge']);
+Route::post('/task/import', [TaskController::class, 'import'])->name('task.import');
 
 Route::post(
     '/dashboard/widgets/reorder',
@@ -240,12 +247,12 @@ Route::post(
 )->middleware('auth');
 
 Route::post('/editor/upload', [EditorController::class, 'upload']);
-Route::get('/notifications', [NotificationController::class, 'index']);
-Route::get('/notifications', [NotificationController::class, 'index']);
 
-Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
-
-Route::put('/notifications/read-all', [NotificationController::class, 'markAllRead']);
-
+/** Notification Route */
+Route::prefix('notifications')->middleware('auth')->group(function () {
+    Route::get('/', [NotificationController::class, 'index']);
+    Route::put('/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::put('/read-all', [NotificationController::class, 'markAllRead']);
+});
 
 Route::post('/api/v1/task-attachments', [TaskAttachmentController::class, 'upload']);
