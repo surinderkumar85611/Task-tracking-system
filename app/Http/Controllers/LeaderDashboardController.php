@@ -11,17 +11,14 @@ class LeaderDashboardController extends Controller
 {
     public function index()
     {
-       $user = auth()->user();
+        $user = auth()->user();
 
-$leader = Member::where('email', $user->email)->first();
+        $leader = Member::where('email', $user->email)->first();
 
-$notifications = Notification::where('user_id', $leader->id)
-    ->where('workspace_id', session('workspace_id'))
-    ->latest()
-    ->get();
         if (!$leader || $leader->role !== 'TL') {
             abort(403, 'Access Denied');
         }
+
         $projects = Project::with([
             'tasks',
             'teamLeader',
@@ -31,6 +28,7 @@ $notifications = Notification::where('user_id', $leader->id)
             })
             ->where('team_leader_id', $leader->id)
             ->get();
+
         $teamMembers = $leader->teamMembers ?? collect();
 
         $allTasks = collect();
@@ -62,32 +60,34 @@ $notifications = Notification::where('user_id', $leader->id)
                 ->where('status', 'Completed')
                 ->count(),
         ];
+
+        // FIXED: Optional workspace matching fallback so notifications don't vanish into thin air
         $notifications = Notification::where('user_id', $user->id)
-            ->where('workspace_id', session('workspace_id'))
+            ->when(session('workspace_id'), function ($query) {
+                $query->where(function($q) {
+                    $q->where('workspace_id', session('workspace_id'))
+                      ->orWhereNull('workspace_id'); // load general ones too!
+                });
+            })
             ->orderBy('created_at', 'desc')
             ->get(['id', 'title', 'message', 'is_read', 'created_at']);
+
         return Inertia::render(
             'Leader/Dashboard',
             [
                 'leader' => $leader,
-
                 'projects' => $projects,
-
                 'teamMembers' => $teamMembers,
-                'notifications' => $notifications,
+                'notifications' => $notifications, 
                 'currentWorkspaceId' => session('workspace_id'),
-
                 'stats' => [
                     'projects' => $projects->count(),
                     'tasks' => $allTasks->count(),
                     'completed' => $completedTasks,
                     'pending' => $pendingTasks,
                 ],
-
                 'statusBreakdown' => $statusBreakdown,
-
             ]
-
         );
     }
 }

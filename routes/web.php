@@ -18,18 +18,14 @@ use App\Http\Controllers\Leader\LprojectController;
 use App\Http\Controllers\Leader\TeamController;
 use App\Http\Controllers\TeamRequestController;
 use App\Http\Controllers\Leader\TwoFactorController;
-
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\LeaderDashboardController;
 use App\Models\Member;
-
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskAttachmentController;
-
 use App\Http\Controllers\Member\MDashboardController;
-
 
 Route::get('/', function () {
     if (auth()->check()) return redirect('/dashboard');
@@ -61,7 +57,6 @@ Route::get('/reset-password/{token}', function ($token, Request $request) {
 })->name('password.reset');
 
 Route::post('/reset-password', function (Request $request) {
-
     $request->validate([
         'email' => 'required|email',
         'password' => 'required|min:6|confirmed',
@@ -84,10 +79,9 @@ Route::post('/reset-password', function (Request $request) {
         : back()->withErrors(['email' => [__($status)]]);
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'no-cache'])->group(function () {
 
     Route::get('/dashboard', function () {
-
         $user = auth()->user();
         $member = Member::where('email', $user->email)->first();
 
@@ -140,7 +134,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/project/{project}', [ProjectController::class, 'update']);
     Route::delete('/project/{project}', [ProjectController::class, 'destroy']);
 
-    Route::middleware('auth')->prefix('task')->group(function () {
+    Route::middleware(['auth', 'no-cache'])->prefix('task')->group(function () {
         Route::post('/', [TaskController::class, 'store']);
         Route::put('/{task}', [TaskController::class, 'update'])->name('task.update');
         Route::delete('/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
@@ -158,10 +152,9 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'no-cache'])->group(function () {
 
     Route::get('/settings', function () {
-
         $user = auth()->user();
 
         if ($user->role === 'ADMIN') {
@@ -178,10 +171,9 @@ Route::middleware(['auth'])->group(function () {
     })->name('settings');
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'no-cache'])->group(function () {
 
     Route::get('/projects', function () {
-
         $user = auth()->user();
         $member = Member::where('email', $user->email)->first();
 
@@ -191,7 +183,6 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::get('/team', function () {
-
         $user = auth()->user();
         $member = Member::where('email', $user->email)->first();
 
@@ -214,8 +205,7 @@ Route::get('/invite/accept/{token}', [InvitationController::class, 'accept']);
 Route::get('/complete-profile', [AuthController::class, 'showCompleteProfile']);
 Route::post('/complete-profile', [AuthController::class, 'completeProfile']);
 
-/** Workspace Route */
-Route::middleware('auth')->prefix('workspaces')->group(function () {
+Route::middleware(['auth', 'no-cache'])->prefix('workspaces')->group(function () {
     Route::get('/', [WorkspaceController::class, 'index']);
     Route::get('/{workspace}', [WorkspaceController::class, 'show']);
     Route::put('/{workspace}', [WorkspaceController::class, 'update']);
@@ -225,16 +215,11 @@ Route::middleware('auth')->prefix('workspaces')->group(function () {
 Route::get('/two-factor-challenge', [AuthController::class, 'showTwoFactorChallenge'])->name('two-factor.challenge');
 Route::post('/two-factor-challenge', [AuthController::class, 'verifyTwoFactorChallenge']);
 
-Route::middleware(['auth'])->group(function () {
-
-    Route::get('/user/notification-preferences', [\App\Http\Controllers\Leader\SettingsController::class, 'index']);
-
-    Route::put('/user/notification-preferences', [\App\Http\Controllers\Leader\SettingsController::class, 'updateNotifications']);
-
+Route::middleware(['auth', 'no-cache'])->group(function () {
     Route::get('/user/unread-alerts', [\App\Http\Controllers\ProjectAlertController::class, 'getUnreadAlerts']);
 });
 
-Route::middleware(['auth'])->prefix('leader')->group(function () {
+Route::middleware(['auth', 'no-cache'])->prefix('leader')->group(function () {
 
     Route::get('/2fa/generate', [TwoFactorController::class, 'generateSecret']);
     Route::post('/2fa/enable', [TwoFactorController::class, 'enable']);
@@ -247,18 +232,38 @@ Route::post('/task/import', [TaskController::class, 'import'])->name('task.impor
 Route::post(
     '/dashboard/widgets/reorder',
     [DashboardController::class, 'reorderWidgets']
-)->middleware('auth');
+)->middleware(['auth', 'no-cache']);
 
 Route::post('/editor/upload', [EditorController::class, 'upload']);
 
-/** Notification Route */
-Route::prefix('notifications')->middleware('auth')->group(function () {
+Route::prefix('notifications')->middleware(['auth', 'no-cache'])->group(function () {
     Route::get('/', [NotificationController::class, 'index']);
     Route::put('/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::put('/read-all', [NotificationController::class, 'markAllRead']);
 });
 
 Route::post('/api/v1/task-attachments', [TaskAttachmentController::class, 'upload']);
-// Kept without auth middleware temporarily so you can preview it instantly without logging in!
 Route::get('/member/dashboard/preview', [MDashboardController::class, 'index']);
 
+Route::post(
+    '/ckeditor/upload',
+    [LProjectController::class, 'uploadEditorImage']
+)->middleware(['auth', 'no-cache']);
+
+Route::middleware(['auth'])->group(function () {
+
+    Route::put('/user/notification-preferences', [UserController::class, 'updateNotificationPreferences']);
+
+    // FIXED: Pointing explicitly to your App\Models\Notification model path
+    Route::put('/notifications/{id}/read', function ($id) {
+        \App\Models\Notification::where('id', $id)->where('user_id', auth()->id())->update(['is_read' => 1]);
+        return back();
+    });
+
+    // FIXED: Pointing explicitly to your App\Models\Notification model path
+    Route::put('/notifications/read-all', function () {
+        \App\Models\Notification::where('user_id', auth()->id())->update(['is_read' => 1]);
+        return back();
+    });
+});
+Route::put('/user/notification-preferences', [\App\Http\Controllers\UserController::class, 'updateNotificationPreferences']);

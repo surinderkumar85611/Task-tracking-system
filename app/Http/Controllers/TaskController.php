@@ -1,5 +1,6 @@
 <?php
 
+namespace App\Support\Facades\Schema; // Keeping your top structural setup intact
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Schema;
@@ -85,7 +86,7 @@ class TaskController extends Controller
         return back()->with('success', 'Tasks imported');
     }
 
-    public function store(Request $request)
+   public function store(Request $request)
     {
         $request->validate([
             'project_id' => 'required',
@@ -101,12 +102,13 @@ class TaskController extends Controller
         $task = Task::create([
             'workspace_id' => $request->workspace_id,
             'project_id' => $request->project_id,
+            // Convert array of IDs to clean values
             'member_id' => is_array($request->member_id) ? array_values($request->member_id) : [],
             'title' => $request->title,
             'description' => $request->description,
             'priority' => $request->priority ?? 'Medium',
             'status' => $request->status ?? 'Todo',
-            'due_date' => $request->deadline,
+            'due_date' => $request->deadline ?? $request->due_date, // Catches both naming styles
             'allocated_duration' => $request->allocated_duration,
             'timer_started_at' => $request->timer_started_at,
             'notes' => $request->notes ? [
@@ -119,35 +121,52 @@ class TaskController extends Controller
             'review' => $request->review,
         ]);
 
+        // Send Standard Task Notifications
         if (!empty($request->member_id)) {
-            foreach ($request->member_id as $memberId) {
-                NotificationService::create(
-                    $memberId,
-                    session('workspace_id'),
-                    'task_assigned',
-                    'New Task Assigned',
-                    'You have been assigned a task: ' . $task->title,
-                    ['task_id' => $task->id]
-                );
+            foreach ((array)$request->member_id as $memberId) {
+                $member = Member::find($memberId);
+                
+                if ($member && !empty($member->email)) {
+                    $targetUser = \App\Models\User::where('email', $member->email)->first();
+                    
+                    if ($targetUser) {
+                        NotificationService::create(
+                            $targetUser->id,
+                            $request->workspace_id ?? session('workspace_id'),
+                            'task_assigned',
+                            'New Task Assigned',
+                            'You have been assigned a task: ' . $task->title,
+                            ['task_id' => $task->id]
+                        );
+                    }
+                }
             }
         }
 
-        if (($request->priority ?? 'Medium') === 'High') {
+        // Send High Priority / Urgent Notifications
+        if (($request->priority ?? 'Medium') === 'High' && !empty($request->member_id)) {
             foreach ((array)$request->member_id as $memberId) {
-                NotificationService::create(
-                    $memberId,
-                    session('workspace_id'),
-                    'task_urgent',
-                    'Urgent Task Assigned',
-                    'You have been assigned an URGENT task: ' . $task->title,
-                    ['task_id' => $task->id]
-                );
+                $member = Member::find($memberId);
+                
+                if ($member && !empty($member->email)) {
+                    $targetUser = \App\Models\User::where('email', $member->email)->first();
+                    
+                    if ($targetUser) {
+                        NotificationService::create(
+                            $targetUser->id,
+                            $request->workspace_id ?? session('workspace_id'),
+                            'task_urgent',
+                            'Urgent Task Assigned',
+                            'You have been assigned an URGENT task: ' . $task->title,
+                            ['task_id' => $task->id]
+                        );
+                    }
+                }
             }
         }
 
         return back();
     }
-
     public function update(Request $request, $id)
     {
         $task = Task::findOrFail($id);
@@ -157,22 +176,22 @@ class TaskController extends Controller
             'title' => 'required',
             'member_id' => 'nullable',
             'notes' => 'nullable|string',
+            'is_read' => 'nullable|boolean',
         ]);
 
         $oldPriority = $task->priority;
         $oldStatus = $task->status;
-
         $existingNotes = $task->notes ?? [];
 
         if ($request->has('notes') && !empty(trim($request->notes))) {
             $user = auth()->user();
             $senderName = $user->first_name ?? $user->name ?? $user->username ?? 'Team Member';
 
-            $existingNotes[] = [
+            array_unshift($existingNotes, [
                 'sender' => $senderName,
                 'text' => trim($request->notes),
                 'created_at' => now()->toIso8601String(),
-            ];
+            ]);
         }
 
         $task->update([
@@ -186,37 +205,49 @@ class TaskController extends Controller
             'timer_started_at' => $request->timer_started_at,
             'notes' => $existingNotes,
             'review' => $request->review,
+            'is_read' => $request->has('is_read') ? $request->is_read : $task->is_read,
         ]);
 
         if ($request->status && $oldStatus !== $request->status) {
             foreach ((array)$task->member_id as $memberId) {
-                NotificationService::create(
-                    $memberId,
-                    session('workspace_id'),
-                    'task_status_updated',
-                    'Task Updated',
-                    'Task status changed to: ' . $request->status,
-                    ['task_id' => $task->id]
-                );
+                $member = Member::find($memberId);
+                if ($member && !empty($member->email)) {
+                    $targetUser = \App\Models\User::where('email', $member->email)->first();
+                    if ($targetUser) {
+                        NotificationService::create(
+                            $targetUser->id,
+                            session('workspace_id'),
+                            'task_status_updated',
+                            'Task Updated',
+                            'Task status changed to: ' . $request->status,
+                            ['task_id' => $task->id]
+                        );
+                    }
+                }
             }
         }
 
         if ($request->priority === 'High' && $oldPriority !== 'High') {
             foreach ((array)$task->member_id as $memberId) {
-                NotificationService::create(
-                    $memberId,
-                    session('workspace_id'),
-                    'task_urgent',
-                    'Task Became Urgent',
-                    'Priority changed to HIGH: ' . $task->title,
-                    ['task_id' => $task->id]
-                );
+                $member = Member::find($memberId);
+                if ($member && !empty($member->email)) {
+                    $targetUser = \App\Models\User::where('email', $member->email)->first();
+                    if ($targetUser) {
+                        NotificationService::create(
+                            $targetUser->id,
+                            session('workspace_id'),
+                            'task_urgent',
+                            'Task Became Urgent',
+                            'Priority changed to HIGH: ' . $task->title,
+                            ['task_id' => $task->id]
+                        );
+                    }
+                }
             }
         }
 
         return back();
     }
-
     public function destroy($id)
     {
         $task = Task::findOrFail($id);

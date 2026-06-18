@@ -8,51 +8,54 @@ use App\Models\Task;
 use App\Models\Member;
 use Inertia\Inertia;
 use App\Services\NotificationService;
+
 class ProjectController extends Controller
 {
     public function store(Request $request)
-{
-    $validated = $request->validate([
-        'name' => 'required|min:3|max:255',
-        'status' => 'required',
-        'deadline' => 'required|date',
-        'description' => 'required|min:5',
-        'team_leader_id' => 'required|exists:members,id',
-    ]);
+    {
+        $validated = $request->validate([
+            'name' => 'required|min:3|max:255',
+            'status' => 'required',
+            'deadline' => 'required|date',
+            'description' => 'required|min:5',
+            'team_leader_id' => 'required|exists:members,id',
+        ]);
 
-    $user = auth()->user();
+        $project = Project::create([
+            'workspace_id' => session('workspace_id'),
+            'team_leader_id' => $validated['team_leader_id'],
+            'name' => $validated['name'],
+            'status' => $validated['status'],
+            'deadline' => $validated['deadline'],
+            'description' => $validated['description'],
+            'progress' => 0,
+        ]);
 
-    $leaderId = $validated['team_leader_id'];
+        $leader = Member::find($validated['team_leader_id']);
 
-    $project = Project::create([
-        'workspace_id' => session('workspace_id'),
-        'team_leader_id' => $validated['team_leader_id'],
-        'name' => $validated['name'],
-        'status' => $validated['status'],
-        'deadline' => $validated['deadline'],
-        'description' => $validated['description'],
-        'progress' => 0,
-    ]);
+        if ($leader && !empty($leader->email)) {
+            $targetUser = \App\Models\User::where('email', $leader->email)->first();
+            
+            if ($targetUser) {
+                NotificationService::create(
+                    $targetUser->id,
+                    session('workspace_id'),
+                    'project_assigned',
+                    'New Project Assigned',
+                    'You have been assigned a new project: ' . $project->name,
+                    ['project_id' => $project->id]
+                );
+            }
+        }
 
-    if ($leader) {
-        NotificationService::create(
-    $leaderId,
-    session('workspace_id'),
-    'project_assigned',
-    'New Project Assigned',
-    'You have been assigned a new project: ' . $project->name,
-    ['project_id' => $project->id]
-);
+        return back()->with('success', 'Project created successfully');
     }
 
-    return back()->with('success', 'Project created successfully');
-}
     public function index()
     {
         $projects = Project::with([
             'teamLeader.teamMembers',
             'tasks' => function ($query) {
-
                 $query
                     ->orderByRaw("
                 CASE
@@ -90,25 +93,35 @@ class ProjectController extends Controller
     }
 
     public function update(Request $request, Project $project)
-    {$oldStatus = $project->status;
+    {
+        $oldStatus = $project->status;
 
-$project->update([
-    'name' => $request->name,
-    'description' => $request->description,
-    'status' => $request->status,
-    'deadline' => $request->deadline,
-]);
+        $project->update([
+            'name' => $request->name,
+            'description' => $request->description,
+            'status' => $request->status,
+            'deadline' => $request->deadline,
+        ]);
 
-if ($oldStatus !== $request->status) {
-    NotificationService::create(
-        $project->team_leader_id,
-        session('workspace_id'),
-        'project_status_updated',
-        'Project Status Changed',
-        'Project status changed to ' . $request->status,
-        ['project_id' => $project->id]
-    );
-}
+        if ($oldStatus !== $request->status) {
+            $leader = Member::find($project->team_leader_id);
+            
+            if ($leader && !empty($leader->email)) {
+                $targetUser = \App\Models\User::where('email', $leader->email)->first();
+                
+                if ($targetUser) {
+                    NotificationService::create(
+                        $targetUser->id,
+                        session('workspace_id'),
+                        'project_status_updated',
+                        'Project Status Changed',
+                        'Project status changed to ' . $request->status,
+                        ['project_id' => $project->id]
+                    );
+                }
+            }
+        }
+
         return back();
     }
 

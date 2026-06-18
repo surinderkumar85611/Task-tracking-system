@@ -885,7 +885,12 @@ const updateMember = () => {
     );
 };
 const logout = () => {
-    router.post('/logout');
+    router.post("/logout", {}, {
+        replace: true,
+        onSuccess: () => {
+            window.location.href = "/login";
+        }
+    });
 };
 
 onBeforeUnmount(() => {

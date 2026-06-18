@@ -42,6 +42,26 @@ class UserController extends Controller
             'department' => $user->department,
             'role' => $user->role,
             'two_factor_enabled' => $user->two_factor_enabled,
+            'notification_preferences' => $user->notification_preferences,
         ]);
     }
-}
+    // PASTE THIS NEW METHOD INSIDE THE CLASS:
+    public function updateNotificationPreferences(Request $request)
+    {
+        $user = auth()->user();
+        
+        $user->notification_preferences = [
+            'email' => (bool) $request->input('email', true),
+            'tasks' => (bool) $request->input('tasks', true),
+            'projects' => (bool) $request->input('projects', true),
+            'reports' => (bool) $request->input('reports', false),
+        ];
+        
+        $user->save();
+
+        return response()->json([
+            'message' => 'Notification preferences updated successfully'
+        ]);
+    }
+} 
+

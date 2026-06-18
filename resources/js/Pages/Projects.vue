@@ -1285,7 +1285,12 @@ watch(() => showEditModal?.value, (newVal) => {
 });
 
 const logout = () => {
-    router.post('/logout');
+    router.post("/logout", {}, {
+        replace: true,
+        onSuccess: () => {
+            window.location.href = "/login";
+        }
+    });
 };
 </script>
 
