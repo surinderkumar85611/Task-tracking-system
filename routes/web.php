@@ -28,6 +28,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskAttachmentController;
 
+use App\Http\Controllers\Member\MDashboardController;
+
+
 Route::get('/', function () {
     if (auth()->check()) return redirect('/dashboard');
     return redirect('/login');
@@ -256,3 +259,6 @@ Route::prefix('notifications')->middleware('auth')->group(function () {
 });
 
 Route::post('/api/v1/task-attachments', [TaskAttachmentController::class, 'upload']);
+// Kept without auth middleware temporarily so you can preview it instantly without logging in!
+Route::get('/member/dashboard/preview', [MDashboardController::class, 'index']);
+
