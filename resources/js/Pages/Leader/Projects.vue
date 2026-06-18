@@ -473,8 +473,12 @@
                         </div>
 
                         <div class="notes-editor-section">
-                            <label>Write a new update or modify directions:</label>
-                            <ckeditor :editor="editor" v-model="updatesDraftText" :config="editorConfig"></ckeditor>
+                            <label class="editor-label">Write a new update or modify directions:</label>
+                            <textarea
+    v-model="updatesDraftText"
+    class="updates-textarea"
+    placeholder="Write your update here..."
+></textarea>
                         </div>
                     </div>
 
@@ -518,37 +522,38 @@ import Sidebar from "./Sidebar.vue";
 import { useThemeStore } from "../../stores/theme";
 import { useNotificationStore } from "../../stores/notificationStore";
 import { Head } from '@inertiajs/vue3';
-
+import { ClassicEditor } from 'ckeditor5';
 import { Ckeditor } from '@ckeditor/ckeditor5-vue';
-import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
+
 const theme = useThemeStore();
 const toast = useToast();
 const page = usePage();
 const notificationStore = useNotificationStore();
-const editor = shallowRef(ClassicEditor);
-
+const ckeditor = Ckeditor;
+const editor = ClassicEditor;
 const editorConfig = ref({
-    toolbar: {
-        items: [
-            'undo', 'redo',
-            '|', 'heading',
-            '|', 'bold', 'italic', 'underline', 'strikethrough',
-            '|', 'bulletedList', 'numberedList', 'blockQuote',
-            '|', 'uploadImage', 'insertTable', 'mediaEmbed', 
-            '|', 'outdent', 'indent'
-        ]
-    },
-    placeholder: 'Share an update, flag blockers, or drop context for the team...',
-    
-    simpleUpload: {
-        uploadUrl: '/api/v1/task-attachments', 
-        
-        headers: {
-            'X-CSRF-TOKEN': page.props.auth?.csrf_token || ''
-        }
-    }
+    toolbar: [
+        'bold',
+        'italic',
+        '|',
+        'bulletedList',
+        'numberedList',
+        '|',
+        'undo',
+        'redo'
+    ],
+    placeholder: 'Write your update here...',
+    removePlugins: [
+        'Image',
+        'ImageToolbar',
+        'ImageUpload',
+        'MediaEmbed',
+        'Table',
+        'CKFinder',
+        'EasyImage',
+        'Link'
+    ]
 });
-
 
 const props = defineProps({
     projects: { type: Array, default: () => [] },
@@ -686,8 +691,7 @@ const getProjectScopeMembers = (project) => {
     if (!project || !project.team_leader) return [];
     const leader = project.team_leader;
     const assets = leader.team_members || [];
-    console.log("TEAM LEADER:", leader);
-    console.log("TEAM MEMBERS:", assets);
+    
     if (isAdmin.value) {
         const managerNode = { id: leader.id, first_name: leader.first_name, last_name: " (TL)" };
         return [managerNode, ...assets];
@@ -2361,5 +2365,55 @@ tbody tr {
 :deep(.ck.ck-toolbar) {
     background: #f4f5f7 !important;
     border-color: #ccced1 !important;
+}
+
+.ck-editor__editable {
+    min-height: 200px !important;
+    background: white;
+}
+
+/* Ensure the CKEditor container is visible and has a crisp layout */
+.notes-editor-section .ck-editor__editable_inline {
+    min-height: 200px;
+    max-height: 400px;
+    color: #1e1e2d !important;
+    /* Prevents text from being white on white background */
+    background-color: #ffffff !important;
+    /* Force clean editor look like Image 2 */
+    text-align: left !important;
+}
+
+/* Force the toolbar items to show clearly */
+.notes-editor-section .ck-toolbar {
+    background: #f3f6f9 !important;
+    border: 1px solid #e4e6ef !important;
+}
+
+.notes-editor-section .editor-label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 12px;
+    color: #a1a5b7;
+}
+
+/* Ensure the editor text area has a solid background and legible text */
+.notes-editor-section .ck-editor__editable_inline {
+    min-height: 250px !important;
+    background-color: #ffffff !important;
+    color: #212529 !important;
+    text-align: left !important;
+}
+
+/* Ensure the toolbar icons stand out clearly */
+.notes-editor-section .ck.ck-toolbar {
+    background-color: #f8f9fa !important;
+    border: 1px solid #ccced1 !important;
+}
+
+/* Fix any dropdown rendering bugs inside absolute modals */
+.notes-editor-section .ck-body-wrapper {
+    z-index: 99999 !important;
 }
 </style>
