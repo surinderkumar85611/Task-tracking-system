@@ -25,8 +25,9 @@
                         <button class="icon-btn"
                             @click="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
                             🔔
-                            <span v-if="(notifications || []).filter(n => !n.is_read).length > 0" class="bell-alert-badge-dot">
-                                {{ notifications.filter(n => !n.is_read) }}
+                            <span v-if="(notifications || []).filter(n => !n.is_read).length > 0"
+                                class="bell-alert-badge-dot">
+                                {{notifications.filter(n => !n.is_read)}}
                             </span>
                         </button>
 
@@ -75,12 +76,12 @@
 
                 <div class="stat-card">
                     <h3>In Progress</h3>
-                    <h1>{{ props.projects.filter(p => p.status === 'In Progress').length }}</h1>
+                    <h1>{{props.projects.filter(p => p.status === 'In Progress').length}}</h1>
                 </div>
 
                 <div class="stat-card">
                     <h3>Completed</h3>
-                    <h1>{{ props.projects.filter(p => p.status === 'Completed').length }}</h1>
+                    <h1>{{props.projects.filter(p => p.status === 'Completed').length}}</h1>
                 </div>
 
                 <div class="stat-card">
@@ -190,9 +191,9 @@
                                             <div class="modal-pills-row">
                                                 <div v-for="mId in task.member_id" :key="mId" class="member-pill-badge">
                                                     <span class="pill-avatar-dot">{{ getMemberInitials(project, mId)
-                                                    }}</span>
+                                                        }}</span>
                                                     <span class="pill-name-text">{{ getMemberFirstNameOnly(project, mId)
-                                                    }}</span>
+                                                        }}</span>
                                                     <span class="pill-remove-btn"
                                                         @click.stop="toggleMemberAssignment(task, mId)">×</span>
                                                 </div>
@@ -486,12 +487,10 @@
                         <div class="notes-editor-section">
                             <label for="task-textarea">Write a new update or modify directions:</label>
 
-                            <div class="editor-modal-canvas-frame" style="width: 100%; min-height: 200px; display: block; background-color: #151521;">
-    <textarea
-    id="modalRichEditor"
-    v-model="updatesDraftText"
-></textarea>
-</div>
+                            <div class="editor-modal-canvas-frame"
+                                style="width: 100%; min-height: 200px; display: block; background-color: #151521;">
+                                <textarea id="modalRichEditor" v-model="updatesDraftText"></textarea>
+                            </div>
 
                         </div>
                     </div>
@@ -618,17 +617,17 @@ const initCKEditor = () => {
             placeholder: 'Type your message or project notes here...',
             toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', '|', 'undo', 'redo']
         })
-        .then(editor => {
-            editorInstance.value = editor;
+            .then(editor => {
+                editorInstance.value = editor;
 
-            // Sync content updates back to your reactive variable on input change triggers
-            editor.model.document.on('change:data', () => {
-              updatesDraftText.value = editor.getData();
+                // Sync content updates back to your reactive variable on input change triggers
+                editor.model.document.on('change:data', () => {
+                    updatesDraftText.value = editor.getData();
+                });
+            })
+            .catch(error => {
+                console.error("CKEditor initialization failed:", error);
             });
-        })
-        .catch(error => {
-            console.error("CKEditor initialization failed:", error);
-        });
     }
 };
 
@@ -884,7 +883,7 @@ const getTimerMetrics = (task) => {
     const remainingMs = endTimestamp - currentTimeLiveTick.value;
 
     if (remainingMs <= 0) {
-        return { percentage: 100, string: "Done", color: "#ef4444" };
+        return { percentage: 100, string: "Done", color: "#00c875" };
     }
 
     const elapsedMs = currentTimeLiveTick.value - startTimestamp;

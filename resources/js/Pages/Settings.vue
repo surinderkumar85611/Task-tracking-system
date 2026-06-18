@@ -345,28 +345,18 @@
                     <h2>Danger Zone</h2>
                     <p>Select a workspace to permanently delete it.</p>
                 </div>
-
-                <div v-if="workspaces.length" class="danger-actions">
-                    <div
-                        v-for="ws in workspaces"
-                        :key="ws.id"
-                        class="danger-item"
-                        :style="{ border: selectedWorkspace?.id === ws.id ? '2px solid #ef4444' : '' }"
-                        @click="selectedWorkspace = ws"
-                    >
+                <div v-if="selectedWorkspace" class="danger-actions">
+                    <div class="danger-item">
                         <div>
-                            <h4>{{ ws.name }}</h4>
-                            <p>{{ ws.description || 'No description' }}</p>
+                            <h4>{{ selectedWorkspace.name }}</h4>
+                            <p>{{ selectedWorkspace.description || 'No description' }}</p>
                         </div>
-
-                        <button class="danger-btn" @click.stop="deleteWorkspace(ws)">
+                        <button class="danger-btn" @click.stop="deleteWorkspace(selectedWorkspace)">
                             Delete
                         </button>
                     </div>
                 </div>
-
                 <p v-else>No workspaces available.</p>
-
             </section>
 
         </main>
@@ -380,7 +370,9 @@ import axios from "axios";
 import Sidebar from "./components/Sidebar.vue";
 import { useThemeStore } from "../stores/theme";
 import { useToast } from "vue-toastification";
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
+
+const page = usePage();
 
 const toast = useToast();
 const theme = useThemeStore();
@@ -448,7 +440,9 @@ const fetchWorkspaces = async () => {
         const res = await axios.get("/workspaces");
         workspaces.value = res.data;
         if (workspaces.value.length > 0) {
-            selectedWorkspace.value = workspaces.value[0];
+            selectedWorkspace.value = workspaces.value.find(
+                ws => ws.id === page.props.currentWorkspace
+            );
         }
     } catch (err) {
         console.error("Failed to fetch workspaces:", err);

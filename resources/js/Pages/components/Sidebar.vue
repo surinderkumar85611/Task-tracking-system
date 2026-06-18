@@ -142,9 +142,9 @@ const changeWorkspace = () => {
         {
             preserveState: false,
             preserveScroll: false,
-            onSuccess: () => {
-                router.visit('/dashboard');
-            },
+            // onSuccess: () => {
+            //     router.visit('/dashboard');
+            // },
         }
     );
 };
