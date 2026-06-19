@@ -7,28 +7,26 @@ use Illuminate\Database\Eloquent\Model;
 class Task extends Model
 {
     protected $fillable = [
+    'workspace_id',
+    'project_id',
+    'member_id',
+    'title',
+    'description',
+    'priority',
+    'status',
+    'due_date',
+    'notes',
+    'allocated_duration',
+    'timer_started_at',
+    'review',
+    'is_read'
+];
 
-        'workspace_id',
-        'project_id',
-        'member_id',
-
-        'title',
-        'description',
- 
-        'priority',
-        'status',
-
-        'due_date',
-        'notes',
-        'allocated_duration',
-        'timer_started_at',
-        'review'
-    ];
-
-    protected $casts = [
-        'notes' => 'array',
-        'member_id' => 'array',
-    ];
+protected $casts = [
+    'notes' => 'array',
+    'member_id' => 'array',
+    'is_read' => 'boolean', 
+];
 
     public function project()
     {

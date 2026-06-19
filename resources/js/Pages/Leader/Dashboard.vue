@@ -23,57 +23,46 @@
               {{ theme.isDark ? '☀️' : '🌙' }}
             </button>
 
-            <!-- NOTIFICATION BELL -->
             <div class="notification-bell-container" v-click-outside="handleClickOutside">
               <button class="icon-btn"
                 @click.stop="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
 
                 🔔
 
-                <!-- BADGE FIX -->
-                <span v-if="unreadNotifications.length" class="bell-alert-badge-dot">
-                  {{ unreadNotifications.length }}
+                <span v-if="unreadCount > 0" class="bell-alert-badge-dot">
+                  {{ unreadCount }}
                 </span>
 
               </button>
 
-              <!-- DROPDOWN -->
               <div v-if="notificationStore?.showBellDropdown" class="notification-dropdown-panel">
-
                 <div class="notification-dropdown-header">
                   <h3>Notifications</h3>
+                  <button v-if="unreadNotifications.length" @click="markAllRead" class="mark-all-link">
+                    Mark all read
+                  </button>
                 </div>
-                <button @click="markAllRead" class="mark-all-btn">
-                  Mark all read
-                </button>
+
                 <div class="notification-dropdown-body">
-
-                  <!-- UPDATED NOTIFICATION LIST -->
-                  <div v-for="notification in unreadNotifications" :key="notification.id"
-                    class="notification-alert-item" @click="markAsRead(notification.id)">
-                    <div class="alert-item-indicator">🔔</div>
-
-                    <div class="alert-item-details">
-                      <p class="alert-task-title">
-                        {{ notification.title }}
-                      </p>
-
-                      <p class="alert-task-time-left">
-                        {{ notification.message }}
-                      </p>
+                  <div v-if="unreadNotifications.length > 0" class="notification-scroll-area">
+                    <div v-for="notification in unreadNotifications" :key="notification.id"
+                      class="notification-alert-item" :class="{ 'is-read-style': notification.is_read }">
+                      <div class="alert-item-indicator">🔔</div>
+                      <div class="alert-item-details">
+                        <p class="alert-task-title">{{ notification.title }}</p>
+                        <p class="alert-task-time-left">{{ notification.message }}</p>
+                      </div>
                     </div>
                   </div>
 
-                  <!-- EMPTY STATE FIX -->
-                  <div v-if="unreadNotifications.length === 0" class="notification-empty-state">
-                    🎉 No notifications right now.
+                  <div v-else class="notification-empty-state">
+                    <span class="empty-icon">🎉</span>
+                    <p>No notifications right now.</p>
                   </div>
-
                 </div>
               </div>
             </div>
 
-            <!-- PROFILE -->
             <div class="profile-container">
               <img src="https://i.pravatar.cc/100" class="avatar" @click.stop="showProfileMenu = !showProfileMenu" />
               <div v-if="showProfileMenu" class="profile-dropdown">
@@ -83,8 +72,6 @@
 
           </div>
         </header>
-
-        <!-- REST OF YOUR FILE REMAINS EXACTLY SAME -->
 
         <section class="stats-grid">
           <div class="stat-card total-projects-card">
@@ -230,7 +217,7 @@ const props = defineProps({
   stats: Object,
   statusBreakdown: Object,
   currentWorkspaceId: Number,
-  notifications: Array   // ✅ ADDED
+  notifications: Array
 });
 
 const workspaces = computed(() => page.props.workspaces || []);
@@ -268,7 +255,12 @@ const teamWorkload = computed(() => {
 });
 
 const logout = () => {
-  router.post("/logout");
+  router.post("/logout", {}, {
+    replace: true,
+    onSuccess: () => {
+      window.location.href = "/login";
+    }
+  });
 };
 
 const handleClickOutside = (event) => {
@@ -286,22 +278,38 @@ const handleClickOutside = (event) => {
 
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
+  setInterval(() => {
+    router.reload({ only: ['notifications'] });
+  }, 30000);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener("click", handleClickOutside);
 });
+
 const unreadNotifications = computed(() => {
-  return (props.notifications || []).filter(n => !n.is_read);
+  return props.notifications || [];
 });
+
+const unreadCount = computed(() => {
+  return (props.notifications || []).filter(n => !n.is_read).length;
+});
+
 const markAsRead = (id) => {
   router.put(`/notifications/${id}/read`, {}, {
     preserveScroll: true,
+    onSuccess: () => {
+      router.reload({ only: ['notifications'] });
+    }
   });
 };
+
 const markAllRead = () => {
   router.put('/notifications/read-all', {}, {
     preserveScroll: true,
+    onSuccess: () => {
+      router.reload({ only: ['notifications'] });
+    }
   });
 };
 </script>
@@ -917,5 +925,46 @@ const markAllRead = () => {
   border-radius: 14px;
   outline: none;
   cursor: pointer;
+}
+
+.notification-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mark-all-link {
+  background: none;
+  border: none;
+  color: #38bdf8;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+}
+
+.mark-all-link:hover {
+  text-decoration: underline;
+}
+
+.notification-scroll-area {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.notification-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  color: #94a3b8;
+}
+
+.notification-alert-item.is-read-style {
+  opacity: 0.6;
+  background-color: transparent;
 }
 </style>

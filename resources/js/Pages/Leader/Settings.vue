@@ -1,4 +1,5 @@
 <template>
+
     <Head title="Settings" />
     <div class="dashboard" :class="theme.themeClass">
 
@@ -81,7 +82,7 @@
 
                 </div>
 
-               
+
             </section>
 
             <!-- WORKSPACE TAB -->
@@ -162,16 +163,18 @@
                         <div class="form-group">
                             <label>Current Password</label>
                             <div class="password-wrapper">
-                                <input :type="showCurrentPassword ? 'text' : 'password'" v-model="security.currentPassword"
-                                    placeholder="Enter current password" @blur="
+                                <input :type="showCurrentPassword ? 'text' : 'password'"
+                                    v-model="security.currentPassword" placeholder="Enter current password" @blur="
                                         validateCurrentPassword();
-                                        handlePasswordBlur('currentPassword')
+                                    handlePasswordBlur('currentPassword')
                                         " @input="validateCurrentPassword" />
-                                <button type="button" class="eye-btn" @click="showCurrentPassword = !showCurrentPassword">
+                                <button type="button" class="eye-btn"
+                                    @click="showCurrentPassword = !showCurrentPassword">
                                     {{ showCurrentPassword ? '👁️' : '👁️' }}
                                 </button>
                             </div>
-                            <p v-if="passwordErrors.currentPassword && passwordTouched.currentPassword" class="error-text">
+                            <p v-if="passwordErrors.currentPassword && passwordTouched.currentPassword"
+                                class="error-text">
                                 {{ passwordErrors.currentPassword }}
                             </p>
                         </div>
@@ -182,7 +185,7 @@
                                 <input :type="showNewPassword ? 'text' : 'password'" v-model="security.newPassword"
                                     placeholder="Enter new password" @blur="
                                         validateNewPassword();
-                                        handlePasswordBlur('newPassword')
+                                    handlePasswordBlur('newPassword')
                                         " @input="validateNewPassword" />
                                 <button type="button" class="eye-btn" @click="showNewPassword = !showNewPassword">
                                     {{ showNewPassword ? '👁️' : '👁️' }}
@@ -196,16 +199,18 @@
                         <div class="form-group">
                             <label>Confirm Password</label>
                             <div class="password-wrapper">
-                                <input :type="showConfirmPassword ? 'text' : 'password'" v-model="security.confirmPassword"
-                                    placeholder="Confirm new password" @blur="
+                                <input :type="showConfirmPassword ? 'text' : 'password'"
+                                    v-model="security.confirmPassword" placeholder="Confirm new password" @blur="
                                         validateConfirmPassword();
-                                        handlePasswordBlur('confirmPassword')
+                                    handlePasswordBlur('confirmPassword')
                                         " @input="validateConfirmPassword" />
-                                <button type="button" class="eye-btn" @click="showConfirmPassword = !showConfirmPassword">
+                                <button type="button" class="eye-btn"
+                                    @click="showConfirmPassword = !showConfirmPassword">
                                     {{ showConfirmPassword ? '👁️' : '👁️' }}
                                 </button>
                             </div>
-                            <p v-if="passwordErrors.confirmPassword && passwordTouched.confirmPassword" class="error-text">
+                            <p v-if="passwordErrors.confirmPassword && passwordTouched.confirmPassword"
+                                class="error-text">
                                 {{ passwordErrors.confirmPassword }}
                             </p>
                         </div>
@@ -231,6 +236,12 @@
                             <p style="color: #4caf50; font-weight: bold; margin-bottom: 12px;">
                                 🔒 Two-Factor Authentication is currently active on your account.
                             </p>
+
+                            <div class="form-group inline-verification-input" style="margin-bottom: 15px;">
+                                <label>Enter 6-digit code to confirm disabling</label>
+                                <input v-model="twoFA.code" placeholder="123456" />
+                            </div>
+
                             <button class="primary-btn danger-btn" @click="disable2FA" :disabled="twoFA.loading">
                                 {{ twoFA.loading ? "Disabling..." : "Disable 2FA" }}
                             </button>
@@ -248,7 +259,7 @@
                             <div v-if="twoFA.qr" class="qr-box">
                                 <p>Scan this QR in Google Authenticator:</p>
                                 <qrcode-vue :value="twoFA.qr" :size="200" level="H" />
-                                
+
                                 <p class="manual-code"><strong>Or enter manually:</strong></p>
                                 <code>{{ twoFA.secret }}</code>
 
@@ -308,17 +319,6 @@
                         </div>
                         <label class="switch">
                             <input type="checkbox" v-model="notifications.projects">
-                            <span></span>
-                        </label>
-                    </div>
-
-                    <div class="notify-item">
-                        <div>
-                            <h4>Weekly Reports</h4>
-                            <p>Receive productivity summaries.</p>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" v-model="notifications.reports">
                             <span></span>
                         </label>
                     </div>
@@ -401,6 +401,18 @@ const fetchProfile = async () => {
         profile.id = user.id;
         profile.name = user.name;
         profile.email = user.email;
+
+        if (user.notification_preferences) {
+            notifications.email = !!user.notification_preferences.email;
+            notifications.tasks = !!user.notification_preferences.tasks;
+            notifications.projects = !!user.notification_preferences.projects;
+            notifications.reports = !!user.notification_preferences.reports;
+
+            originalNotifications.email = !!user.notification_preferences.email;
+            originalNotifications.tasks = !!user.notification_preferences.tasks;
+            originalNotifications.projects = !!user.notification_preferences.projects;
+            originalNotifications.reports = !!user.notification_preferences.reports;
+        }
 
         twoFA.enabled =
             user.two_factor_enabled === 1 ||
@@ -528,7 +540,12 @@ const notifications = reactive({
     projects: true,
     reports: false,
 });
-
+const originalNotifications = reactive({
+    email: true,
+    tasks: true,
+    projects: true,
+    reports: false,
+});
 const stats = reactive({
     members: 18,
     projects: 7,
@@ -585,30 +602,55 @@ const enable2FA = async () => {
 };
 
 const disable2FA = async () => {
-    if (!confirm("Are you sure you want to disable Two-Factor Authentication?")) {
+    if (!twoFA.code) {
+        toast.error("Please enter your 6-digit verification code to disable 2FA");
         return;
     }
 
     try {
         twoFA.loading = true;
-        await axios.post("/leader/2fa/disable");
+        await axios.post("/leader/2fa/disable", { code: twoFA.code });
+
         twoFA.enabled = false;
         twoFA.qr = null;
         twoFA.secret = null;
         twoFA.code = "";
+
         toast.success("2FA has been disabled successfully");
     } catch (err) {
         console.error(err);
-        toast.error(err.response?.data?.message || "Failed to disable 2FA");
+        toast.error(err.response?.data?.message || "Invalid verification code. Failed to disable 2FA");
     } finally {
         twoFA.loading = false;
     }
 };
 
 const saveNotificationPreferences = async () => {
+    const hasChanges = 
+        notifications.email !== originalNotifications.email ||
+        notifications.tasks !== originalNotifications.tasks ||
+        notifications.projects !== originalNotifications.projects ||
+        notifications.reports !== originalNotifications.reports;
+
+    if (!hasChanges) {
+        toast.warning("Nothing to update on saving the preferences");
+        return;
+    }
+
     try {
-        await axios.put("/user/notification-preferences", notifications);
-        toast.success("Updated successfully, we will notify you about this.");
+        await axios.put("/user/notification-preferences", {
+            email: notifications.email,
+            tasks: notifications.tasks,
+            projects: notifications.projects,
+            reports: notifications.reports
+        });
+
+        originalNotifications.email = notifications.email;
+        originalNotifications.tasks = notifications.tasks;
+        originalNotifications.projects = notifications.projects;
+        originalNotifications.reports = notifications.reports;
+
+        toast.success("Preferences saved successfully");
     } catch (error) {
         console.error("Failed to save preferences:", error);
         toast.error("Failed to update preferences");

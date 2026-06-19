@@ -276,7 +276,14 @@ const isOverdue = (dateStr) => {
   return dateStr.toLowerCase().includes('june 19');
 };
 
-const logout = () => router.post("/logout");
+const logout = () => {
+    router.post("/logout", {}, {
+        replace: true,
+        onSuccess: () => {
+            window.location.href = "/login";
+        }
+    });
+};
 const markAsRead = (id) => router.put(`/notifications/${id}/read`, {}, { preserveScroll: true });
 const markAllRead = () => router.put('/notifications/read-all', {}, { preserveScroll: true });
 

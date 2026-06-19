@@ -164,8 +164,7 @@
                                             :class="{ 'has-notes': task.notes && task.notes.length > 0 }"
                                             @click="openUpdatesSidebar(task, project)" title="Open task updates">
                                             💬
-                                            <span v-if="task.notes && task.notes.length > 0"
-                                                class="update-indicator-dot"></span>
+                                            <span v-if="task.notes && task.notes.length > 0 && !task.is_read" class="update-indicator-dot"></span>
                                         </button>
                                     </td>
                                     <td class="cell-member" style="position: relative; padding: 0;">
@@ -462,7 +461,7 @@
                                         </span>
                                         <span class="chat-bubble-time">{{ formatDate(note.created_at) }}</span>
                                     </div>
-                                    <div class="chat-bubble-body" v-html="note.text"></div>
+                                    <div class="chat-bubble-body ck-content" v-html="note.text"></div>
                                 </div>
 
                             </div>
@@ -474,11 +473,8 @@
 
                         <div class="notes-editor-section">
                             <label class="editor-label">Write a new update or modify directions:</label>
-                            <textarea
-    v-model="updatesDraftText"
-    class="updates-textarea"
-    placeholder="Write your update here..."
-></textarea>
+
+                            <ckeditor :editor="editor" v-model="updatesDraftText" :config="editorConfig" />
                         </div>
                     </div>
 
@@ -522,39 +518,236 @@ import Sidebar from "./Sidebar.vue";
 import { useThemeStore } from "../../stores/theme";
 import { useNotificationStore } from "../../stores/notificationStore";
 import { Head } from '@inertiajs/vue3';
-import { ClassicEditor } from 'ckeditor5';
-import { Ckeditor } from '@ckeditor/ckeditor5-vue';
+import {
+    ClassicEditor,
+    Essentials,
+    Paragraph,
+    Bold,
+    Italic,
+    Underline,
+    Heading,
+    Link,
+    List,
+    BlockQuote,
 
+    Image,
+    ImageToolbar,
+    ImageUpload,
+    ImageResize,
+
+    MediaEmbed,
+
+    Table,
+    TableToolbar,
+
+    Alignment,
+    Font,
+    Indent,
+
+    SourceEditing
+} from 'ckeditor5';
+import { Ckeditor } from '@ckeditor/ckeditor5-vue';
+class LaravelUploadAdapter {
+
+    constructor(loader) {
+        this.loader = loader;
+    }
+
+
+    upload() {
+
+        return this.loader.file.then(file => {
+
+            const data = new FormData();
+
+            data.append('upload', file);
+
+
+            return fetch('/ckeditor/upload', {
+
+                method: 'POST',
+
+                headers: {
+                    'X-CSRF-TOKEN':
+                        document.querySelector(
+                            'meta[name="csrf-token"]'
+                        ).content
+                },
+
+                body: data
+
+            })
+                .then(res => res.json())
+                .then(res => {
+
+                    return {
+                        default: res.url
+                    };
+
+                });
+
+        });
+    }
+
+
+    abort() { }
+
+}
+function uploadPlugin(editor) {
+
+    editor.plugins
+        .get('FileRepository')
+        .createUploadAdapter = loader => {
+
+            return new LaravelUploadAdapter(loader);
+
+        };
+
+}
 const theme = useThemeStore();
 const toast = useToast();
 const page = usePage();
 const notificationStore = useNotificationStore();
-const ckeditor = Ckeditor;
 const editor = ClassicEditor;
-const editorConfig = ref({
+const ckeditor = Ckeditor;
+const editorConfig = {
+
+    licenseKey: 'GPL',
+
+    extraPlugins: [
+        uploadPlugin
+    ],
+
+    plugins: [
+
+        Essentials,
+        Paragraph,
+
+        Bold,
+        Italic,
+        Underline,
+
+        Heading,
+        Link,
+        List,
+        BlockQuote,
+
+        Image,
+        ImageToolbar,
+        ImageUpload,
+        ImageResize,
+
+        MediaEmbed,
+
+        Table,
+        TableToolbar,
+
+        Alignment,
+        Font,
+        Indent,
+
+        SourceEditing
+    ],
+
+
     toolbar: [
+        'undo',
+        'redo',
+
+        '|',
+
+        'heading',
+
+        '|',
+
+        'fontFamily',
+        'fontSize',
+
+        '|',
+
+        'fontColor',
+        'fontBackgroundColor',
+
+        '|',
+
         'bold',
         'italic',
+        'underline',
+
         '|',
+
+        'alignment',
+
+        '|',
+
+        'link',
+
+        '|',
+
         'bulletedList',
         'numberedList',
-        '|',
-        'undo',
-        'redo'
-    ],
-    placeholder: 'Write your update here...',
-    removePlugins: [
-        'Image',
-        'ImageToolbar',
-        'ImageUpload',
-        'MediaEmbed',
-        'Table',
-        'CKFinder',
-        'EasyImage',
-        'Link'
-    ]
-});
 
+        '|',
+
+        'outdent',
+        'indent',
+
+        '|',
+
+        'insertTable',
+
+        '|',
+
+        'insertImage',
+
+        '|',
+
+        'mediaEmbed',
+
+        '|',
+
+        'blockQuote',
+
+        '|',
+
+        'sourceEditing'
+    ],
+
+
+    image: {
+
+        toolbar: [
+            'imageTextAlternative',
+            'imageResize',
+            'imageStyle:inline',
+            'imageStyle:block'
+        ]
+
+    },
+
+    table: {
+        contentToolbar: [
+            'tableColumn',
+            'tableRow',
+            'mergeTableCells'
+        ]
+    },
+    simpleUpload: {
+
+        uploadUrl: '/ckeditor/upload',
+
+        headers: {
+
+            'X-CSRF-TOKEN':
+                document.querySelector(
+                    'meta[name="csrf-token"]'
+                ).content
+
+        }
+
+    }
+
+};
 const props = defineProps({
     projects: { type: Array, default: () => [] },
     teamLeaders: { type: Array, default: () => [] },
@@ -691,7 +884,7 @@ const getProjectScopeMembers = (project) => {
     if (!project || !project.team_leader) return [];
     const leader = project.team_leader;
     const assets = leader.team_members || [];
-    
+
     if (isAdmin.value) {
         const managerNode = { id: leader.id, first_name: leader.first_name, last_name: " (TL)" };
         return [managerNode, ...assets];
@@ -854,14 +1047,36 @@ const showUpdatesSidebarPane = ref(false);
 const activeTaskForUpdates = ref(null);
 const activeProjectForUpdates = ref(null);
 const updatesDraftText = ref("");
-
 const openUpdatesSidebar = (task, project) => {
     activeTaskForUpdates.value = task;
     activeProjectForUpdates.value = project;
     updatesDraftText.value = "";
     showUpdatesSidebarPane.value = true;
-};
 
+    task.is_read = true;
+    notificationStore.setProjectsSource(projectsData.value);
+
+    
+    const updatePayload = {
+        id: task.id,
+        project_id: task.project_id,
+        title: task.title,
+        member_id: task.member_id,
+        status: task.status,
+        priority: task.priority,
+        deadline: task.due_date || task.deadline,
+        allocated_duration: task.allocated_duration,
+        timer_started_at: task.timer_started_at,
+        is_read: true 
+    };
+
+    router.put(`/task/${task.id}`, updatePayload, {
+        preserveScroll: true,
+        onError: () => { 
+            console.error("Failed to persist notification read status to server."); 
+        }
+    });
+};
 const closeUpdatesSidebar = () => {
     showUpdatesSidebarPane.value = false;
     activeTaskForUpdates.value = null;
@@ -1022,7 +1237,12 @@ const getMemberFullName = (project, memberId) => {
 };
 
 const logout = () => {
-    router.post('/logout');
+    router.post("/logout", {}, {
+        replace: true,
+        onSuccess: () => {
+            window.location.href = "/login";
+        }
+    });
 };
 
 </script>
@@ -2413,7 +2633,31 @@ tbody tr {
 }
 
 /* Fix any dropdown rendering bugs inside absolute modals */
-.notes-editor-section .ck-body-wrapper {
-    z-index: 99999 !important;
+/* Fix any dropdown and link balloon rendering bugs inside absolute modals */
+:deep(.ck-body-wrapper) {
+    z-index: 999999 !important;
+}
+
+:deep(.ck-balloon-panel) {
+    z-index: 999999 !important;
+    position: fixed !important;
+    /* Forces the link window to stay on top of the modal */
+}
+
+:deep(.ck.ck-dropdown__panel) {
+    z-index: 999999 !important;
+}
+
+:deep(.ck.ck-tooltip) {
+    z-index: 999999 !important;
+}
+</style>
+<style>
+/* Global styles to target CKEditor elements appended directly to the body */
+.ck-body-wrapper,
+.ck.ck-body-wrapper,
+.ck-balloon-panel {
+    z-index: 9999999 !important;
+    position: fixed !important;
 }
 </style>
