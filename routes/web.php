@@ -205,8 +205,12 @@ Route::middleware(['auth'])->group(function () {
 Route::post('/user/change-password', [UserController::class, 'changePassword']);
 Route::get('/user/profile', [UserController::class, 'profile']);
 
-Route::get('/member/me', [MemberController::class, 'me']);
-Route::put('/member/{member}', [MemberController::class, 'update']);
+Route::middleware('auth')->prefix('member')->group(function () {
+    Route::get('/me', [MemberController::class, 'me']);
+    Route::put('/{member}', [MemberController::class, 'update']);
+    Route::put('/{member}/assign', [MemberController::class, 'assignMember']);
+    Route::put('/{member}/assign-workspace', [MemberController::class, 'assignWorkspace']);
+});
 
 Route::post('/invite/generate', [InvitationController::class, 'generate']);
 Route::get('/invite/accept/{token}', [InvitationController::class, 'accept']);
@@ -261,4 +265,3 @@ Route::prefix('notifications')->middleware('auth')->group(function () {
 Route::post('/api/v1/task-attachments', [TaskAttachmentController::class, 'upload']);
 // Kept without auth middleware temporarily so you can preview it instantly without logging in!
 Route::get('/member/dashboard/preview', [MDashboardController::class, 'index']);
-

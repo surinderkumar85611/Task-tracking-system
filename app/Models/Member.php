@@ -34,4 +34,20 @@ class Member extends Model
             'member_id'
         );
     }
+
+    public function manager()
+    {
+        return $this->belongsTo(
+            Member::class,
+            'reports_to'
+        );
+    }
+
+    public function subordinates()
+    {
+        return $this->hasMany(
+            Member::class,
+            'reports_to'
+        );
+    }
 }
