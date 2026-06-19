@@ -126,6 +126,11 @@
                                     <option value="TL">Team Leader</option>
                                     <option value="Member">Team Member</option>
                                 </select>
+                                <select v-if="form.role === 'TL'" v-model="form.level">
+                                    <option value="3">Senior TL</option>
+                                    <option value="2">TL Level 2</option>
+                                    <option value="1">TL Level 1</option>
+                                </select>
                                 <small v-if="errors.role" class="error-text">{{ errors.role }}</small>
                             </div>
                         </div>
@@ -219,27 +224,38 @@
                 </section>
             </div>
 
-            <section v-if="orphanMembers.length" class="panel-card">
+            <section v-if="emptyMembers.length" class="panel-card orphan-panel">
 
-                <h2>Members Without Workspace</h2>
-
-                <div v-for="member in orphanMembers" :key="member.id" class="member-sub-pill-row" draggable="true"
-                    @dragstart="dragMember(member)">
-                    <div class="mini-avatar-dot">
-                        {{ getInitials(member.first_name, member.last_name) }}
-                    </div>
-
-                    <div>
-                        <strong>
-                            {{ member.first_name }}
-                            {{ member.last_name }}
-                        </strong>
-
-                        <p>
-                            {{ member.role }}
-                        </p>
-                    </div>
+                <div class="panel-header">
+                    <h2>Members Without Workspace</h2>
+                    <span class="member-count">
+                        {{ emptyMembers.length }}
+                    </span>
                 </div>
+
+                <div class="orphan-grid">
+
+                    <div v-for="member in emptyMembers" :key="member.id" class="orphan-card" draggable="true"
+                        @dragstart="dragMember(member)">
+                        <div class="orphan-avatar">
+                            {{ getInitials(member.first_name, member.last_name) }}
+                        </div>
+
+                        <div class="orphan-info">
+                            <h4>
+                                {{ member.first_name }}
+                                {{ member.last_name }}
+                            </h4>
+
+                            <span class="orphan-role" :class="member.role === 'TL' ? 'leader-role' : 'member-role'">
+                                {{ member.role }}
+                            </span>
+                        </div>
+
+                    </div>
+
+                </div>
+
             </section>
 
             <section class="member-layout margin-top-grid">
@@ -254,85 +270,11 @@
                     </div>
 
                     <div class="hierarchy-directory-wrapper">
-                        <template v-if="props.teamLeaders.length">
-                            <div class="tl-hierarchy-block-card" v-for="leader in props.teamLeaders" :key="leader.id"
-                                @dragover.prevent @drop="dropMember(leader.id)">
-
-                                <div class="tl-card-info-header">
-                                    <div class="avatar-circle-initials" @click="openEditModal(leader)"
-                                        style="cursor:pointer">
-                                        {{ getInitials(leader.first_name, leader.last_name) }}
-                                    </div>
-
-                                    <div class="tl-details-column">
-                                        <h3>{{ leader.role === 'TL' ? 'Team Leader' : 'Team Member' }}</h3>
-
-                                        <span class="role-pill-tag tl-badge">
-                                            {{ leader.department }}
-                                        </span>
-                                    </div>
-
-                                    <div class="tl-meta-right">
-                                        <span class="count-badge">{{ leader.team_members.length }} Members</span>
-                                    </div>
-                                </div>
-
-                                <div class="subordinates-list-segment">
-                                    <div v-if="leader.team_members && leader.team_members.length > 0"
-                                        class="subordinates-flex-grid">
-                                        <div v-for="member in leader.team_members || []" :key="member.id"
-                                            class="member-sub-pill-row" draggable="true"
-                                            @dragstart="dragMember(member)">
-
-                                            <div class="mini-avatar-dot" @click.stop="openEditModal(member)"
-                                                style="cursor:pointer">
-                                                {{ getInitials(member.first_name, member.last_name) }}
-
-                                                <div class="member-rich-tooltip-box">
-                                                    <div class="tooltip-header-row">
-                                                        <span class="tooltip-avatar-badge">
-                                                            {{ getInitials(member.first_name, member.last_name) }}
-                                                        </span>
-                                                        <div class="tooltip-title-block">
-                                                            <h4>{{ member.first_name }} {{ member.last_name }}</h4>
-                                                            <p class="tooltip-email-label">
-                                                                {{ member.email || 'No email saved' }}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="tooltip-details-grid">
-                                                        <div class="tooltip-meta-item">
-                                                            <span class="meta-label-title">Role</span>
-                                                            <span class="meta-value-text role-tag-pill">{{ member.role
-                                                                || 'Team Member' }}</span>
-                                                        </div>
-                                                        <div class="tooltip-meta-item">
-                                                            <span class="meta-label-title">Department</span>
-                                                            <span class="meta-value-text">{{ member.department ||
-                                                                'General Operations' }}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div v-else class="empty-subordinates-state">
-                                        🍃 Drag and drop members here to assign them to this leader.
-                                    </div>
-                                    <div class="assign-tl-zone" @dragover.prevent @drop="dropLeader(leader.id)">
-                                        Drop Team Here
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="assign-tl-zone" @dragover.prevent @drop="dropTeamLeaderToWorkspace">
-                                ➕ Drop Team Leader Here
-                            </div>
-                        </template>
-
-                        <div v-else class="empty-subordinates-state text-center-pad">
-                            No Team Leaders created yet.
+                        <TeamHierarchy :leaders="teamLeaders" :currentWorkspace="currentWorkspace"
+                            @drop-member="dropMember" @drop-leader="dropLeader"
+                            @assign-workspace="dropTeamLeaderToWorkspace" />
+                        <div class="independent-zone" @dragover.prevent @drop="makeIndependent">
+                            ➖ Make Independent
                         </div>
                     </div>
                 </div>
@@ -368,7 +310,6 @@
                 </div>
 
             </section>
-
 
             <Transition name="modal-fade">
                 <div v-if="showEditModal" class="modal-backdrop-blur-overlay" @click.self="showEditModal = false">
@@ -499,14 +440,14 @@
 </template>
 
 <script setup>
-import { onMounted } from "vue";
-import { ref, reactive, computed, onBeforeUnmount } from "vue";
+import { ref, reactive, computed, onBeforeUnmount, onMounted, watch } from "vue";
 import Sidebar from "./components/Sidebar.vue";
 import { useThemeStore } from "../stores/theme";
 import { router, usePage } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 import { useNotificationStore } from "../stores/notificationStore";
 import { Head } from '@inertiajs/vue3';
+import TeamHierarchy from "./TeamHierarchy.vue";
 
 const notificationStore = useNotificationStore();
 
@@ -518,6 +459,7 @@ const showInviteModal = ref(false);
 const showProfileMenu = ref(false);
 const showEditModal = ref(false);
 const selectedMember = ref(null);
+const draggedItem = ref(null);
 
 const editMember = reactive({
     id: null,
@@ -586,6 +528,7 @@ const form = reactive({
     phone: "",
     department: "",
     role: "Member",
+    level: null
 });
 const editForm = reactive({
     first_name: "",
@@ -594,6 +537,7 @@ const editForm = reactive({
     phone: "",
     department: "",
     role: "",
+    level: ""
 });
 const editErrors = reactive({
     first_name: "",
@@ -623,7 +567,7 @@ const props = defineProps({
     members: Array,
     teamLeaders: Array,
     currentWorkspace: Number,
-    orphanMembers: Array,
+    emptyMembers: Array,
     workspaces: Array,
 });
 
@@ -646,7 +590,7 @@ const unassignedMembers = computed(() =>
     )
 );
 
-const orphanLeaders = computed(() =>
+const emptyLeaders = computed(() =>
     props.members.filter(
         member =>
             !member.workspace_id &&
@@ -654,7 +598,7 @@ const orphanLeaders = computed(() =>
     )
 );
 
-const orphanTeamMembers = computed(() =>
+const emptyTeamMembers = computed(() =>
     props.members.filter(
         member =>
             !member.workspace_id &&
@@ -835,7 +779,16 @@ const copyToClipboard = () => {
 };
 
 const dragMember = (member) => {
-    draggedMember.value = member;
+    draggedItem.value = member;
+    event.dataTransfer.setData('type', 'member');
+};
+
+const dragLeader = (leader) => {
+    if (draggedMember.level == 3) {
+        return;
+    }
+    draggedItem.value = leader;
+    event.dataTransfer.setData('type', 'leader');
 };
 
 const dropMember = (leaderId) => {
@@ -858,12 +811,12 @@ const dropMember = (leaderId) => {
                         assigned_to: leaderId
                     });
 
-                    const index = props.orphanMembers.findIndex(
+                    const index = props.emptyMembers.findIndex(
                         m => m.id === member.id
                     );
 
                     if (index !== -1) {
-                        props.orphanMembers.splice(index, 1);
+                        props.emptyMembers.splice(index, 1);
                     }
                 }
 
@@ -895,12 +848,12 @@ const dropTeamLeaderToWorkspace = () => {
         {
             onSuccess: () => {
 
-                const index = props.orphanMembers.findIndex(
+                const index = props.emptyMembers.findIndex(
                     m => m.id === draggedMember.value.id
                 );
 
                 if (index !== -1) {
-                    props.orphanMembers.splice(index, 1);
+                    props.emptyMembers.splice(index, 1);
                 }
 
                 toast.success(
@@ -1022,9 +975,29 @@ const vClickOutside = {
         document.removeEventListener("click", el.clickOutsideEvent);
     },
 };
+
+const makeIndependent = () => {
+
+    if (!draggedMember.value) return;
+
+    router.put(
+        route(
+            'members.make-independent',
+            draggedMember.value.id
+        )
+    );
+
+    draggedMember.value = null;
+};
+
+watch(() => form.role, (role) => {
+    if (role !== 'TL') {
+        form.level = null;
+    }
+});
 </script>
 
-<style scoped>
+<style>
 .main-content {
     flex: 1;
     padding: 25px;
@@ -1721,5 +1694,131 @@ const vClickOutside = {
 
 .assign-tl-zone:hover {
     background: rgba(99, 102, 241, .08);
+}
+
+.orphan-panel {
+    margin-top: 20px;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.member-count {
+    background: rgba(59, 130, 246, .15);
+    color: #60a5fa;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.orphan-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.orphan-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    background: rgba(255, 255, 255, .03);
+    cursor: grab;
+    transition: all .25s ease;
+}
+
+.orphan-card:hover {
+    transform: translateY(-3px);
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, .08);
+}
+
+.orphan-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: linear-gradient(135deg,
+            #06b6d4,
+            #3b82f6);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: white;
+    font-weight: 700;
+}
+
+.orphan-info h4 {
+    margin: 0;
+    font-size: 14px;
+    color: white;
+}
+
+.orphan-role {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.leader-role {
+    background: rgba(168, 85, 247, .15);
+    color: #c084fc;
+}
+
+.member-role {
+    background: rgba(16, 185, 129, .15);
+    color: #34d399;
+}
+
+.nested-leader-card {
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .03);
+    border-left: 3px solid #8b5cf6;
+}
+
+.nested-leader-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.nested-members {
+    margin-left: 40px;
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.independent-zone {
+    margin-top: 15px;
+    padding: 16px;
+    text-align: center;
+
+    border: 2px dashed #ef4444;
+    border-radius: 12px;
+
+    color: #ef4444;
+    font-weight: 600;
+
+    transition: .2s;
+}
+
+.independent-zone:hover {
+    background: rgba(239, 68, 68, .08);
 }
 </style>
