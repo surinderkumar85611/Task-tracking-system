@@ -1,4 +1,5 @@
 <template>
+
     <Head title="Member" />
     <div class="dashboard" :class="theme.themeClass">
 
@@ -218,6 +219,29 @@
                 </section>
             </div>
 
+            <section v-if="orphanMembers.length" class="panel-card">
+
+                <h2>Members Without Workspace</h2>
+
+                <div v-for="member in orphanMembers" :key="member.id" class="member-sub-pill-row" draggable="true"
+                    @dragstart="dragMember(member)">
+                    <div class="mini-avatar-dot">
+                        {{ getInitials(member.first_name, member.last_name) }}
+                    </div>
+
+                    <div>
+                        <strong>
+                            {{ member.first_name }}
+                            {{ member.last_name }}
+                        </strong>
+
+                        <p>
+                            {{ member.role }}
+                        </p>
+                    </div>
+                </div>
+            </section>
+
             <section class="member-layout margin-top-grid">
 
                 <div class="panel-card-container">
@@ -239,7 +263,6 @@
                                         style="cursor:pointer">
                                         {{ getInitials(leader.first_name, leader.last_name) }}
                                     </div>
-
 
                                     <div class="tl-details-column">
                                         <h3>{{ leader.role === 'TL' ? 'Team Leader' : 'Team Member' }}</h3>
@@ -272,7 +295,9 @@
                                                         </span>
                                                         <div class="tooltip-title-block">
                                                             <h4>{{ member.first_name }} {{ member.last_name }}</h4>
-                                                            <p class="tooltip-email-label">{{ member.email || 'No email saved' }}</p>
+                                                            <p class="tooltip-email-label">
+                                                                {{ member.email || 'No email saved' }}
+                                                            </p>
                                                         </div>
                                                     </div>
 
@@ -296,7 +321,13 @@
                                     <div v-else class="empty-subordinates-state">
                                         🍃 Drag and drop members here to assign them to this leader.
                                     </div>
+                                    <div class="assign-tl-zone" @dragover.prevent @drop="dropLeader(leader.id)">
+                                        Drop Team Here
+                                    </div>
                                 </div>
+                            </div>
+                            <div class="assign-tl-zone" @dragover.prevent @drop="dropTeamLeaderToWorkspace">
+                                ➕ Drop Team Leader Here
                             </div>
                         </template>
 
@@ -592,6 +623,8 @@ const props = defineProps({
     members: Array,
     teamLeaders: Array,
     currentWorkspace: Number,
+    orphanMembers: Array,
+    workspaces: Array,
 });
 
 const handleClickOutside = (event) => {
@@ -606,7 +639,27 @@ onMounted(() => {
 });
 
 const unassignedMembers = computed(() =>
-    props.members.filter(member => !member.assigned_to)
+    props.members.filter(
+        member =>
+            member.role === 'Member' &&
+            !member.assigned_to
+    )
+);
+
+const orphanLeaders = computed(() =>
+    props.members.filter(
+        member =>
+            !member.workspace_id &&
+            member.role === 'TL'
+    )
+);
+
+const orphanTeamMembers = computed(() =>
+    props.members.filter(
+        member =>
+            !member.workspace_id &&
+            member.role === 'TM'
+    )
 );
 
 const getInitials = (firstName, lastName) => {
@@ -788,17 +841,76 @@ const dragMember = (member) => {
 const dropMember = (leaderId) => {
     if (!draggedMember.value) return;
     router.put(
-        `/members/${draggedMember.value.id}/assign`,
+        `/member/${draggedMember.value.id}/assign`,
         { assigned_to: leaderId },
         {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success("Member assigned successfully");
-            },
+
+                const leader = props.teamLeaders.find(
+                    l => l.id === leaderId
+                );
+
+                if (leader) {
+
+                    leader.team_members.push({
+                        ...member,
+                        assigned_to: leaderId
+                    });
+
+                    const index = props.orphanMembers.findIndex(
+                        m => m.id === member.id
+                    );
+
+                    if (index !== -1) {
+                        props.orphanMembers.splice(index, 1);
+                    }
+                }
+
+                toast.success(
+                    "Member assigned successfully"
+                );
+            }
         }
     );
     draggedMember.value = null;
 };
+
+const dropTeamLeaderToWorkspace = () => {
+
+    if (!draggedMember.value) return;
+
+    if (draggedMember.value.role !== 'TL') {
+        toast.error(
+            'Only Team Leaders can be assigned to a workspace'
+        );
+        return;
+    }
+
+    router.put(
+        `/member/${draggedMember.value.id}/assign-workspace`,
+        {
+            workspace_id: props.currentWorkspace
+        },
+        {
+            onSuccess: () => {
+
+                const index = props.orphanMembers.findIndex(
+                    m => m.id === draggedMember.value.id
+                );
+
+                if (index !== -1) {
+                    props.orphanMembers.splice(index, 1);
+                }
+
+                toast.success(
+                    "Team Leader assigned successfully"
+                );
+            }
+        }
+    );
+};
+
 const validateEditForm = () => {
 
     editErrors.first_name = "";
@@ -1486,7 +1598,7 @@ const vClickOutside = {
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 14px;
-    box-shadow: 0 12px 36px rgba(0,0,0,.65);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, .65);
     opacity: 0;
     pointer-events: none;
     z-index: 999999;
@@ -1594,5 +1706,20 @@ const vClickOutside = {
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+.assign-tl-zone {
+    margin-top: 15px;
+    border: 2px dashed #6366f1;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.assign-tl-zone:hover {
+    background: rgba(99, 102, 241, .08);
 }
 </style>

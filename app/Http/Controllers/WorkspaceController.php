@@ -3,7 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Workspace;
+use App\Models\Member;
+use App\Models\Task;
+use App\Models\Project;
+use App\Models\User;
+use App\Models\DashboardWidget;
+use App\Models\Invitation;
+use App\Models\TeamRequest;
+use App\Models\Notification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class WorkspaceController extends Controller
 {
@@ -21,7 +30,7 @@ class WorkspaceController extends Controller
 
         session(['workspace_id' => $workspace->id]);
 
-       return back()->with('success', 'Workspace created successfully');
+        return back()->with('success', 'Workspace created successfully');
     }
 
     public function select(Request $request)
@@ -62,11 +71,38 @@ class WorkspaceController extends Controller
 
     public function destroy(Workspace $workspace)
     {
-        $workspace->delete();
+        DB::transaction(function () use ($workspace) {
+            Member::where('workspace_id', $workspace->id)
+                ->update([
+                    'workspace_id' => null,
+                    'assigned_to' => null,
+                ]);
 
-        if (session('workspace_id') == $workspace->id) {
-            session()->forget('workspace_id');
-        }
+            User::where('workspace_id', $workspace->id)
+                ->update([
+                    'workspace_id' => null,
+                    'role' => null,
+                ]);
+
+            Task::where('workspace_id', $workspace->id)->delete();
+
+            Project::where('workspace_id', $workspace->id)->delete();
+
+            DashboardWidget::where('workspace_id', $workspace->id)->delete();
+
+
+            Invitation::where('workspace_id', $workspace->id)->delete();
+
+            Notification::where('workspace_id', $workspace->id)->delete();
+
+            TeamRequest::where('workspace_id', $workspace->id)->delete();
+
+            if (session('workspace_id') == $workspace->id) {
+                session()->forget('workspace_id');
+            }
+
+            $workspace->delete();
+        });
 
         return response()->json([
             'message' => 'Workspace deleted successfully'

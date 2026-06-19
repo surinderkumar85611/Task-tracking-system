@@ -68,7 +68,6 @@ class MemberController extends Controller
 
     public function index()
     {
-
         $workspaceId = session('workspace_id');
 
         $leaders = Member::where('workspace_id', $workspaceId)
@@ -81,11 +80,15 @@ class MemberController extends Controller
             ->whereNull('assigned_to')
             ->get();
 
+        $orphanMembers = Member::whereNull('workspace_id')
+            ->get();
+
         $workspaces = Workspace::all();
 
         return Inertia::render('Members', [
             'teamLeaders' => $leaders,
             'members' => $members,
+            'orphanMembers' => $orphanMembers,
             'workspaces' => $workspaces,
             'currentWorkspace' => session('workspace_id'),
         ]);
@@ -93,45 +96,72 @@ class MemberController extends Controller
 
     public function assignMember(Request $request, Member $member)
     {
+        $leader = Member::findOrFail(
+            $request->assigned_to
+        );
+
         $member->update([
-            'assigned_to' => $request->assigned_to,
+            'assigned_to' => $leader->id,
+            'workspace_id' => $leader->workspace_id,
         ]);
 
         return back();
     }
+
     public function update(Request $request, Member $member)
-{
-    $validated = $request->validate([
-        'first_name' => 'required|string|max:255',
-        'last_name' => 'required|string|max:255',
-        'phone' => 'nullable|string|max:20',
-        'department' => 'nullable|string|max:255',
-    ]);
+    {
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'department' => 'nullable|string|max:255',
+        ]);
 
-    $member->update($validated);
+        $member->update($validated);
 
-    return back()->with('success', 'Member updated successfully');
-}
+        return back()->with('success', 'Member updated successfully');
+    }
 
+    public function me()
+    {
+        $workspaceId = session('workspace_id');
 
-public function me()
-{
-    $workspaceId = session('workspace_id');
+        $member = Member::where('workspace_id', $workspaceId)
+            ->where('email', Auth::user()->email)
+            ->first();
 
-    $member = Member::where('workspace_id', $workspaceId)
-        ->where('email', Auth::user()->email)
-        ->first();
+        if (!$member) {
+            return response()->json([
+                'role' => '',
+                'department' => ''
+            ]);
+        }
 
-    if (!$member) {
         return response()->json([
-            'role' => '',
-            'department' => ''
+            'role' => $member->role,
+            'department' => $member->department
         ]);
     }
 
-    return response()->json([
-        'role' => $member->role,
-        'department' => $member->department
-    ]);
-}
+    public function assignWorkspace(
+        Request $request,
+        Member $member
+    ) {
+        if ($member->role !== 'TL') {
+
+            return response()->json([
+                'message' => 'Only Team Leaders can be assigned'
+            ], 422);
+        }
+
+        $member->update([
+            'workspace_id' => $request->workspace_id,
+            'assigned_to' => null,
+        ]);
+
+        return back()->with(
+            'success',
+            'Team Leader assigned successfully'
+        );
+    }
 }

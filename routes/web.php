@@ -196,8 +196,12 @@ Route::middleware(['auth', 'no-cache'])->group(function () {
 Route::post('/user/change-password', [UserController::class, 'changePassword']);
 Route::get('/user/profile', [UserController::class, 'profile']);
 
-Route::get('/member/me', [MemberController::class, 'me']);
-Route::put('/member/{member}', [MemberController::class, 'update']);
+Route::middleware('auth')->prefix('member')->group(function () {
+    Route::get('/me', [MemberController::class, 'me']);
+    Route::put('/{member}', [MemberController::class, 'update']);
+    Route::put('/{member}/assign', [MemberController::class, 'assignMember']);
+    Route::put('/{member}/assign-workspace', [MemberController::class, 'assignWorkspace']);
+});
 
 Route::post('/invite/generate', [InvitationController::class, 'generate']);
 Route::get('/invite/accept/{token}', [InvitationController::class, 'accept']);
@@ -245,6 +249,7 @@ Route::prefix('notifications')->middleware(['auth', 'no-cache'])->group(function
 Route::post('/api/v1/task-attachments', [TaskAttachmentController::class, 'upload']);
 Route::get('/member/dashboard/preview', [MDashboardController::class, 'index']);
 
+
 Route::post(
     '/ckeditor/upload',
     [LProjectController::class, 'uploadEditorImage']
@@ -267,3 +272,4 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 Route::put('/user/notification-preferences', [\App\Http\Controllers\UserController::class, 'updateNotificationPreferences']);
+
