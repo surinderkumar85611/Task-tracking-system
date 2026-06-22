@@ -201,6 +201,7 @@ Route::middleware('auth')->prefix('member')->group(function () {
     Route::put('/{member}', [MemberController::class, 'update']);
     Route::put('/{member}/assign', [MemberController::class, 'assignMember']);
     Route::put('/{member}/assign-workspace', [MemberController::class, 'assignWorkspace']);
+    Route::put('/{member}/independent',[MemberController::class, 'makeIndependent'])->name('members.make-independent');
 });
 
 Route::post('/invite/generate', [InvitationController::class, 'generate']);
@@ -272,4 +273,3 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 Route::put('/user/notification-preferences', [\App\Http\Controllers\UserController::class, 'updateNotificationPreferences']);
-

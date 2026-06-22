@@ -50,6 +50,12 @@ class MemberController extends Controller
                 'required',
                 'in:TL,Member'
             ],
+
+            'level' => [
+                'nullable',
+                'required_if:role,TL',
+                'in:1,2,3'
+            ],
         ]);
 
         Member::create([
@@ -61,6 +67,7 @@ class MemberController extends Controller
             'phone' => $validated['phone'],
             'department' => $validated['department'],
             'role' => $validated['role'],
+            'level' => $validated['level']
         ]);
 
         return back()->with('success', 'Member created successfully');
@@ -72,7 +79,11 @@ class MemberController extends Controller
 
         $leaders = Member::where('workspace_id', $workspaceId)
             ->where('role', 'TL')
-            ->with('teamMembers')
+            ->whereNull('assigned_to')
+            ->with([
+                'teamMembers.teamMembers',
+                'teamMembers.teamMembers.teamMembers'
+            ])
             ->get();
 
         $members = Member::where('workspace_id', $workspaceId)
@@ -80,7 +91,7 @@ class MemberController extends Controller
             ->whereNull('assigned_to')
             ->get();
 
-        $orphanMembers = Member::whereNull('workspace_id')
+        $emptyMembers = Member::whereNull('workspace_id')
             ->get();
 
         $workspaces = Workspace::all();
@@ -88,7 +99,7 @@ class MemberController extends Controller
         return Inertia::render('Members', [
             'teamLeaders' => $leaders,
             'members' => $members,
-            'orphanMembers' => $orphanMembers,
+            'emptyMembers' => $emptyMembers,
             'workspaces' => $workspaces,
             'currentWorkspace' => session('workspace_id'),
         ]);
@@ -99,6 +110,14 @@ class MemberController extends Controller
         $leader = Member::findOrFail(
             $request->assigned_to
         );
+
+        if ($member->role === 'TL' && $leader->role === 'TL') {
+            if ($member->level >= $leader->level) {
+                return response()->json([
+                    'message' => 'Invalid hierarchy'
+                ], 422);
+            }
+        }
 
         $member->update([
             'assigned_to' => $leader->id,
@@ -163,5 +182,22 @@ class MemberController extends Controller
             'success',
             'Team Leader assigned successfully'
         );
+    }
+
+    public function makeIndependent(Member $member)
+    {
+        if (
+            $member->role === 'TL'
+            &&
+            $member->level == 3
+        ) {
+            return back();
+        }
+
+        $member->update([
+            'assigned_to' => null
+        ]);
+
+        return back();
     }
 }
