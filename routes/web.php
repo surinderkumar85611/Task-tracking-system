@@ -145,11 +145,12 @@ Route::middleware(['auth', 'no-cache'])->group(function () {
     Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
 
     Route::post('/logout', function (Request $request) {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-        return redirect('/login');
-    });
+    Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+    
+    return redirect()->to('/login'); 
+});
 });
 
 Route::middleware(['auth', 'no-cache'])->group(function () {
@@ -273,3 +274,19 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 Route::put('/user/notification-preferences', [\App\Http\Controllers\UserController::class, 'updateNotificationPreferences']);
+Route::post('/tasks/{id}/reply',
+    [TaskController::class,'reply']
+);
+
+
+Route::post('/tasks/{id}/react',
+    [TaskController::class,'react']
+);
+
+Route::put('/notifications/{id}/read', 
+    [NotificationController::class,'markAsRead']
+)->name('notifications.read');
+
+Route::put('/notifications/read-all',
+    [NotificationController::class,'markAllRead']
+)->name('notifications.readAll');

@@ -61,17 +61,22 @@ class LeaderDashboardController extends Controller
                 ->count(),
         ];
 
-        // FIXED: Optional workspace matching fallback so notifications don't vanish into thin air
-        $notifications = Notification::where('user_id', $user->id)
-            ->when(session('workspace_id'), function ($query) {
-                $query->where(function($q) {
-                    $q->where('workspace_id', session('workspace_id'))
-                      ->orWhereNull('workspace_id'); // load general ones too!
-                });
-            })
-            ->orderBy('created_at', 'desc')
-            ->get(['id', 'title', 'message', 'is_read', 'created_at']);
-
+       $notifications = Notification::where('user_id', $user->id)
+    ->where('is_read', 0)
+    ->when(session('workspace_id'), function ($query) {
+        $query->where(function($q) {
+            $q->where('workspace_id', session('workspace_id'))
+              ->orWhereNull('workspace_id');
+        });
+    })
+    ->orderBy('created_at', 'desc')
+    ->get([
+        'id',
+        'title',
+        'message',
+        'is_read',
+        'created_at'
+    ]);
         return Inertia::render(
             'Leader/Dashboard',
             [

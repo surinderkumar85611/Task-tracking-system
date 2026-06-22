@@ -45,7 +45,7 @@ class UserController extends Controller
             'notification_preferences' => $user->notification_preferences,
         ]);
     }
-    // PASTE THIS NEW METHOD INSIDE THE CLASS:
+
     public function updateNotificationPreferences(Request $request)
     {
         $user = auth()->user();
