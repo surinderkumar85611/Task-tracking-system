@@ -164,7 +164,8 @@
                                             :class="{ 'has-notes': task.notes && task.notes.length > 0 }"
                                             @click="openUpdatesSidebar(task, project)" title="Open task updates">
                                             💬
-                                            <span v-if="task.notes && task.notes.length > 0 && !task.is_read" class="update-indicator-dot"></span>
+                                            <span v-if="task.notes && task.notes.length > 0 && !task.is_read"
+                                                class="update-indicator-dot"></span>
                                         </button>
                                     </td>
                                     <td class="cell-member" style="position: relative; padding: 0;">
@@ -194,9 +195,9 @@
                                             <div class="modal-pills-row">
                                                 <div v-for="mId in task.member_id" :key="mId" class="member-pill-badge">
                                                     <span class="pill-avatar-dot">{{ getMemberInitials(project, mId)
-                                                        }}</span>
+                                                    }}</span>
                                                     <span class="pill-name-text">{{ getMemberFirstNameOnly(project, mId)
-                                                        }}</span>
+                                                    }}</span>
                                                     <span class="pill-remove-btn"
                                                         @click.stop="toggleMemberAssignment(task, mId)">×</span>
                                                 </div>
@@ -614,6 +615,34 @@ const editorConfig = {
 
     licenseKey: 'GPL',
 
+    heading: {
+        options: [
+            {
+                model: 'paragraph',
+                title: 'Paragraph',
+                class: 'ck-heading_paragraph'
+            },
+            {
+                model: 'heading1',
+                view: 'h1',
+                title: 'Heading 1',
+                class: 'ck-heading_heading1'
+            },
+            {
+                model: 'heading2',
+                view: 'h2',
+                title: 'Heading 2',
+                class: 'ck-heading_heading2'
+            },
+            {
+                model: 'heading3',
+                view: 'h3',
+                title: 'Heading 3',
+                class: 'ck-heading_heading3'
+            }
+        ]
+    },
+
     extraPlugins: [
         uploadPlugin
     ],
@@ -649,69 +678,62 @@ const editorConfig = {
         SourceEditing
     ],
 
+    toolbar: {
+        items: [
+            'undo',
+            'redo',
 
-    toolbar: [
-        'undo',
-        'redo',
+            '|',
 
-        '|',
+            'heading',
 
-        'heading',
+            '|',
 
-        '|',
+            'fontFamily',
+            'fontSize',
 
-        'fontFamily',
-        'fontSize',
+            '|',
 
-        '|',
+            'fontColor',
+            'fontBackgroundColor',
 
-        'fontColor',
-        'fontBackgroundColor',
+            '|',
 
-        '|',
+            'bold',
+            'italic',
+            'underline',
 
-        'bold',
-        'italic',
-        'underline',
+            '|',
 
-        '|',
+            'alignment',
 
-        'alignment',
+            '|',
 
-        '|',
+            'link',
 
-        'link',
+            '|',
 
-        '|',
+            'bulletedList',
+            'numberedList',
 
-        'bulletedList',
-        'numberedList',
+            '|',
 
-        '|',
+            'insertImage',
 
-        'outdent',
-        'indent',
+            '|',
 
-        '|',
+            'insertTable',
 
-        'insertTable',
+            '|',
 
-        '|',
+            'blockQuote',
 
-        'insertImage',
+            '|',
 
-        '|',
-
-        'mediaEmbed',
-
-        '|',
-
-        'blockQuote',
-
-        '|',
-
-        'sourceEditing'
-    ],
+            'sourceEditing'
+        ],
+        shouldNotGroupWhenFull: false
+    },
 
 
     image: {
@@ -1056,7 +1078,7 @@ const openUpdatesSidebar = (task, project) => {
     task.is_read = true;
     notificationStore.setProjectsSource(projectsData.value);
 
-    
+
     const updatePayload = {
         id: task.id,
         project_id: task.project_id,
@@ -1067,13 +1089,13 @@ const openUpdatesSidebar = (task, project) => {
         deadline: task.due_date || task.deadline,
         allocated_duration: task.allocated_duration,
         timer_started_at: task.timer_started_at,
-        is_read: true 
+        is_read: true
     };
 
     router.put(`/task/${task.id}`, updatePayload, {
         preserveScroll: true,
-        onError: () => { 
-            console.error("Failed to persist notification read status to server."); 
+        onError: () => {
+            console.error("Failed to persist notification read status to server.");
         }
     });
 };
@@ -1104,7 +1126,12 @@ const saveTaskNotesUpdate = () => {
         preserveScroll: true,
         onSuccess: () => {
             const currentUser = page.props.auth?.user;
-            const senderName = currentUser?.first_name || currentUser?.name || 'Admin';
+            const senderName =
+                [currentUser?.first_name, currentUser?.last_name]
+                    .filter(Boolean)
+                    .join(' ') ||
+                currentUser?.name ||
+                'User';
 
             if (!activeTaskForUpdates.value.notes) {
                 activeTaskForUpdates.value.notes = [];
@@ -2659,5 +2686,23 @@ tbody tr {
 .ck-balloon-panel {
     z-index: 9999999 !important;
     position: fixed !important;
+}
+
+.ck-content h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 12px 0;
+}
+
+.ck-content h2 {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 10px 0;
+}
+
+.ck-content h3 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 8px 0;
 }
 </style>

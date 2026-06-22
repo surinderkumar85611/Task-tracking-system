@@ -160,7 +160,7 @@
                                             :class="{ 'has-notes': task.notes && task.notes.length > 0 }"
                                             @click="openUpdatesSidebar(task, project)" title="Open task updates">
                                             💬
-                                            <span v-if="task.notes && task.notes.length > 0"
+                                            <span v-if="task.notes && task.notes.length > 0 && !task.is_read"
                                                 class="update-indicator-dot"></span>
                                         </button>
                                     </td>
@@ -474,7 +474,7 @@
                                         </span>
                                         <span class="chat-bubble-time">{{ formatDate(note.created_at) }}</span>
                                     </div>
-                                    <div class="chat-bubble-body" v-html="note.text"></div>
+                                    <div class="chat-bubble-body ck-content" v-html="note.text"></div>
                                 </div>
 
                             </div>
@@ -489,7 +489,9 @@
 
                             <div class="editor-modal-canvas-frame"
                                 style="width: 100%; min-height: 200px; display: block; background-color: #151521;">
-                                <textarea id="modalRichEditor" v-model="updatesDraftText"></textarea>
+
+                                <ckeditor :editor="editor" v-model="updatesDraftText" :config="editorConfig" />
+
                             </div>
 
                         </div>
@@ -602,60 +604,258 @@ import { useThemeStore } from "../stores/theme";
 import { useNotificationStore } from '@/stores/notificationStore';
 import * as XLSX from 'xlsx';
 import { Head } from '@inertiajs/vue3';
-import { ClassicEditor, Bold, Italic, Essentials, Paragraph, Heading, Link, List, BlockQuote, Undo } from 'ckeditor5';
-import { Ckeditor as CkeditorComponent } from '@ckeditor/ckeditor5-vue';
-import 'ckeditor5/ckeditor5.css';
+import {
+    ClassicEditor,
+    Essentials,
+    Paragraph,
+    Bold,
+    Italic,
+    Underline,
+    Heading,
+    Link,
+    List,
+    BlockQuote,
+
+    Image,
+    ImageToolbar,
+    ImageUpload,
+    ImageResize,
+
+    MediaEmbed,
+
+    Table,
+    TableToolbar,
+
+    Alignment,
+    Font,
+    Indent,
+
+    SourceEditing
+} from 'ckeditor5';
+import { Ckeditor } from '@ckeditor/ckeditor5-vue';
+class LaravelUploadAdapter {
+
+    constructor(loader) {
+        this.loader = loader;
+    }
 
 
-// 🟢 STEP 1: Keep a native reference to your editor instance instance
-const editorInstance = ref(null);
+    upload() {
 
-// 🟢 STEP 2: Dynamically load and safely build the engine onto the DOM instance element
-const initCKEditor = () => {
-    if (window.ClassicEditor) {
-        window.ClassicEditor.create(document.querySelector('#modalRichEditor'), {
-            placeholder: 'Type your message or project notes here...',
-            toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', '|', 'undo', 'redo']
-        })
-            .then(editor => {
-                editorInstance.value = editor;
+        return this.loader.file.then(file => {
 
-                // Sync content updates back to your reactive variable on input change triggers
-                editor.model.document.on('change:data', () => {
-                    updatesDraftText.value = editor.getData();
-                });
+            const data = new FormData();
+
+            data.append('upload', file);
+
+
+            return fetch('/ckeditor/upload', {
+
+                method: 'POST',
+
+                headers: {
+                    'X-CSRF-TOKEN':
+                        document.querySelector(
+                            'meta[name="csrf-token"]'
+                        ).content
+                },
+
+                body: data
+
             })
-            .catch(error => {
-                console.error("CKEditor initialization failed:", error);
-            });
-    }
-};
+                .then(res => res.json())
+                .then(res => {
 
-onMounted(() => {
-    // If script isn't loaded yet, pull it dynamically from CDN
-    if (!window.ClassicEditor) {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.ckeditor.com/ckeditor5/44.0.0/classic/ckeditor.js';
-        script.onload = () => {
-            // Give the DOM a tiny fraction of time to handle context loops
-            setTimeout(initCKEditor, 100);
+                    return {
+                        default: res.url
+                    };
+
+                });
+
+        });
+    }
+
+
+    abort() { }
+
+}
+function uploadPlugin(editor) {
+
+    editor.plugins
+        .get('FileRepository')
+        .createUploadAdapter = loader => {
+
+            return new LaravelUploadAdapter(loader);
+
         };
-        document.head.appendChild(script);
-    } else {
-        setTimeout(initCKEditor, 100);
-    }
-});
 
-
-const editorConfig = {
-    plugins: [Essentials, Paragraph, Heading, Bold, Italic, Link, List, BlockQuote, Undo],
-    toolbar: ['undo', 'redo', '|', 'heading', '|', 'bold', 'italic', '|', 'link', 'bulletedList', 'numberedList', 'blockQuote']
-};
+}
 
 const theme = useThemeStore();
 const toast = useToast();
 const page = usePage();
 const notificationStore = useNotificationStore();
+const editor = ClassicEditor;
+const ckeditor = Ckeditor;
+const editorConfig = {
+
+    licenseKey: 'GPL',
+
+    heading: {
+        options: [
+            {
+                model: 'paragraph',
+                title: 'Paragraph',
+                class: 'ck-heading_paragraph'
+            },
+            {
+                model: 'heading1',
+                view: 'h1',
+                title: 'Heading 1',
+                class: 'ck-heading_heading1'
+            },
+            {
+                model: 'heading2',
+                view: 'h2',
+                title: 'Heading 2',
+                class: 'ck-heading_heading2'
+            },
+            {
+                model: 'heading3',
+                view: 'h3',
+                title: 'Heading 3',
+                class: 'ck-heading_heading3'
+            }
+        ]
+    },
+
+    extraPlugins: [
+        uploadPlugin
+    ],
+
+    plugins: [
+
+        Essentials,
+        Paragraph,
+
+        Bold,
+        Italic,
+        Underline,
+
+        Heading,
+        Link,
+        List,
+        BlockQuote,
+
+        Image,
+        ImageToolbar,
+        ImageUpload,
+        ImageResize,
+
+        MediaEmbed,
+
+        Table,
+        TableToolbar,
+
+        Alignment,
+        Font,
+        Indent,
+
+        SourceEditing
+    ],
+
+    toolbar: {
+        items: [
+            'undo',
+            'redo',
+
+            '|',
+
+            'heading',
+
+            '|',
+
+            'fontFamily',
+            'fontSize',
+
+            '|',
+
+            'fontColor',
+            'fontBackgroundColor',
+
+            '|',
+
+            'bold',
+            'italic',
+            'underline',
+
+            '|',
+
+            'alignment',
+
+            '|',
+
+            'link',
+
+            '|',
+
+            'bulletedList',
+            'numberedList',
+
+            '|',
+
+            'insertImage',
+
+            '|',
+
+            'insertTable',
+
+            '|',
+
+            'blockQuote',
+
+            '|',
+
+            'sourceEditing'
+        ],
+        shouldNotGroupWhenFull: false
+    },
+
+
+    image: {
+
+        toolbar: [
+            'imageTextAlternative',
+            'imageResize',
+            'imageStyle:inline',
+            'imageStyle:block'
+        ]
+
+    },
+
+    table: {
+        contentToolbar: [
+            'tableColumn',
+            'tableRow',
+            'mergeTableCells'
+        ]
+    },
+    simpleUpload: {
+
+        uploadUrl: '/ckeditor/upload',
+
+        headers: {
+
+            'X-CSRF-TOKEN':
+                document.querySelector(
+                    'meta[name="csrf-token"]'
+                ).content
+
+        }
+
+    }
+
+};
 
 const props = defineProps({
     projects: { type: Array, default: () => [] },
@@ -980,6 +1180,30 @@ const openUpdatesSidebar = (task, project) => {
     activeProjectForUpdates.value = project;
     updatesDraftText.value = "";
     showUpdatesSidebarPane.value = true;
+
+    task.is_read = true;
+    notificationStore.setProjectsSource(projectsData.value);
+
+
+    const updatePayload = {
+        id: task.id,
+        project_id: task.project_id,
+        title: task.title,
+        member_id: task.member_id,
+        status: task.status,
+        priority: task.priority,
+        deadline: task.due_date || task.deadline,
+        allocated_duration: task.allocated_duration,
+        timer_started_at: task.timer_started_at,
+        is_read: true
+    };
+
+    router.put(`/task/${task.id}`, updatePayload, {
+        preserveScroll: true,
+        onError: () => {
+            console.error("Failed to persist notification read status to server.");
+        }
+    });
 };
 
 const closeUpdatesSidebar = () => {
@@ -1020,7 +1244,12 @@ const saveTaskNotesUpdate = () => {
         preserveScroll: true,
         onSuccess: () => {
             const currentUser = page.props.auth?.user;
-            const senderName = currentUser?.first_name || currentUser?.name || 'Admin';
+            const senderName =
+                [currentUser?.first_name, currentUser?.last_name]
+                    .filter(Boolean)
+                    .join(' ') ||
+                currentUser?.name ||
+                'User';
 
             if (!activeTaskForUpdates.value.notes) {
                 activeTaskForUpdates.value.notes = [];
@@ -1029,15 +1258,14 @@ const saveTaskNotesUpdate = () => {
             activeTaskForUpdates.value.notes.unshift({
                 sender: senderName,
                 text: messageText,
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
+                is_read: false
             });
-
             updatesDraftText.value = "";
         },
         onError: () => { toast.error("Failed to post message update."); }
     });
 };
-
 const formatDate = (isoString) => {
     if (!isoString) return '';
     const date = new Date(isoString);
@@ -2865,79 +3093,131 @@ tbody tr {
     transition: all .25s ease;
 }
 
-:deep(.ck-reset_all) {
-    display: block !important;
-    visibility: visible !important;
-}
-
-:deep(.ck-editor) {
-    display: block !important;
-    width: 100% !important;
-    min-height: 160px !important;
-    visibility: visible !important;
-}
-
-:deep(.ck-editor__container) {
-    display: flex !important;
-    flex-direction: column !important;
-}
-
 :deep(.ck-editor__editable_inline) {
-    min-height: 150px !important;
-    max-height: 300px !important;
-    background-color: #151521 !important;
-    color: #ffffff !important;
-    border: 1px solid #32324d !important;
-    text-align: left;
-    padding: 10px 14px !important;
+    min-height: 200px;
+    color: #1a1d20 !important;
+    background-color: #ffffff !important;
 }
 
-:deep(.ck-toolbar) {
-    background-color: #1e1e2d !important;
-    border: 1px solid #32324d !important;
+:deep(.ck.ck-toolbar) {
+    background: #f4f5f7 !important;
+    border-color: #ccced1 !important;
 }
 
-:deep(.ck-toolbar__items button),
-:deep(.ck-icon) {
-    color: #ffffff !important;
+.ck-editor__editable {
+    min-height: 200px !important;
+    background: white;
 }
 
-:deep(.ck-button:hover) {
-    background-color: #2b2b40 !important;
-}
-
-.ck-editor {
-    display: block !important;
-    width: 100% !important;
-}
-
-.ck-editor__editable.ck-editor__editable_inline {
-    min-height: 180px !important;
-    max-height: 300px !important;
-    background-color: #151521 !important;
-    color: #ffffff !important;
-    border: 1px solid #32324d !important;
-    padding: 14px !important;
+/* Ensure the CKEditor container is visible and has a crisp layout */
+.notes-editor-section .ck-editor__editable_inline {
+    min-height: 200px;
+    max-height: 400px;
+    color: #1e1e2d !important;
+    /* Prevents text from being white on white background */
+    background-color: #ffffff !important;
+    /* Force clean editor look like Image 2 */
     text-align: left !important;
 }
 
-.ck.ck-toolbar {
-    background-color: #1a1a27 !important;
-    border: 1px solid #32324d !important;
-    display: flex !important;
+/* Force the toolbar items to show clearly */
+.notes-editor-section .ck-toolbar {
+    background: #f3f6f9 !important;
+    border: 1px solid #e4e6ef !important;
 }
 
-.ck.ck-toolbar .ck-button,
-.ck.ck-icon {
-    color: #ffffff !important;
+.notes-editor-section .editor-label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 12px;
+    color: #a1a5b7;
 }
 
-.ck.ck-button:hover {
-    background: #2b2b40 !important;
+/* Ensure the editor text area has a solid background and legible text */
+.notes-editor-section .ck-editor__editable_inline {
+    min-height: 250px !important;
+    background-color: #ffffff !important;
+    color: #212529 !important;
+    text-align: left !important;
 }
 
-.ck-focused {
-    border-color: #3b82f6 !important;
-    outline: none !important;
+/* Ensure the toolbar icons stand out clearly */
+.notes-editor-section .ck.ck-toolbar {
+    background-color: #f8f9fa !important;
+    border: 1px solid #ccced1 !important;
+}
+
+/* Fix any dropdown rendering bugs inside absolute modals */
+/* Fix any dropdown and link balloon rendering bugs inside absolute modals */
+:deep(.ck-body-wrapper) {
+    z-index: 999999 !important;
+}
+
+:deep(.ck-balloon-panel) {
+    z-index: 999999 !important;
+    position: fixed !important;
+    /* Forces the link window to stay on top of the modal */
+}
+
+:deep(.ck.ck-dropdown__panel) {
+    z-index: 999999 !important;
+}
+
+:deep(.ck.ck-tooltip) {
+    z-index: 999999 !important;
+}
+</style>
+<style>
+/* Global styles to target CKEditor elements appended directly to the body */
+.ck-body-wrapper,
+.ck.ck-body-wrapper,
+.ck-balloon-panel {
+    z-index: 9999999 !important;
+    position: fixed !important;
+}
+
+.ck-content h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 12px 0;
+}
+
+.ck-content h2 {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 10px 0;
+}
+
+.ck-content h3 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 8px 0;
+}
+
+.chat-bubble-body.ck-content table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.chat-bubble-body.ck-content table td,
+.chat-bubble-body.ck-content table th {
+    border: 1px solid #444;
+    padding: 6px;
+}
+
+.chat-bubble-body.ck-content h1,
+.chat-bubble-body.ck-content h2,
+.chat-bubble-body.ck-content h3 {
+    color: inherit;
+}
+
+.chat-bubble-body.ck-content {
+    color: #e5e7eb;
+}
+
+.chat-bubble-body.ck-content * {
+    color: inherit;
 }
 </style>
