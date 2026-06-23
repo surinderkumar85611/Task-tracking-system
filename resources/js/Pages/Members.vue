@@ -1284,7 +1284,6 @@ watch(() => form.role, (role) => {
     padding: 10px 14px;
     border-radius: 8px;
     gap: 10px;
-    width: fit-content;
     flex: 0 0 auto;
     transition: transform 0.15s ease;
     cursor: grab;
