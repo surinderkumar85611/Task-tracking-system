@@ -271,11 +271,8 @@
 
                     <div class="hierarchy-directory-wrapper">
                         <TeamHierarchy :leaders="teamLeaders" :currentWorkspace="currentWorkspace"
-                            @drop-member="dropMember" @drop-leader="dropLeader"
+                            @drag-member="dragMember" @drop-member="dropMember" @drop-leader="dropLeader"
                             @assign-workspace="dropTeamLeaderToWorkspace" />
-                        <div class="independent-zone" @dragover.prevent @drop="makeIndependent">
-                            ➖ Make Independent
-                        </div>
                     </div>
                 </div>
 
@@ -454,7 +451,6 @@ const notificationStore = useNotificationStore();
 const toast = useToast();
 const theme = useThemeStore();
 const page = usePage();
-const draggedMember = ref(null);
 const showInviteModal = ref(false);
 const showProfileMenu = ref(false);
 const showEditModal = ref(false);
@@ -469,6 +465,7 @@ const editMember = reactive({
     phone: "",
     department: "",
 });
+
 const openEditMember = (member) => {
     editMember.id = member.id;
     editMember.first_name = member.first_name;
@@ -780,60 +777,38 @@ const copyToClipboard = () => {
 
 const dragMember = (member) => {
     draggedItem.value = member;
-    event.dataTransfer.setData('type', 'member');
-};
-
-const dragLeader = (leader) => {
-    if (draggedMember.level == 3) {
-        return;
-    }
-    draggedItem.value = leader;
-    event.dataTransfer.setData('type', 'leader');
 };
 
 const dropMember = (leaderId) => {
-    if (!draggedMember.value) return;
+    if (!draggedItem.value) return;
     router.put(
-        `/member/${draggedMember.value.id}/assign`,
-        { assigned_to: leaderId },
+        `/member/${draggedItem.value.id}/assign`,
         {
-            preserveScroll: true,
-            onSuccess: () => {
-
-                const leader = props.teamLeaders.find(
-                    l => l.id === leaderId
-                );
-
-                if (leader) {
-
-                    leader.team_members.push({
-                        ...member,
-                        assigned_to: leaderId
-                    });
-
-                    const index = props.emptyMembers.findIndex(
-                        m => m.id === member.id
-                    );
-
-                    if (index !== -1) {
-                        props.emptyMembers.splice(index, 1);
-                    }
-                }
-
-                toast.success(
-                    "Member assigned successfully"
-                );
-            }
+            assigned_to: leaderId
         }
     );
-    draggedMember.value = null;
+    draggedItem.value = null;
+};
+
+const dropLeader = (leaderId) => {
+
+    if (!draggedItem.value) return;
+
+    router.put(
+        `/member/${draggedItem.value.id}/assign`,
+        {
+            assigned_to: leaderId
+        }
+    );
+
+    draggedItem.value = null;
 };
 
 const dropTeamLeaderToWorkspace = () => {
 
-    if (!draggedMember.value) return;
+    if (!draggedItem.value) return;
 
-    if (draggedMember.value.role !== 'TL') {
+    if (draggedItem.value.role !== 'TL') {
         toast.error(
             'Only Team Leaders can be assigned to a workspace'
         );
@@ -841,7 +816,7 @@ const dropTeamLeaderToWorkspace = () => {
     }
 
     router.put(
-        `/member/${draggedMember.value.id}/assign-workspace`,
+        `/member/${draggedItem.value.id}/assign-workspace`,
         {
             workspace_id: props.currentWorkspace
         },
@@ -849,16 +824,12 @@ const dropTeamLeaderToWorkspace = () => {
             onSuccess: () => {
 
                 const index = props.emptyMembers.findIndex(
-                    m => m.id === draggedMember.value.id
+                    m => m.id === draggedItem.value.id
                 );
 
                 if (index !== -1) {
                     props.emptyMembers.splice(index, 1);
                 }
-
-                toast.success(
-                    "Team Leader assigned successfully"
-                );
             }
         }
     );
@@ -904,6 +875,7 @@ const validateEditForm = () => {
 
     return valid;
 };
+
 const updateMember = () => {
 
     const isValid = validateEditForm();
@@ -974,20 +946,6 @@ const vClickOutside = {
     unmounted(el) {
         document.removeEventListener("click", el.clickOutsideEvent);
     },
-};
-
-const makeIndependent = () => {
-
-    if (!draggedMember.value) return;
-
-    router.put(
-        route(
-            'members.make-independent',
-            draggedMember.value.id
-        )
-    );
-
-    draggedMember.value = null;
 };
 
 watch(() => form.role, (role) => {

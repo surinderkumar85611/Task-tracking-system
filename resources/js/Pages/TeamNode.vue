@@ -1,6 +1,7 @@
 <template>
 
-    <div class="tl-hierarchy-block-card" @dragover.prevent @drop="handleDrop">
+    <div class="tl-hierarchy-block-card" :draggable="isDraggable" :class="{ 'draggable-card': isDraggable }"
+        @dragstart="startDrag($event, member)" @dragover.prevent @drop="handleDrop">
 
         <div class="tl-card-info-header">
 
@@ -30,15 +31,11 @@
             </div>
 
             <div class="tl-meta-right">
-
                 <span class="count-badge">
                     {{ member.team_members?.length || 0 }}
                     Members
                 </span>
-
             </div>
-
-
         </div>
 
         <div class="subordinates-list-segment">
@@ -47,7 +44,8 @@
                 <template v-for="child in member.team_members" :key="child.id">
 
                     <!-- MEMBER -->
-                    <div v-if="child.role === 'Member'" class="member-sub-pill-row" draggable="true">
+                    <div v-if="child.role === 'Member'" class="member-sub-pill-row" draggable="true"
+                        @dragstart="startDrag($event, child)">
                         <div class="mini-avatar-dot">
                             {{ getInitials(child.first_name, child.last_name) }}
                         </div>
@@ -63,17 +61,16 @@
                             </span>
                         </div>
                     </div>
-                    <div v-if="member.role === 'TL'" class="empty-member-slot" @dragover.prevent
-                        @drop="$emit('drop-member', member.id)">
-                        +
-                    </div>
 
                     <!-- TL -->
-                    <TeamNode v-else :member="child" @drop-member="$emit('drop-member', $event)"
-                        @drop-leader="$emit('drop-leader', $event)" />
+                    <TeamNode v-else :member="child" @drag-member="$emit('drag-member', $event)"
+                        @drop-member="$emit('drop-member', $event)" @drop-leader="$emit('drop-leader', $event)" />
 
                 </template>
 
+                <div v-if="member.role === 'TL'" class="empty-member-slot" @dragover.prevent @drop="handleDrop">
+                    +
+                </div>
             </div>
 
             <div v-else class="empty-subordinates-state">
@@ -95,6 +92,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
+    'drag-member',
     'drop-member',
     'drop-leader'
 ]);
@@ -115,6 +113,20 @@ const handleDrop = (e) => {
     } else {
         emit('drop-member', props.member.id);
     }
+};
+
+const startDrag = (event, item) => {
+
+    event.stopPropagation();
+
+    event.dataTransfer.setData(
+        'type',
+        item.role === 'TL'
+            ? 'leader'
+            : 'member'
+    );
+
+    emit('drag-member', item);
 };
 
 const getInitials = (first, last) => {
@@ -139,5 +151,13 @@ const getInitials = (first, last) => {
 
     color: #6366f1;
     cursor: pointer;
+}
+
+.draggable-card {
+    cursor: grab;
+}
+
+.draggable-card:active {
+    cursor: grabbing;
 }
 </style>

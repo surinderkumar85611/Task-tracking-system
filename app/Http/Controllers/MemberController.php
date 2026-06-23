@@ -107,15 +107,34 @@ class MemberController extends Controller
 
     public function assignMember(Request $request, Member $member)
     {
-        $leader = Member::findOrFail(
-            $request->assigned_to
-        );
+        $leader = Member::findOrFail($request->assigned_to);
 
-        if ($member->role === 'TL' && $leader->role === 'TL') {
-            if ($member->level >= $leader->level) {
-                return response()->json([
-                    'message' => 'Invalid hierarchy'
-                ], 422);
+        if ($member->role === 'TL') {
+
+            if ($member->level == 3) {
+                return back()->withErrors([
+                    'hierarchy' => 'Senior TL cannot be moved'
+                ]);
+            }
+
+            if ($leader->role !== 'TL') {
+                return back()->withErrors([
+                    'hierarchy' => 'TL can only be assigned to another TL'
+                ]);
+            }
+
+            $allowed = [
+                1 => [2, 3],
+                2 => [3],
+            ];
+
+            if (
+                !isset($allowed[$member->level]) ||
+                !in_array($leader->level, $allowed[$member->level])
+            ) {
+                return back()->withErrors([
+                    'hierarchy' => 'Invalid hierarchy'
+                ]);
             }
         }
 
