@@ -448,21 +448,115 @@
                         <div class="notes-display-box">
                             <label>📌 Updates Timeline</label>
 
-                            <div v-if="activeTaskForUpdates?.notes && activeTaskForUpdates.notes.length > 0"
+                            <div ref="messagesContainer"
+                                v-if="activeTaskForUpdates?.notes && activeTaskForUpdates.notes.length > 0"
                                 class="messages-thread-wrapper">
+                                <div v-for="(note, index) in activeTaskForUpdates.notes" :key="note.id || index"
+                                    class="chat-message" :class="{
+                                        'has-reply': note.reply_to
+                                    }">
 
-                                <div v-for="(note, index) in activeTaskForUpdates.notes" :key="index"
-                                    class="chat-bubble-card">
+
                                     <div class="chat-bubble-meta">
+
                                         <span class="chat-bubble-author">
+
                                             <span class="monday-circle-avatar chat-variant">
                                                 {{ note.sender ? note.sender.charAt(0).toUpperCase() : 'A' }}
                                             </span>
-                                            <span class="chat-author-name">{{ note.sender || 'System User' }}</span>
+
+
+                                            <span class="chat-author-name">
+                                                {{ note.sender || 'System User' }}
+                                            </span>
+
                                         </span>
-                                        <span class="chat-bubble-time">{{ formatDate(note.created_at) }}</span>
+
+
+                                        <span class="chat-bubble-time">
+                                            {{ formatDate(note.created_at) }}
+                                        </span>
+
                                     </div>
-                                    <div class="chat-bubble-body ck-content" v-html="note.text"></div>
+
+
+                                    <!-- show reply reference -->
+                                    <div v-if="note.reply_to" class="reply-reference">
+
+                                        <div class="reply-box">
+
+                                            <template v-if="getReplyMessage(note.reply_to)">
+
+                                                <div class="reply-author">
+                                                    {{ getReplyMessage(note.reply_to).sender }}
+                                                </div>
+
+                                                <div class="reply-text"
+                                                    v-html="getReplyPreview(getReplyMessage(note.reply_to).text)">
+                                                </div>
+
+                                            </template>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="chat-bubble-body ck-content" v-html="note.text">
+                                    </div>
+                                    <div class="reaction-summary">
+
+                                        <div v-for="(users, emoji) in (note.reactions || {})" :key="emoji"
+                                            class="reaction-wrapper">
+
+                                            <button v-if="Array.isArray(users) && users.length" class="reaction-chip"
+                                                @click="addReaction(note, emoji)">
+                                                {{ emoji }} {{ users.length }}
+                                            </button>
+
+                                            <div class="reaction-tooltip">
+    <div class="tooltip-title">
+        Reacted by
+    </div>
+
+    <div
+        v-for="user in users"
+        :key="user.user_id"
+        class="tooltip-user"
+    >
+        {{ user.user }}
+    </div>
+</div>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="message-hover-actions">
+
+                                        <div class="reaction-picker">
+
+                                            <button v-for="emoji in ['👍', '❤️', '😂', '🎉', '😮', '😢']" :key="emoji"
+                                                @click="addReaction(note, emoji)">
+                                                {{ emoji }}
+                                            </button>
+
+                                        </div>
+
+                                        <button class="reply-btn" @click="startReply(note)">
+                                            ↩ Reply
+                                        </button>
+
+                                    </div>
+                                    <div v-if="note.reactions" class="reaction-summary">
+
+                                        <span v-for="(users, emoji) in (note.reactions || {})" :key="emoji"
+                                            v-if="Array.isArray(users) && users.length">
+                                        </span>
+
+                                    </div>
+
+
+
                                 </div>
 
                             </div>
@@ -471,7 +565,16 @@
                                 💬 No updates logged yet. Start the conversation by writing an update below!
                             </div>
                         </div>
+                        <div v-if="replyingTo" class="replying-box">
 
+                            Replying to:
+                            <b>{{ replyingTo.sender }}</b>
+
+                            <button @click="cancelReply">
+                                ✕
+                            </button>
+
+                        </div>
                         <div class="notes-editor-section">
                             <label class="editor-label">Write a new update or modify directions:</label>
 
@@ -512,8 +615,9 @@
 </template>
 
 <script setup>
-import { reactive, ref, shallowRef, computed, onMounted, onBeforeUnmount, watch } from "vue";
+import { reactive, ref, shallowRef, computed, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
+import axios from "axios";
 import { useToast } from "vue-toastification";
 import Sidebar from "./Sidebar.vue";
 import { useThemeStore } from "../../stores/theme";
@@ -1069,6 +1173,8 @@ const showUpdatesSidebarPane = ref(false);
 const activeTaskForUpdates = ref(null);
 const activeProjectForUpdates = ref(null);
 const updatesDraftText = ref("");
+const messagesContainer = ref(null);
+const replyingTo = ref(null);
 const openUpdatesSidebar = (task, project) => {
     activeTaskForUpdates.value = task;
     activeProjectForUpdates.value = project;
@@ -1105,26 +1211,93 @@ const closeUpdatesSidebar = () => {
     activeProjectForUpdates.value = null;
     updatesDraftText.value = "";
 };
+const startReply = (note) => {
 
+    replyingTo.value = note;
+
+};
+
+
+const cancelReply = () => {
+
+    replyingTo.value = null;
+
+};
+
+
+
+const addReaction = async (note, reaction) => {
+
+    try {
+
+        const response = await axios.post(
+            `/tasks/${activeTaskForUpdates.value.id}/react`,
+            {
+                message_id: note.id,
+                reaction: reaction
+            }
+        );
+
+        console.log("Reaction response:", response.data);
+
+        activeTaskForUpdates.value.notes = response.data.notes;
+
+
+    } catch (error) {
+
+        console.log("Reaction error:", error.response);
+
+        toast.error(
+            error.response?.data?.message ||
+            "Failed to add reaction"
+        );
+
+    }
+
+};
+const hasReacted = (note, emoji) => {
+
+    return note.reactions &&
+        note.reactions[emoji] &&
+        note.reactions[emoji].some(
+            r => r.user_id === page.props.auth?.user?.id
+        );
+
+};
 const saveTaskNotesUpdate = () => {
     if (!activeTaskForUpdates.value || !updatesDraftText.value.trim()) return;
 
     const messageText = updatesDraftText.value.trim();
 
     const syncPayload = {
+
         id: activeTaskForUpdates.value.id,
+
         project_id: activeTaskForUpdates.value.project_id,
+
         title: activeTaskForUpdates.value.title,
+
         member_id: activeTaskForUpdates.value.member_id,
+
         status: activeTaskForUpdates.value.status,
+
         priority: activeTaskForUpdates.value.priority,
+
         deadline: activeTaskForUpdates.value.deadline,
-        notes: messageText
+
+
+        notes: messageText,
+
+
+        reply_to: replyingTo.value
+            ? replyingTo.value.id
+            : null
+
     };
 
     router.put(`/task/${activeTaskForUpdates.value.id}`, syncPayload, {
         preserveScroll: true,
-        onSuccess: () => {
+        onSuccess: async () => {
             const currentUser = page.props.auth?.user;
             const senderName =
                 [currentUser?.first_name, currentUser?.last_name]
@@ -1138,12 +1311,34 @@ const saveTaskNotesUpdate = () => {
             }
 
             activeTaskForUpdates.value.notes.unshift({
+
+                id: Date.now(),
+
                 sender: senderName,
+
                 text: messageText,
+
+
+                reply_to: replyingTo.value
+                    ? replyingTo.value.id
+                    : null,
+
+
+                reactions: {},
+
+
                 created_at: new Date().toISOString()
+
             });
 
+
             updatesDraftText.value = "";
+            replyingTo.value = null;
+            await nextTick();
+
+            if (messagesContainer.value) {
+                messagesContainer.value.scrollTop = 0;
+            }
         },
         onError: () => { toast.error("Failed to post message update."); }
     });
@@ -1155,7 +1350,54 @@ const formatDate = (isoString) => {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+const getReplyMessage = (replyId) => {
 
+    if (!activeTaskForUpdates.value?.notes) {
+        return null;
+    }
+
+
+    return activeTaskForUpdates.value.notes.find(
+        note => note.id == replyId
+    );
+
+};
+const stripHtml = (html) => {
+
+    if (!html) return "";
+
+    const div = document.createElement("div");
+
+    div.innerHTML = html;
+
+    return div.textContent || div.innerText || "";
+
+};
+const getReplyPreview = (html) => {
+
+    if (!html) return "";
+
+
+    const div = document.createElement("div");
+
+    div.innerHTML = html;
+
+
+    const image = div.querySelector("img");
+
+
+    if (image) {
+
+        return `
+            🖼️ Image attachment
+        `;
+
+    }
+
+
+    return div.textContent || div.innerText || "";
+
+};
 const vClickOutside = {
     mounted(el, binding) {
         el.clickOutsideEvent = (event) => {
@@ -1980,10 +2222,10 @@ tbody tr {
 .sidebar-panel-body {
     padding: 24px;
     flex: 1;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 24px;
+    overflow: hidden;
 }
 
 .sidebar-panel-body label {
@@ -1997,10 +2239,10 @@ tbody tr {
 }
 
 .notes-display-box {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
 }
 
 .notes-content {
@@ -2025,18 +2267,10 @@ tbody tr {
     line-height: 1.5;
 }
 
-.notes-editor-section textarea {
-    width: 100%;
-    min-height: 140px;
-    padding: 14px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-size: 14px;
-    outline: none;
-    resize: vertical;
-    line-height: 1.5;
+.notes-editor-section {
+    flex-shrink: 0;
+    background: #0b1736;
+    padding-top: 10px;
 }
 
 .notes-editor-section textarea:focus {
@@ -2053,13 +2287,10 @@ tbody tr {
 }
 
 .messages-thread-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    max-height: 400px;
+    flex: 1;
     overflow-y: auto;
-    margin-top: 10px;
-    padding-right: 4px;
+    padding-right: 10px;
+    min-height: 0;
 }
 
 .chat-bubble-card {
@@ -2704,5 +2935,394 @@ tbody tr {
     font-size: 22px;
     font-weight: 700;
     margin: 8px 0;
+}
+
+.message-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+
+.message-actions button {
+
+    border: none;
+    background: #1e293b;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+
+}
+
+
+.reply-reference {
+
+    font-size: 12px;
+    color: #94a3b8;
+    margin-bottom: 5px;
+
+}
+
+
+.replying-box {
+
+    background: #111827;
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.reply-reference {
+    margin-bottom: 10px;
+}
+
+
+.reply-box {
+
+    background: #1f2937;
+
+    border-left: 4px solid #8b5cf6;
+
+    padding: 8px 12px;
+
+    border-radius: 8px;
+
+    font-size: 13px;
+
+}
+
+
+.reply-author {
+
+    font-weight: 600;
+
+    color: #c4b5fd;
+
+    margin-bottom: 4px;
+
+}
+
+
+.reply-text {
+
+    color: #d1d5db;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    max-width: 300px;
+
+}
+
+.chat-message {
+
+    background: #111827;
+
+    border-radius: 14px;
+
+    padding: 14px;
+
+    margin-bottom: 12px;
+
+    border: 1px solid #243044;
+
+}
+
+
+.chat-message:hover {
+
+    border-color: #6366f1;
+
+}
+
+
+
+.message-actions button {
+
+    background: #1f2937;
+
+    border: 1px solid #374151;
+
+    color: white;
+
+    padding: 5px 12px;
+
+    border-radius: 20px;
+
+}
+
+
+
+.message-actions button:hover {
+
+    background: #374151;
+
+}
+
+
+
+.active-reaction {
+
+    background: #6366f1 !important;
+
+}
+
+
+
+.reaction-summary {
+
+    display: flex;
+
+    gap: 6px;
+
+    margin-top: 8px;
+
+}
+
+
+
+.reaction-summary span {
+
+    background: #1e293b;
+
+    padding: 3px 10px;
+
+    border-radius: 15px;
+
+    font-size: 13px;
+
+}
+
+.chat-message {
+    position: relative;
+}
+
+
+.message-hover-actions {
+
+    position: absolute;
+
+    right: 10px;
+
+    top: -18px;
+
+    display: flex;
+
+    gap: 5px;
+
+    background: white;
+
+    border-radius: 20px;
+
+    padding: 5px 8px;
+
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .15);
+
+    opacity: 0;
+
+    pointer-events: none;
+
+    transition: .2s;
+
+}
+
+
+.chat-message:hover .message-hover-actions {
+
+    opacity: 1;
+
+    pointer-events: auto;
+
+}
+
+
+.reaction-picker {
+
+    display: flex;
+
+    gap: 4px;
+
+}
+
+
+.reaction-picker button {
+
+    border: none;
+
+    background: transparent;
+
+    font-size: 20px;
+
+    cursor: pointer;
+
+    padding: 4px;
+
+}
+
+
+.reaction-picker button:hover {
+
+    transform: scale(1.25);
+
+}
+
+
+
+.reaction-summary {
+
+    display: flex;
+
+    gap: 6px;
+
+    margin-top: 8px;
+
+}
+
+
+
+.reaction-summary button {
+
+    border-radius: 15px;
+
+    border: 1px solid #ddd;
+
+    background: #987433;
+
+    padding: 3px 8px;
+
+    cursor: pointer;
+
+}
+
+
+.reaction-summary button:hover {
+
+    background: #987433;
+
+}
+
+.message-hover-actions {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+
+    display: none;
+    align-items: center;
+    gap: 8px;
+
+    z-index: 20;
+}
+
+.chat-message:hover .message-hover-actions {
+    display: flex;
+}
+
+.reaction-picker {
+    display: flex;
+    gap: 4px;
+
+    background: #ffffff;
+    border: 1px solid #d0d4da;
+
+    border-radius: 20px;
+    padding: 4px 8px;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+}
+
+.reaction-picker button {
+    background: transparent;
+    border: none;
+
+    color: #111827;
+
+    font-size: 18px;
+    cursor: pointer;
+
+    padding: 4px;
+}
+
+.reaction-picker button:hover {
+    transform: scale(1.2);
+}
+
+.reply-btn {
+    background: #ffffff;
+
+    color: #111827;
+
+    border: 1px solid #d0d4da;
+
+    border-radius: 8px;
+
+    padding: 6px 10px;
+
+    cursor: pointer;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+}
+
+.reply-btn:hover {
+    background: #f3f4f6;
+}
+
+.reaction-summary {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+
+.reaction-wrapper {
+    position: relative;
+}
+
+.reaction-chip {
+    border: 1px solid #d7dbe0;
+    background: #f4f6f8;
+    border-radius: 14px;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all .15s ease;
+}
+
+.reaction-chip:hover {
+    background: #e9eef5;
+}
+
+.reaction-tooltip {
+    position: absolute;
+
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+
+    background: #1f2937;
+    color: white;
+
+    padding: 6px 10px;
+    border-radius: 8px;
+
+    font-size: 12px;
+    white-space: nowrap;
+
+    opacity: 0;
+    visibility: hidden;
+
+    transition: .15s ease;
+
+    z-index: 999;
+}
+
+.reaction-wrapper:hover .reaction-tooltip {
+    opacity: 1;
+    visibility: visible;
 }
 </style>

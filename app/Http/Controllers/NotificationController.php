@@ -18,30 +18,30 @@ class NotificationController extends Controller
     }
 
     public function markAsRead($id)
-    {
-        $user = auth()->user();
+{
+    $user = auth()->user();
 
-        $notification = Notification::where('id', $id)
-            ->where('user_id', $user->id)
-            ->firstOrFail();
+    $notification = Notification::where('id', $id)
+        ->where('user_id', $user->id)
+        ->firstOrFail();
 
-        $notification->update([
+    $notification->update([
+        'is_read' => true
+    ]);
+
+    return back();
+}
+
+   public function markAllRead()
+{
+    $user = auth()->user();
+
+    Notification::where('user_id', $user->id)
+        ->where('workspace_id', session('workspace_id'))
+        ->update([
             'is_read' => true
         ]);
 
-        return response()->json(['success' => true]);
-    }
-
-    public function markAllRead()
-    {
-        $user = auth()->user();
-
-        Notification::where('user_id', $user->id)
-            ->where('workspace_id', session('workspace_id'))
-            ->update([
-                'is_read' => true
-            ]);
-
-        return response()->json(['success' => true]);
-    }
+    return back();
+}
 }

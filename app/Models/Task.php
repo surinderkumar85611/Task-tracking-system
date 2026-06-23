@@ -19,13 +19,14 @@ class Task extends Model
     'allocated_duration',
     'timer_started_at',
     'review',
-    'is_read'
+    'read_by'
 ];
+
 
 protected $casts = [
     'notes' => 'array',
     'member_id' => 'array',
-    'is_read' => 'boolean', 
+    'read_by' => 'array',
 ];
 
     public function project()

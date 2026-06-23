@@ -204,12 +204,12 @@ const search = ref("")
 const showProfileMenu = ref(false)
 
 const logout = () => {
-    router.post("/logout", {}, {
-        replace: true,
-        onSuccess: () => {
-            window.location.href = "/login";
-        }
-    });
+  router.post("/logout", {}, {
+    replace: true,
+    onSuccess: () => {
+      window.location.href = "/login";
+    }
+  });
 };
 const profileContainer = ref(null)
 const props = defineProps({

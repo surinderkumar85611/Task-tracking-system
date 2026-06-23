@@ -29,9 +29,10 @@
 
                 🔔
 
-                <span v-if="unreadCount > 0" class="bell-alert-badge-dot">
-                  {{ unreadCount }}
-                </span>
+               <span 
+  v-if="unreadCount > 0" 
+  class="bell-alert-green-dot">
+</span>
 
               </button>
 
@@ -45,8 +46,12 @@
 
                 <div class="notification-dropdown-body">
                   <div v-if="unreadNotifications.length > 0" class="notification-scroll-area">
-                    <div v-for="notification in unreadNotifications" :key="notification.id"
-                      class="notification-alert-item" :class="{ 'is-read-style': notification.is_read }">
+                    <div 
+  v-for="notification in unreadNotifications" 
+  :key="notification.id"
+  class="notification-alert-item"
+  @click="markAsRead(notification.id)"
+>
                       <div class="alert-item-indicator">🔔</div>
                       <div class="alert-item-details">
                         <p class="alert-task-title">{{ notification.title }}</p>
@@ -288,9 +293,10 @@ onBeforeUnmount(() => {
 });
 
 const unreadNotifications = computed(() => {
-  return props.notifications || [];
+  return (props.notifications || []).filter(
+    notification => !notification.is_read
+  );
 });
-
 const unreadCount = computed(() => {
   return (props.notifications || []).filter(n => !n.is_read).length;
 });
@@ -966,5 +972,20 @@ const markAllRead = () => {
 .notification-alert-item.is-read-style {
   opacity: 0.6;
   background-color: transparent;
+}
+.icon-btn{
+    position:relative;
+}
+
+
+.bell-alert-green-dot{
+    position:absolute;
+    top:5px;
+    right:5px;
+    height:10px;
+    width:10px;
+    background:#22c55e;
+    border-radius:50%;
+    border:2px solid white;
 }
 </style>
