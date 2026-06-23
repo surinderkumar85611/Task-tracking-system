@@ -12,13 +12,14 @@ class AdminController extends Controller
 {
     public function dashboard()
     {
-
         $workspaceId = session('workspace_id');
 
         if (!$workspaceId) {
 
             return Inertia::render('Dashboard', [
                 'widgets' => [],
+                'projects' => [],
+                'members' => [],
                 'stats' => [
                     'totalProjects' => 0,
                     'teamMembers' => 0,
@@ -107,7 +108,35 @@ class AdminController extends Controller
                 )
                     ->where('status', '!=', 'Completed')
                     ->count(),
-            ]
+            ],
+
+            'projects' => Project::where(
+                'workspace_id',
+                $workspaceId
+            )
+                ->select(
+                    'id',
+                    'name',
+                    'progress',
+                    'status',
+                    'deadline'
+                )
+                ->orderBy('created_at', 'desc')
+                ->get(),
+
+            'members' => Member::where(
+                'workspace_id',
+                $workspaceId
+            )
+                ->select(
+                    'id',
+                    'first_name',
+                    'last_name',
+                    'role'
+                )
+                ->orderBy('first_name')
+                ->get()
+
         ]);
     }
 }

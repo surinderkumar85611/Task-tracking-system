@@ -1,18 +1,26 @@
 <template>
 
   <Head title="Dashboard" />
+
   <div class="dashboard" :class="theme.themeClass">
     <Sidebar />
 
     <main class="main-content">
       <div class="content-wrapper">
+
+        <!-- HEADER -->
         <header class="header">
+
           <div class="header-welcome">
             <h1>Leader Dashboard</h1>
-            <p>Welcome back, {{ leader?.first_name }} {{ leader?.last_name }}</p>
+            <p>
+              Welcome back,
+              {{ leader?.first_name }} {{ leader?.last_name }}
+            </p>
           </div>
 
           <div class="header-right">
+
             <div class="workspace-label" v-if="currentWorkspace">
               🏢 {{ currentWorkspace.name }}
             </div>
@@ -23,61 +31,81 @@
               {{ theme.isDark ? '☀️' : '🌙' }}
             </button>
 
+            <!-- NOTIFICATIONS -->
             <div class="notification-bell-container" v-click-outside="handleClickOutside">
-              <button class="icon-btn"
-                @click.stop="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
-
+              <button class="icon-btn" @click.stop="
+                notificationStore.showBellDropdown =
+                !notificationStore.showBellDropdown
+                ">
                 🔔
 
-               <span 
-  v-if="unreadCount > 0" 
-  class="bell-alert-green-dot">
-</span>
-
+                <span v-if="notificationStore.activeUrgentTasks.length > 0" class="bell-alert-green-dot">
+                  {{ unreadCount + notificationStore.activeUrgentTasks.length }}
+                </span>
               </button>
 
-              <div v-if="notificationStore?.showBellDropdown" class="notification-dropdown-panel">
+              <div v-if="notificationStore.showBellDropdown" class="notification-dropdown-panel">
                 <div class="notification-dropdown-header">
-                  <h3>Notifications</h3>
-                  <button v-if="unreadNotifications.length" @click="markAllRead" class="mark-all-link">
-                    Mark all read
-                  </button>
+                  <h3>Urgent Task Alerts</h3>
                 </div>
 
                 <div class="notification-dropdown-body">
-                  <div v-if="unreadNotifications.length > 0" class="notification-scroll-area">
-                    <div 
-  v-for="notification in unreadNotifications" 
-  :key="notification.id"
-  class="notification-alert-item"
-  @click="markAsRead(notification.id)"
->
+
+                  <div class="notification-scroll-area">
+
+                    <!-- NORMAL NOTIFICATIONS -->
+                    <div v-for="notification in unreadNotifications" :key="'notif-' + notification.id"
+                      class="notification-alert-item" @click="markAsRead(notification.id)">
                       <div class="alert-item-indicator">🔔</div>
+
                       <div class="alert-item-details">
                         <p class="alert-task-title">{{ notification.title }}</p>
                         <p class="alert-task-time-left">{{ notification.message }}</p>
                       </div>
                     </div>
+
+                    <!-- URGENT TASKS -->
+                    <div v-for="task in notificationStore.activeUrgentTasks" :key="'urgent-' + task.id"
+                      class="notification-alert-item urgent">
+                      <div class="alert-item-indicator">⚠️</div>
+
+                      <div class="alert-item-details">
+                        <p class="alert-task-title">{{ task.title }}</p>
+
+                        <p class="alert-task-time-left"
+                          :style="{ color: notificationStore.getLiveTaskMetrics(task).color }">
+                          Only {{ notificationStore.getLiveTaskMetrics(task).string }} left!
+                        </p>
+                      </div>
+                    </div>
+
                   </div>
 
-                  <div v-else class="notification-empty-state">
-                    <span class="empty-icon">🎉</span>
-                    <p>No notifications right now.</p>
+                  <!-- EMPTY STATE -->
+                  <div v-if="unreadNotifications.length === 0 && notificationStore.activeUrgentTasks.length === 0"
+                    class="notification-empty-state">
+                    🎉 No notifications right now.
                   </div>
+
                 </div>
               </div>
             </div>
 
+            <!-- PROFILE -->
             <div class="profile-container">
               <img src="https://i.pravatar.cc/100" class="avatar" @click.stop="showProfileMenu = !showProfileMenu" />
+
               <div v-if="showProfileMenu" class="profile-dropdown">
-                <button @click="logout">Logout</button>
+                <button @click="logout">
+                  Logout
+                </button>
               </div>
             </div>
 
           </div>
         </header>
 
+        <!-- STATS -->
         <section class="stats-grid">
           <div class="stat-card total-projects-card">
             <div class="stat-card-gradient"></div>
@@ -120,7 +148,9 @@
           </div>
         </section>
 
+        <!-- PROJECTS + TEAM -->
         <div class="top-grid">
+
           <div class="dashboard-card main-panel">
             <div class="card-header">
               <h2>Project Progress</h2>
@@ -130,15 +160,20 @@
               <div v-for="project in filteredProjects" :key="project.id" class="project-mini-card">
                 <div class="project-card-meta">
                   <h3>{{ project.name }}</h3>
-                  <span class="project-percentage">{{ project.progress || 0 }}%</span>
+                  <span class="project-percentage">
+                    {{ project.progress || 0 }}%
+                  </span>
                 </div>
-                <small class="due-date">Due: {{ project.deadline }}</small>
+
+                <small class="due-date">
+                  Due: {{ project.deadline }}
+                </small>
+
                 <div class="mini-progress">
                   <div class="mini-progress-fill" :style="{ width: (project.progress || 0) + '%' }"></div>
                 </div>
               </div>
             </div>
-
           </div>
 
           <div class="dashboard-card side-panel">
@@ -151,16 +186,21 @@
                 <div class="member-avatar">
                   {{ member.first_name?.charAt(0)?.toUpperCase() }}
                 </div>
+
                 <div class="member-info">
-                  <h4>{{ member.first_name }} {{ member.last_name }}</h4>
+                  <h4>
+                    {{ member.first_name }} {{ member.last_name }}
+                  </h4>
                   <p>{{ member.department }}</p>
                 </div>
               </div>
             </div>
 
           </div>
+
         </div>
 
+        <!-- WORKLOAD -->
         <section class="dashboard-card content-section">
           <div class="card-header">
             <h2>Team Workload</h2>
@@ -171,14 +211,18 @@
               <div class="member-avatar workload-avatar">
                 {{ member.first_name?.charAt(0) }}
               </div>
+
               <div class="workload-info">
-                <h4>{{ member.first_name }} {{ member.last_name }}</h4>
+                <h4>
+                  {{ member.first_name }} {{ member.last_name }}
+                </h4>
                 <p>{{ member.taskCount }} Assigned Tasks</p>
               </div>
             </div>
           </div>
         </section>
 
+        <!-- ACTIVITY -->
         <section class="dashboard-card content-section">
           <div class="card-header">
             <h2>Recent Activity</h2>
@@ -188,6 +232,7 @@
             <template v-for="project in (projects || [])" :key="project.id">
               <div v-for="task in (project.tasks || [])" :key="task.id" class="activity-item">
                 <div class="activity-dot" :class="task.status?.toLowerCase().replace(' ', '-')"></div>
+
                 <div class="activity-details">
                   <strong>{{ task.title }}</strong>
                   <p>{{ task.status }}</p>
@@ -201,15 +246,14 @@
     </main>
   </div>
 </template>
-
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 
 import Sidebar from "./Sidebar.vue";
 import { useThemeStore } from "../../stores/theme.js";
 import { useNotificationStore } from "@/stores/notificationStore";
-import { Head } from '@inertiajs/vue3';
+import { Head } from "@inertiajs/vue3";
 
 const theme = useThemeStore();
 const notificationStore = useNotificationStore();
@@ -225,31 +269,32 @@ const props = defineProps({
   notifications: Array
 });
 
+const search = ref("");
+const showProfileMenu = ref(false);
+let notificationRefreshInterval = null;
+
+const projectsData = computed(() => props.projects || []);
+
 const workspaces = computed(() => page.props.workspaces || []);
 const currentWorkspace = computed(() => workspaces.value[0] || null);
 
-const search = ref("");
-const showProfileMenu = ref(false);
-
 const filteredProjects = computed(() => {
-  if (!search.value) return props.projects;
-
-  return props.projects.filter(project =>
+  if (!search.value) return props.projects || [];
+  return (props.projects || []).filter(project =>
     project.name?.toLowerCase().includes(search.value.toLowerCase())
   );
 });
 
 const completionRate = computed(() => {
-  if (!props.stats.tasks) return 0;
-
+  if (!props.stats?.tasks) return 0;
   return Math.round((props.stats.completed / props.stats.tasks) * 100);
 });
 
 const teamWorkload = computed(() => {
-  return props.teamMembers.map(member => {
+  return (props.teamMembers || []).map(member => {
     let tasks = 0;
 
-    props.projects.forEach(project => {
+    (props.projects || []).forEach(project => {
       project.tasks?.forEach(task => {
         if (task.member_id == member.id) tasks++;
       });
@@ -259,18 +304,17 @@ const teamWorkload = computed(() => {
   });
 });
 
-const logout = () => {
-  router.post("/logout", {}, {
-    replace: true,
-    onSuccess: () => {
-      window.location.href = "/login";
-    }
-  });
-};
+watch(
+  () => props.projects,
+  (projects) => {
+    notificationStore.setProjectsSource(projects || []);
+  },
+  { immediate: true, deep: true }
+);
 
 const handleClickOutside = (event) => {
-  const bell = document.querySelector('.notification-bell-container');
-  const profile = document.querySelector('.profile-container');
+  const bell = document.querySelector(".notification-bell-container");
+  const profile = document.querySelector(".profile-container");
 
   if (bell && !bell.contains(event.target)) {
     notificationStore.showBellDropdown = false;
@@ -283,20 +327,35 @@ const handleClickOutside = (event) => {
 
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
-  setInterval(() => {
-    router.reload({ only: ['notifications'] });
+
+  notificationStore.setProjectsSource(projectsData.value);
+
+  notificationRefreshInterval = setInterval(() => {
+    router.reload({ only: ["notifications"] });
   }, 30000);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener("click", handleClickOutside);
+
+  if (notificationRefreshInterval) {
+    clearInterval(notificationRefreshInterval);
+  }
 });
 
+const logout = () => {
+  router.post("/logout", {}, {
+    replace: true,
+    onSuccess: () => {
+      window.location.href = "/login";
+    }
+  });
+};
+
 const unreadNotifications = computed(() => {
-  return (props.notifications || []).filter(
-    notification => !notification.is_read
-  );
+  return (props.notifications || []).filter(n => !n.is_read);
 });
+
 const unreadCount = computed(() => {
   return (props.notifications || []).filter(n => !n.is_read).length;
 });
@@ -305,21 +364,20 @@ const markAsRead = (id) => {
   router.put(`/notifications/${id}/read`, {}, {
     preserveScroll: true,
     onSuccess: () => {
-      router.reload({ only: ['notifications'] });
+      router.reload({ only: ["notifications"] });
     }
   });
 };
 
 const markAllRead = () => {
-  router.put('/notifications/read-all', {}, {
+  router.put("/notifications/read-all", {}, {
     preserveScroll: true,
     onSuccess: () => {
-      router.reload({ only: ['notifications'] });
+      router.reload({ only: ["notifications"] });
     }
   });
 };
 </script>
-
 <style scoped>
 /* Theme Context Theme Palette Declarations */
 .theme-dark {
@@ -973,19 +1031,20 @@ const markAllRead = () => {
   opacity: 0.6;
   background-color: transparent;
 }
-.icon-btn{
-    position:relative;
+
+.icon-btn {
+  position: relative;
 }
 
 
-.bell-alert-green-dot{
-    position:absolute;
-    top:5px;
-    right:5px;
-    height:10px;
-    width:10px;
-    background:#22c55e;
-    border-radius:50%;
-    border:2px solid white;
+.bell-alert-green-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  height: 10px;
+  width: 10px;
+  background: #22c55e;
+  border-radius: 50%;
+  border: 2px solid white;
 }
 </style>
