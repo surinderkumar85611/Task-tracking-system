@@ -515,18 +515,14 @@
                                             </button>
 
                                             <div class="reaction-tooltip">
-    <div class="tooltip-title">
-        Reacted by
-    </div>
+                                                <div class="tooltip-title">
+                                                    Reacted by
+                                                </div>
 
-    <div
-        v-for="user in users"
-        :key="user.user_id"
-        class="tooltip-user"
-    >
-        {{ user.user }}
-    </div>
-</div>
+                                                <div v-for="user in users" :key="user.user_id" class="tooltip-user">
+                                                    {{ user.user }}
+                                                </div>
+                                            </div>
                                         </div>
 
                                     </div>
@@ -1103,7 +1099,7 @@ const getTimerMetrics = (task) => {
     const remainingMs = endTimestamp - currentTimeLiveTick.value;
 
     if (remainingMs <= 0) {
-        return { percentage: 100, string: "Done", color: "#ef4444" };
+        return { percentage: 100, string: "Done", color: "#00c875" };
     }
 
     const elapsedMs = currentTimeLiveTick.value - startTimestamp;
