@@ -14,6 +14,7 @@ class Member extends Model
         'phone',
         'department',
         'role',
+        'level',
         'assigned_to',
     ];
 

@@ -32,7 +32,7 @@
 
             <div class="tl-meta-right">
                 <span class="count-badge">
-                    {{ member.team_members?.length || 0 }}
+                    {{ getTotalTeamCount(member) }}
                     Members
                 </span>
             </div>
@@ -132,6 +132,20 @@ const startDrag = (event, item) => {
 const getInitials = (first, last) => {
     return `${first?.[0] || ''}${last?.[0] || ''}`.toUpperCase();
 };
+
+const getTotalTeamCount = (node) => {
+
+    if (!node.team_members?.length) {
+        return 0;
+    }
+
+    return node.team_members.reduce(
+        (total, child) => {
+            return total + 1 + getTotalTeamCount(child);
+        },
+        0
+    );
+};
 </script>
 
 <style scoped>
@@ -155,6 +169,7 @@ const getInitials = (first, last) => {
 
 .draggable-card {
     cursor: grab;
+    width: 100%;
 }
 
 .draggable-card:active {
