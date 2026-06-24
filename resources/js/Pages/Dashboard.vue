@@ -1,4 +1,5 @@
 <template>
+
   <Head title="Dashboard" />
 
   <div class="dashboard" :class="theme.themeClass">
@@ -15,62 +16,72 @@
 
           <div class="header-right">
             <div class="search-container">
-              <input
-                v-model="search"
-                type="text"
-                placeholder="Search projects..."
-                class="search-box"
-              />
+              <input v-model="search" type="text" placeholder="Search projects..." class="search-box" />
             </div>
 
             <button class="theme-btn" @click="theme.toggleTheme">
               {{ theme.isDark ? "☀️" : "🌙" }}
             </button>
 
-            <div
-              class="notification-bell-container"
-              v-click-outside="() => notificationStore.showBellDropdown = false"
-            >
-              <button
-                class="icon-btn"
-                @click="notificationStore.showBellDropdown = !notificationStore.showBellDropdown"
-              >
+            <div class="notification-bell-container" v-click-outside="() => notificationStore.showBellDropdown = false">
+              <button class="icon-btn"
+                @click="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
                 🔔
-                <span
-                  v-if="notificationStore.activeUrgentTasks.length > 0"
-                  class="bell-alert-badge-dot"
-                >
-                  {{ notificationStore.activeUrgentTasks.length }}
+                <span v-if="
+                  unreadCount > 0 ||
+                  notificationStore.activeUrgentTasks.length > 0
+                " class="bell-alert-badge-dot">
+                  {{
+                    unreadCount +
+                    notificationStore.activeUrgentTasks.length
+                  }}
                 </span>
               </button>
 
-              <div
-                v-if="notificationStore.showBellDropdown"
-                class="notification-dropdown-panel"
-              >
+              <div v-if="notificationStore.showBellDropdown" class="notification-dropdown-panel">
                 <div class="notification-dropdown-header">
                   <h3>Urgent Task Alerts</h3>
                 </div>
 
                 <div class="notification-dropdown-body">
-                  <div
-                    v-for="task in notificationStore.activeUrgentTasks"
-                    :key="task.id"
-                    class="notification-alert-item"
-                  >
-                    <div class="alert-item-indicator">⚠️</div>
+
+                  <!-- NORMAL NOTIFICATIONS -->
+                  <div v-for="notification in unreadNotifications" :key="'notif-' + notification.id"
+                    class="notification-alert-item" @click="markAsRead(notification.id)">
+                    <div class="alert-item-indicator">
+                      🔔
+                    </div>
+
+                    <div class="notification-content">
+                      <p class="notification-title">
+                        {{ notification.title }}
+                      </p>
+
+                      <p class="notification-message">
+                        {{ notification.message }}
+                      </p>
+
+                      <span class="notification-time">
+                        {{ formatNotificationDate(notification.created_at) }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- URGENT TASKS -->
+                  <div v-for="task in notificationStore.activeUrgentTasks" :key="'urgent-' + task.id"
+                    class="notification-alert-item">
+                    <div class="alert-item-indicator">
+                      ⚠️
+                    </div>
 
                     <div class="alert-item-details">
                       <p class="alert-task-title">
                         {{ task.title }}
                       </p>
 
-                      <p
-                        class="alert-task-time-left"
-                        :style="{
-                          color: notificationStore.getLiveTaskMetrics(task).color
-                        }"
-                      >
+                      <p class="alert-task-time-left" :style="{
+                        color: notificationStore.getLiveTaskMetrics(task).color
+                      }">
                         Only
                         {{ notificationStore.getLiveTaskMetrics(task).string }}
                         left!
@@ -78,22 +89,19 @@
                     </div>
                   </div>
 
-                  <div
-                    v-if="notificationStore.activeUrgentTasks.length === 0"
-                    class="notification-empty-state"
-                  >
-                    🎉 No urgent deadlines right now. Everything is under control!
+                  <div v-if="
+                    unreadNotifications.length === 0 &&
+                    notificationStore.activeUrgentTasks.length === 0
+                  " class="notification-empty-state">
+                    🎉 No notifications right now.
                   </div>
+
                 </div>
               </div>
             </div>
 
             <div class="profile-container">
-              <img
-                src="https://i.pravatar.cc/100"
-                class="avatar"
-                @click.stop="showProfileMenu = !showProfileMenu"
-              />
+              <img src="https://i.pravatar.cc/100" class="avatar" @click.stop="showProfileMenu = !showProfileMenu" />
 
               <div v-if="showProfileMenu" class="profile-dropdown">
                 <button @click="logout">Logout</button>
@@ -102,17 +110,9 @@
           </div>
         </header>
 
-        <draggable
-          v-model="widgets"
-          item-key="id"
-          class="stats-grid"
-          @end="saveWidgetOrder"
-        >
+        <draggable v-model="widgets" item-key="id" class="stats-grid" @end="saveWidgetOrder">
           <template #item="{ element }">
-            <div
-              class="stat-card"
-              :class="element.widget_type.replace(/_/g, '-') + '-card'"
-            >
+            <div class="stat-card" :class="element.widget_type.replace(/_/g, '-') + '-card'">
               <div class="stat-glow"></div>
 
               <div class="stat-inner">
@@ -154,11 +154,7 @@
             </div>
 
             <div class="projects-grid">
-              <div
-                class="project-card"
-                v-for="project in boards"
-                :key="project.id"
-              >
+              <div class="project-card" v-for="project in boards" :key="project.id">
                 <div class="project-card-header">
                   <h3>{{ project.name }}</h3>
 
@@ -172,10 +168,7 @@
                 </div>
 
                 <div class="progress-track-line">
-                  <div
-                    class="progress-track-fill"
-                    :style="{ width: project.progress + '%' }"
-                  ></div>
+                  <div class="progress-track-fill" :style="{ width: project.progress + '%' }"></div>
                 </div>
 
                 <div class="project-footer">
@@ -215,11 +208,7 @@
               <div class="team-members-list">
                 <div class="members-grid">
 
-                  <div
-                    class="member-card"
-                    v-for="member in teamMembersList"
-                    :key="member.id"
-                  >
+                  <div class="member-card" v-for="member in teamMembersList" :key="member.id">
                     <div class="member-avatar">
                       {{ member.first_name.charAt(0) }}{{ member.last_name.charAt(0) }}
                     </div>
@@ -262,16 +251,15 @@ import draggable from 'vuedraggable';
 import { Head } from '@inertiajs/vue3';
 
 const notificationStore = useNotificationStore();
-
+let notificationRefreshInterval = null;
 const props = defineProps({
   stats: Object,
   widgets: Array,
   projects: Array,
-  members: Array
+  members: Array,
+  notifications: Array
 });
-console.log('PROJECTS:', props.projects);
-console.log('MEMBERS:', props.members);
-console.log('STATS:', props.stats);
+
 const search = ref("");
 const widgets = ref([]);
 
@@ -298,18 +286,80 @@ const teamMembersList = computed(() => props.members || []);
 
 const theme = useThemeStore();
 const showProfileMenu = ref(false);
+const unreadNotifications = computed(() => {
+  return [...(props.notifications || [])]
+    .filter(notification => !notification.is_read)
+    .sort(
+      (a, b) =>
+        new Date(b.created_at) -
+        new Date(a.created_at)
+    );
+});
+
+const unreadCount = computed(() => {
+  return (props.notifications || [])
+    .filter(notification => !notification.is_read)
+    .length;
+});
+
 
 const handleClickOutside = () => {
   showProfileMenu.value = false;
 };
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
+
+  notificationStore.setProjectsSource(props.projects || []);
+
+  notificationRefreshInterval = setInterval(() => {
+    router.reload({
+      only: ["notifications"]
+    });
+  }, 30000);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener("click", handleClickOutside);
-});
 
+  if (notificationRefreshInterval) {
+    clearInterval(notificationRefreshInterval);
+  }
+});
+const formatNotificationDate = (date) => {
+  if (!date) return "";
+
+  const now = new Date();
+  const created = new Date(date);
+
+  const diffMinutes = Math.floor(
+    (now - created) / 1000 / 60
+  );
+
+  if (diffMinutes < 1) return "Just now";
+
+  if (diffMinutes < 60)
+    return `${diffMinutes} min ago`;
+
+  const diffHours = Math.floor(
+    diffMinutes / 60
+  );
+
+  if (diffHours < 24)
+    return `${diffHours} hr ago`;
+
+  return created.toLocaleDateString();
+};
+
+const markAsRead = (id) => {
+  router.put(`/notifications/${id}/read`, {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      router.reload({
+        only: ["notifications"]
+      });
+    }
+  });
+};
 const logout = () => {
   router.post("/logout", {}, {
     replace: true,
@@ -878,6 +928,7 @@ const logout = () => {
   text-align: center;
   padding: 14px 0;
 }
+
 .member-initials {
   display: flex;
   align-items: center;
@@ -890,6 +941,7 @@ const logout = () => {
   font-weight: 700;
   font-size: 14px;
 }
+
 .projects-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -897,8 +949,8 @@ const logout = () => {
 }
 
 .project-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   padding: 16px;
   transition: .3s;
@@ -917,7 +969,7 @@ const logout = () => {
 .project-status {
   padding: 4px 10px;
   border-radius: 20px;
-  background: rgba(0,255,150,.12);
+  background: rgba(0, 255, 150, .12);
   color: #00ff95;
   font-size: 12px;
 }
@@ -932,15 +984,16 @@ const logout = () => {
   margin-top: 12px;
   opacity: .7;
 }
+
 .members-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill,minmax(170px,1fr));
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 15px;
 }
 
 .member-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   padding: 18px;
   text-align: center;
@@ -955,11 +1008,9 @@ const logout = () => {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: linear-gradient(
-      135deg,
+  background: linear-gradient(135deg,
       #6d5dfc,
-      #4f46e5
-  );
+      #4f46e5);
 
   display: flex;
   align-items: center;
@@ -979,5 +1030,106 @@ const logout = () => {
 .member-card p {
   margin-top: 6px;
   opacity: .7;
+}
+
+.notification-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mark-all-link {
+  background: none;
+  border: none;
+  color: #38bdf8;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+}
+
+.mark-all-link:hover {
+  text-decoration: underline;
+}
+
+.notification-scroll-area {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.notification-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  color: #94a3b8;
+}
+
+.notification-alert-item.is-read-style {
+  opacity: 0.6;
+  background-color: transparent;
+}
+
+.icon-btn {
+  position: relative;
+}
+
+
+.bell-alert-green-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  height: 10px;
+  width: 10px;
+  background: #22c55e;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.notification-alert-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all .2s ease;
+  border: 1px solid rgba(255, 255, 255, .05);
+  margin-bottom: 8px;
+}
+
+.notification-alert-item:hover {
+  background: rgba(255, 255, 255, .04);
+}
+
+.alert-item-indicator {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notification-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+}
+
+.notification-message {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 4px 0;
+}
+
+.notification-time {
+  font-size: 11px;
+  color: #64748b;
 }
 </style>

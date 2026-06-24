@@ -2159,7 +2159,7 @@ tbody tr {
 }
 
 .updates-sidebar-panel {
-    width: 500px;
+    width: 704px;
     height: 100%;
     background: var(--card);
     border-left: 1px solid var(--border);

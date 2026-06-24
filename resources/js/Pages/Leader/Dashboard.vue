@@ -58,9 +58,18 @@
                       class="notification-alert-item" @click="markAsRead(notification.id)">
                       <div class="alert-item-indicator">🔔</div>
 
-                      <div class="alert-item-details">
-                        <p class="alert-task-title">{{ notification.title }}</p>
-                        <p class="alert-task-time-left">{{ notification.message }}</p>
+                      <div class="notification-content">
+                        <p class="notification-title">
+                          {{ notification.title }}
+                        </p>
+
+                        <p class="notification-message">
+                          {{ notification.message }}
+                        </p>
+
+                        <span class="notification-time">
+                          {{ formatNotificationDate(notification.created_at) }}
+                        </span>
                       </div>
                     </div>
 
@@ -351,11 +360,74 @@ const logout = () => {
     }
   });
 };
+const formatNotificationDate = (date) => {
+  const getNotificationDisplay = (notification) => {
 
+    const data = notification.data || {};
+
+    switch (notification.type) {
+
+      case "project_assigned":
+        return {
+          icon: "📁",
+          title: "Project Assignment",
+          message: `You have been assigned to project "${notification.message.replace('You have been assigned a new project: ', '')}"`
+        };
+
+      case "task_assigned":
+        return {
+          icon: "✅",
+          title: "Task Assignment",
+          message: notification.message
+        };
+
+      case "project_status_updated":
+        return {
+          icon: "🔄",
+          title: "Project Status Updated",
+          message: notification.message
+        };
+
+      case "task_status_updated":
+        return {
+          icon: "📌",
+          title: "Task Status Updated",
+          message: notification.message
+        };
+
+      default:
+        return {
+          icon: "🔔",
+          title: notification.title,
+          message: notification.message
+        };
+    }
+  };
+  if (!date) return "";
+
+  const now = new Date();
+  const created = new Date(date);
+
+  const diffMinutes = Math.floor(
+    (now - created) / 1000 / 60
+  );
+
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+
+  if (diffHours < 24) return `${diffHours} hr ago`;
+
+  return created.toLocaleDateString();
+};
 const unreadNotifications = computed(() => {
-  return (props.notifications || []).filter(n => !n.is_read);
+  return [...(props.notifications || [])]
+    .filter(n => !n.is_read)
+    .sort((a, b) => {
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
 });
-
 const unreadCount = computed(() => {
   return (props.notifications || []).filter(n => !n.is_read).length;
 });
@@ -1046,5 +1118,49 @@ const markAllRead = () => {
   background: #22c55e;
   border-radius: 50%;
   border: 2px solid white;
+}
+
+.notification-alert-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all .2s ease;
+  border: 1px solid rgba(255, 255, 255, .05);
+  margin-bottom: 8px;
+}
+
+.notification-alert-item:hover {
+  background: rgba(255, 255, 255, .04);
+}
+
+.alert-item-indicator {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notification-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+}
+
+.notification-message {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 4px 0;
+}
+
+.notification-time {
+  font-size: 11px;
+  color: #64748b;
 }
 </style>

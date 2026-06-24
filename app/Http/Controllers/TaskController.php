@@ -121,7 +121,6 @@ class TaskController extends Controller
             'review' => $request->review,
         ]);
 
-        // Send Standard Task Notifications
         if (!empty($request->member_id)) {
             foreach ((array)$request->member_id as $memberId) {
                 $member = Member::find($memberId);
@@ -143,7 +142,6 @@ class TaskController extends Controller
             }
         }
 
-        // Send High Priority / Urgent Notifications
         if (($request->priority ?? 'Medium') === 'High' && !empty($request->member_id)) {
             foreach ((array)$request->member_id as $memberId) {
                 $member = Member::find($memberId);

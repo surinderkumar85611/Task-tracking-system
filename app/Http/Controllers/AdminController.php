@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Models\Member;
 use App\Models\Task;
 use App\Models\DashboardWidget;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class AdminController extends Controller
@@ -20,6 +21,7 @@ class AdminController extends Controller
                 'widgets' => [],
                 'projects' => [],
                 'members' => [],
+                'notifications' => [],
                 'stats' => [
                     'totalProjects' => 0,
                     'teamMembers' => 0,
@@ -135,7 +137,20 @@ class AdminController extends Controller
                     'role'
                 )
                 ->orderBy('first_name')
-                ->get()
+                ->get(),
+
+            'notifications' => \App\Models\Notification::where('workspace_id', $workspaceId)
+    ->orderBy('created_at', 'desc')
+    ->get()
+    ->map(function ($notification) {
+        return [
+            'id' => $notification->id,
+            'title' => $notification->title,
+            'message' => $notification->message,
+            'is_read' => (bool) $notification->is_read,
+            'created_at' => $notification->created_at,
+        ];
+    }),
 
         ]);
     }
