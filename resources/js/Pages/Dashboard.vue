@@ -25,7 +25,7 @@
 
             <div class="notification-bell-container" v-click-outside="() => notificationStore.showBellDropdown = false">
               <button class="icon-btn"
-                @click="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
+                @click.stop="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
                 🔔
                 <span v-if="
                   unreadCount > 0 ||
@@ -45,58 +45,61 @@
 
                 <div class="notification-dropdown-body">
 
-                  <!-- NORMAL NOTIFICATIONS -->
-                  <div v-for="notification in unreadNotifications" :key="'notif-' + notification.id"
-                    class="notification-alert-item" @click="markAsRead(notification.id)">
-                    <div class="alert-item-indicator">
-                      🔔
-                    </div>
+  <!-- SECTION: NORMAL NOTIFICATIONS -->
+  <div class="notification-section" v-if="unreadNotifications.length">
 
-                    <div class="notification-content">
-                      <p class="notification-title">
-                        {{ notification.title }}
-                      </p>
+    <h4 class="section-title">Notifications</h4>
 
-                      <p class="notification-message">
-                        {{ notification.message }}
-                      </p>
+    <div
+      v-for="notification in unreadNotifications"
+      :key="'notif-' + notification.id"
+      class="notification-item normal"
+      @click="markAsRead(notification.id)"
+    >
+      <div class="notif-icon">🔔</div>
 
-                      <span class="notification-time">
-                        {{ formatNotificationDate(notification.created_at) }}
-                      </span>
-                    </div>
-                  </div>
+      <div class="notif-content">
+        <p class="notif-title">{{ notification.title }}</p>
+        <p class="notif-message">{{ notification.message }}</p>
+        <span class="notif-time">
+          {{ formatNotificationDate(notification.created_at) }}
+        </span>
+      </div>
+    </div>
 
-                  <!-- URGENT TASKS -->
-                  <div v-for="task in notificationStore.activeUrgentTasks" :key="'urgent-' + task.id"
-                    class="notification-alert-item">
-                    <div class="alert-item-indicator">
-                      ⚠️
-                    </div>
+  </div>
 
-                    <div class="alert-item-details">
-                      <p class="alert-task-title">
-                        {{ task.title }}
-                      </p>
+  <!-- SECTION: URGENT TASKS -->
+  <div class="notification-section" v-if="notificationStore.activeUrgentTasks.length">
 
-                      <p class="alert-task-time-left" :style="{
-                        color: notificationStore.getLiveTaskMetrics(task).color
-                      }">
-                        Only
-                        {{ notificationStore.getLiveTaskMetrics(task).string }}
-                        left!
-                      </p>
-                    </div>
-                  </div>
+    <h4 class="section-title">Urgent Tasks</h4>
 
-                  <div v-if="
-                    unreadNotifications.length === 0 &&
-                    notificationStore.activeUrgentTasks.length === 0
-                  " class="notification-empty-state">
-                    🎉 No notifications right now.
-                  </div>
+    <div
+      v-for="task in notificationStore.activeUrgentTasks"
+      :key="'urgent-' + task.id"
+      class="notification-item urgent"
+    >
+      <div class="notif-icon urgent-icon">⚠️</div>
 
-                </div>
+      <div class="notif-content">
+        <p class="notif-title">{{ task.title }}</p>
+        <p class="notif-message">
+          Only {{ notificationStore.getLiveTaskMetrics(task).string }} left
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div
+    v-if="unreadNotifications.length === 0 && notificationStore.activeUrgentTasks.length === 0"
+    class="notification-empty-state"
+  >
+    🎉 No notifications right now
+  </div>
+
+</div>
               </div>
             </div>
 
@@ -303,8 +306,13 @@ const unreadCount = computed(() => {
 });
 
 
-const handleClickOutside = () => {
+const handleClickOutside = (event) => {
+  if (event.target.closest('.notification-dropdown-panel')) {
+    return; 
+  }
+  
   showProfileMenu.value = false;
+  notificationStore.showBellDropdown = false;
 };
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
@@ -351,12 +359,13 @@ const formatNotificationDate = (date) => {
 };
 
 const markAsRead = (id) => {
-  router.put(`/notifications/${id}/read`, {}, {
+  router.put(`notifications/${id}/read`, {}, {
     preserveScroll: true,
     onSuccess: () => {
-      router.reload({
-        only: ["notifications"]
-      });
+      router.reload({ only: ["notifications"] });
+    },
+    onError: (errors) => {
+      console.log("Route error:", errors);
     }
   });
 };
@@ -1031,105 +1040,117 @@ const logout = () => {
   margin-top: 6px;
   opacity: .7;
 }
+/* --- Unified Notification Dropdown Styles --- */
+
+.notification-dropdown-panel {
+  position: absolute;
+  right: 0;
+  top: 50px;
+  width: 320px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  box-shadow: 0 20px 40px var(--shadow-profile);
+  z-index: 9999;
+  overflow: hidden; /* Kept hidden here to clip children to rounded corners */
+  backdrop-filter: blur(12px);
+}
 
 .notification-dropdown-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.mark-all-link {
-  background: none;
-  border: none;
-  color: #38bdf8;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 0;
+.notification-dropdown-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
 }
 
-.mark-all-link:hover {
-  text-decoration: underline;
-}
-
-.notification-scroll-area {
-  max-height: 280px;
+.notification-dropdown-body {
+  padding: 8px;
+  max-height: 350px;
   overflow-y: auto;
 }
 
-.notification-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 16px;
-  color: #94a3b8;
+.notification-section {
+  margin-bottom: 14px;
 }
 
-.notification-alert-item.is-read-style {
-  opacity: 0.6;
-  background-color: transparent;
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  margin: 8px 6px;
 }
 
-.icon-btn {
-  position: relative;
-}
-
-
-.bell-alert-green-dot {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  height: 10px;
-  width: 10px;
-  background: #22c55e;
-  border-radius: 50%;
-  border: 2px solid white;
-}
-
-.notification-alert-item {
+.notification-item {
   display: flex;
   gap: 12px;
   padding: 12px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all .2s ease;
-  border: 1px solid rgba(255, 255, 255, .05);
+  border-radius: 12px;
   margin-bottom: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.notification-alert-item:hover {
-  background: rgba(255, 255, 255, .04);
+.notification-item:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.alert-item-indicator {
+.notification-item.normal {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.notification-item.urgent {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.notif-icon {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
-  background: #2563eb;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(59, 130, 246, 0.15);
   flex-shrink: 0;
 }
 
-.notification-title {
+.urgent-icon {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.notif-content { flex: 1; }
+
+.notif-title {
   font-size: 13px;
   font-weight: 600;
-  color: white;
+  color: var(--text-main);
   margin: 0;
 }
 
-.notification-message {
+.notif-message {
   font-size: 12px;
   color: #94a3b8;
-  margin: 4px 0;
+  margin: 3px 0;
 }
 
-.notification-time {
+.notif-time {
   font-size: 11px;
   color: #64748b;
+}
+
+.notification-empty-state {
+  text-align: center;
+  padding: 24px;
+  color: #94a3b8;
+  font-size: 13px;
 }
 </style>
