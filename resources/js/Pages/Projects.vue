@@ -191,9 +191,9 @@
                                             <div class="modal-pills-row">
                                                 <div v-for="mId in task.member_id" :key="mId" class="member-pill-badge">
                                                     <span class="pill-avatar-dot">{{ getMemberInitials(project, mId)
-                                                        }}</span>
+                                                    }}</span>
                                                     <span class="pill-name-text">{{ getMemberFirstNameOnly(project, mId)
-                                                        }}</span>
+                                                    }}</span>
                                                     <span class="pill-remove-btn"
                                                         @click.stop="toggleMemberAssignment(task, mId)">×</span>
                                                 </div>
@@ -460,21 +460,97 @@
                         <div class="notes-display-box">
                             <label>📌 Updates Timeline</label>
 
-                            <div v-if="activeTaskForUpdates?.notes && activeTaskForUpdates.notes.length > 0"
+                            <div ref="messagesContainer"
+                                v-if="activeTaskForUpdates?.notes && activeTaskForUpdates.notes.length > 0"
                                 class="messages-thread-wrapper">
 
-                                <div v-for="(note, index) in activeTaskForUpdates.notes" :key="index"
-                                    class="chat-bubble-card">
+                                <div v-for="(note, index) in activeTaskForUpdates.notes" :key="note.id || index"
+                                    class="chat-message" :class="{ 'has-reply': note.reply_to }">
+
                                     <div class="chat-bubble-meta">
+
                                         <span class="chat-bubble-author">
+
                                             <span class="monday-circle-avatar chat-variant">
                                                 {{ note.sender ? note.sender.charAt(0).toUpperCase() : 'A' }}
                                             </span>
-                                            <span class="chat-author-name">{{ note.sender || 'System User' }}</span>
+
+                                            <span class="chat-author-name">
+                                                {{ note.sender || 'System User' }}
+                                            </span>
+
                                         </span>
-                                        <span class="chat-bubble-time">{{ formatDate(note.created_at) }}</span>
+
+                                        <span class="chat-bubble-time">
+                                            {{ formatDate(note.created_at) }}
+                                        </span>
+
                                     </div>
+
+                                    <div v-if="note.reply_to" class="reply-reference">
+
+                                        <div class="reply-box">
+
+                                            <template v-if="getReplyMessage(note.reply_to)">
+
+                                                <div class="reply-author">
+                                                    {{ getReplyMessage(note.reply_to).sender }}
+                                                </div>
+
+                                                <div class="reply-text"
+                                                    v-html="getReplyPreview(getReplyMessage(note.reply_to).text)"></div>
+
+                                            </template>
+
+                                        </div>
+
+                                    </div>
+
                                     <div class="chat-bubble-body ck-content" v-html="note.text"></div>
+
+                                    <div class="reaction-summary">
+
+                                        <div v-for="(users, emoji) in (note.reactions || {})" :key="emoji"
+                                            class="reaction-wrapper">
+
+                                            <button v-if="Array.isArray(users) && users.length" class="reaction-chip"
+                                                @click="addReaction(note, emoji)">
+                                                {{ emoji }} {{ users.length }}
+                                            </button>
+
+                                            <div class="reaction-tooltip">
+
+                                                <div class="tooltip-title">
+                                                    Reacted by
+                                                </div>
+
+                                                <div v-for="user in users" :key="user.user_id" class="tooltip-user">
+                                                    {{ user.user }}
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                    <div class="message-hover-actions">
+
+                                        <div class="reaction-picker">
+
+                                            <button v-for="emoji in ['👍', '❤️', '😂', '🎉', '😮', '😢']" :key="emoji"
+                                                @click="addReaction(note, emoji)">
+                                                {{ emoji }}
+                                            </button>
+
+                                        </div>
+
+                                        <button class="reply-btn" @click="startReply(note)">
+                                            ↩ Reply
+                                        </button>
+
+                                    </div>
+
                                 </div>
 
                             </div>
@@ -483,7 +559,16 @@
                                 💬 No updates logged yet. Start the conversation by writing an update below!
                             </div>
                         </div>
+                        <div v-if="replyingTo" class="replying-box">
 
+                            Replying to:
+                            <b>{{ replyingTo.sender }}</b>
+
+                            <button @click="cancelReply">
+                                ✕
+                            </button>
+
+                        </div>
                         <div class="notes-editor-section">
                             <label for="task-textarea">Write a new update or modify directions:</label>
 
@@ -598,6 +683,7 @@
 <script setup>
 import { reactive, ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
+import axios from "axios";
 import { useToast } from "vue-toastification";
 import Sidebar from "./components/Sidebar.vue";
 import { useThemeStore } from "../stores/theme";
@@ -1174,16 +1260,26 @@ const showUpdatesSidebarPane = ref(false);
 const activeTaskForUpdates = ref(null);
 const activeProjectForUpdates = ref(null);
 const updatesDraftText = ref("");
+const messagesContainer = ref(null);
+const replyingTo = ref(null);
+const openUpdatesSidebar = async (task, project) => {
 
-const openUpdatesSidebar = (task, project) => {
     activeTaskForUpdates.value = task;
     activeProjectForUpdates.value = project;
     updatesDraftText.value = "";
+    replyingTo.value = null;
+
+    await nextTick();
+
+    if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = 0;
+    }
+
     showUpdatesSidebarPane.value = true;
 
     task.is_read = true;
-    notificationStore.setProjectsSource(projectsData.value);
 
+    notificationStore.setProjectsSource(projectsData.value);
 
     const updatePayload = {
         id: task.id,
@@ -1223,7 +1319,13 @@ onMounted(() => {
 onBeforeUnmount(() => {
     if (clockInterval) clearInterval(clockInterval);
 });
+const startReply = (note) => {
+    replyingTo.value = note;
+};
 
+const cancelReply = () => {
+    replyingTo.value = null;
+};
 const saveTaskNotesUpdate = () => {
     if (!activeTaskForUpdates.value || !updatesDraftText.value.trim()) return;
 
@@ -1237,12 +1339,15 @@ const saveTaskNotesUpdate = () => {
         status: activeTaskForUpdates.value.status,
         priority: activeTaskForUpdates.value.priority,
         deadline: activeTaskForUpdates.value.deadline,
-        notes: messageText
+
+        notes: messageText,
+
+        reply_to: replyingTo.value ? replyingTo.value.id : null
     };
 
     router.put(`/task/${activeTaskForUpdates.value.id}`, syncPayload, {
         preserveScroll: true,
-        onSuccess: () => {
+        onSuccess: async () => {
             const currentUser = page.props.auth?.user;
             const senderName =
                 [currentUser?.first_name, currentUser?.last_name]
@@ -1256,22 +1361,82 @@ const saveTaskNotesUpdate = () => {
             }
 
             activeTaskForUpdates.value.notes.unshift({
+                id: Date.now(),
                 sender: senderName,
                 text: messageText,
                 created_at: new Date().toISOString(),
-                is_read: false
+                reply_to: replyingTo.value ? replyingTo.value.id : null,
+                reactions: {}
             });
             updatesDraftText.value = "";
         },
         onError: () => { toast.error("Failed to post message update."); }
     });
 };
+
+const hasReacted = (note, emoji) => {
+    return note.reactions &&
+        note.reactions[emoji] &&
+        note.reactions[emoji].some(r => r.user_id === page.props.auth?.user?.id);
+};
 const formatDate = (isoString) => {
     if (!isoString) return '';
     const date = new Date(isoString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
+const getReplyMessage = (replyId) => {
+    if (!activeTaskForUpdates.value?.notes) return null;
 
+    return activeTaskForUpdates.value.notes.find(
+        note => note.id == replyId
+    );
+};
+const stripHtml = (html) => {
+
+    if (!html) return "";
+
+    const div = document.createElement("div");
+
+    div.innerHTML = html;
+
+    return div.textContent || div.innerText || "";
+};
+
+const getReplyPreview = (html) => {
+
+    if (!html) return "";
+
+    const div = document.createElement("div");
+
+    div.innerHTML = html;
+
+    const image = div.querySelector("img");
+
+    if (image) {
+
+        return `
+            🖼️ Image attachment
+        `;
+    }
+
+    return div.textContent || div.innerText || "";
+};
+const addReaction = async (note, emoji) => {
+    try {
+        const response = await axios.post(
+            `/tasks/${activeTaskForUpdates.value.id}/react`,
+            {
+                message_id: note.id,
+                reaction: emoji
+            }
+        );
+
+        activeTaskForUpdates.value.notes = response.data.notes;
+
+    } catch (error) {
+        toast.error("Failed to add reaction");
+    }
+};
 const vClickOutside = {
     mounted(el, binding) {
         el.clickOutsideEvent = (event) => {
@@ -2139,7 +2304,6 @@ tbody tr {
 .monday-update-icon-btn.has-notes {
     color: #0073ea;
 }
-
 .update-indicator-dot {
     position: absolute;
     top: 6px;
@@ -2169,15 +2333,19 @@ tbody tr {
 }
 
 .updates-sidebar-panel {
-    width: 500px;
-    height: 100%;
+    width: 704px;
+    height: 100vh;
     background: var(--card);
     border-left: 1px solid var(--border);
     box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
+
     display: flex;
     flex-direction: column;
+
     transform: translateX(100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    overflow: hidden;
 }
 
 .updates-sidebar-overlay.open .updates-sidebar-panel {
@@ -2191,6 +2359,8 @@ tbody tr {
     justify-content: space-between;
     align-items: flex-start;
     background: var(--bg);
+
+    flex-shrink: 0;
 }
 
 .panel-header-left {
@@ -2230,12 +2400,12 @@ tbody tr {
 }
 
 .sidebar-panel-body {
-    padding: 24px;
     flex: 1;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    overflow: hidden;
+    min-height: 0;
+    padding: 16px 20px;
 }
 
 .sidebar-panel-body label {
@@ -2248,33 +2418,34 @@ tbody tr {
     letter-spacing: 0.5px;
 }
 
+/* THIS IS NOW THE SCROLLABLE AREA */
 .notes-display-box {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
 }
 
-.notes-content {
+
+
+/* REPLY BAR STAYS FIXED */
+.replying-box {
+    flex-shrink: 0;
+
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+/* CKEDITOR STAYS FIXED */
+.notes-editor-section {
+    flex-shrink: 0;
+
+    margin-top: 10px;
+    padding-top: 10px;
+
     background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 12px;
-    margin-top: 8px;
-}
-
-.notes-meta {
-    font-size: 12px;
-    color: #0073ea;
-    font-weight: 500;
-    margin-bottom: 6px;
-}
-
-.notes-text-body {
-    font-size: 14px;
-    color: var(--text);
-    white-space: pre-wrap;
-    line-height: 1.5;
 }
 
 .notes-editor-section textarea {
@@ -2299,21 +2470,13 @@ tbody tr {
     padding: 16px 24px;
     border-top: 1px solid var(--border);
     background: var(--bg);
+
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-}
 
-.messages-thread-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    max-height: 400px;
-    overflow-y: auto;
-    margin-top: 10px;
-    padding-right: 4px;
+    flex-shrink: 0;
 }
-
 .chat-bubble-card {
     background: var(--bg);
     border: 1px solid var(--border);
@@ -3219,5 +3382,394 @@ tbody tr {
 
 .chat-bubble-body.ck-content * {
     color: inherit;
+}
+
+.message-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+
+.message-actions button {
+
+    border: none;
+    background: #1e293b;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+
+}
+
+
+.reply-reference {
+
+    font-size: 12px;
+    color: #94a3b8;
+    margin-bottom: 5px;
+
+}
+
+
+.replying-box {
+
+    background: #111827;
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.reply-reference {
+    margin-bottom: 10px;
+}
+
+
+.reply-box {
+
+    background: #1f2937;
+
+    border-left: 4px solid #8b5cf6;
+
+    padding: 8px 12px;
+
+    border-radius: 8px;
+
+    font-size: 13px;
+
+}
+
+
+.reply-author {
+
+    font-weight: 600;
+
+    color: #c4b5fd;
+
+    margin-bottom: 4px;
+
+}
+
+
+.reply-text {
+
+    color: #d1d5db;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    max-width: 300px;
+
+}
+
+.chat-message {
+
+    background: #111827;
+
+    border-radius: 14px;
+
+    padding: 14px;
+
+    margin-bottom: 12px;
+
+    border: 1px solid #243044;
+
+}
+
+
+.chat-message:hover {
+
+    border-color: #6366f1;
+
+}
+
+
+
+.message-actions button {
+
+    background: #1f2937;
+
+    border: 1px solid #374151;
+
+    color: white;
+
+    padding: 5px 12px;
+
+    border-radius: 20px;
+
+}
+
+
+
+.message-actions button:hover {
+
+    background: #374151;
+
+}
+
+
+
+.active-reaction {
+
+    background: #6366f1 !important;
+
+}
+
+
+
+.reaction-summary {
+
+    display: flex;
+
+    gap: 6px;
+
+    margin-top: 8px;
+
+}
+
+
+
+.reaction-summary span {
+
+    background: #1e293b;
+
+    padding: 3px 10px;
+
+    border-radius: 15px;
+
+    font-size: 13px;
+
+}
+
+.chat-message {
+    position: relative;
+}
+
+
+.message-hover-actions {
+
+    position: absolute;
+
+    right: 10px;
+
+    top: -18px;
+
+    display: flex;
+
+    gap: 5px;
+
+    background: white;
+
+    border-radius: 20px;
+
+    padding: 5px 8px;
+
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .15);
+
+    opacity: 0;
+
+    pointer-events: none;
+
+    transition: .2s;
+
+}
+
+
+.chat-message:hover .message-hover-actions {
+
+    opacity: 1;
+
+    pointer-events: auto;
+
+}
+
+
+.reaction-picker {
+
+    display: flex;
+
+    gap: 4px;
+
+}
+
+
+.reaction-picker button {
+
+    border: none;
+
+    background: transparent;
+
+    font-size: 20px;
+
+    cursor: pointer;
+
+    padding: 4px;
+
+}
+
+
+.reaction-picker button:hover {
+
+    transform: scale(1.25);
+
+}
+
+
+
+.reaction-summary {
+
+    display: flex;
+
+    gap: 6px;
+
+    margin-top: 8px;
+
+}
+
+
+
+.reaction-summary button {
+
+    border-radius: 15px;
+
+    border: 1px solid #ddd;
+
+    background: #987433;
+
+    padding: 3px 8px;
+
+    cursor: pointer;
+
+}
+
+
+.reaction-summary button:hover {
+
+    background: #987433;
+
+}
+
+.message-hover-actions {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+
+    display: none;
+    align-items: center;
+    gap: 8px;
+
+    z-index: 20;
+}
+
+.chat-message:hover .message-hover-actions {
+    display: flex;
+}
+
+.reaction-picker {
+    display: flex;
+    gap: 4px;
+
+    background: #ffffff;
+    border: 1px solid #d0d4da;
+
+    border-radius: 20px;
+    padding: 4px 8px;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+}
+
+.reaction-picker button {
+    background: transparent;
+    border: none;
+
+    color: #111827;
+
+    font-size: 18px;
+    cursor: pointer;
+
+    padding: 4px;
+}
+
+.reaction-picker button:hover {
+    transform: scale(1.2);
+}
+
+.reply-btn {
+    background: #ffffff;
+
+    color: #111827;
+
+    border: 1px solid #d0d4da;
+
+    border-radius: 8px;
+
+    padding: 6px 10px;
+
+    cursor: pointer;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+}
+
+.reply-btn:hover {
+    background: #f3f4f6;
+}
+
+.reaction-summary {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+
+.reaction-wrapper {
+    position: relative;
+}
+
+.reaction-chip {
+    border: 1px solid #d7dbe0;
+    background: #f4f6f8;
+    border-radius: 14px;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all .15s ease;
+}
+
+.reaction-chip:hover {
+    background: #e9eef5;
+}
+
+.reaction-tooltip {
+    position: absolute;
+
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+
+    background: #1f2937;
+    color: white;
+
+    padding: 6px 10px;
+    border-radius: 8px;
+
+    font-size: 12px;
+    white-space: nowrap;
+
+    opacity: 0;
+    visibility: hidden;
+
+    transition: .15s ease;
+
+    z-index: 999;
+}
+
+.reaction-wrapper:hover .reaction-tooltip {
+    opacity: 1;
+    visibility: visible;
 }
 </style>
