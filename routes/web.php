@@ -28,7 +28,7 @@ use App\Http\Controllers\TaskAttachmentController;
 use App\Http\Controllers\Member\MDashboardController;
 use App\Http\Controllers\EditorController;
 Route::get('/', function () {
-    if (auth()->check()) return redirect('/dashboard');
+    if (Auth::check()) return redirect('/dashboard');
     return redirect('/login');
 });
 
@@ -82,7 +82,7 @@ Route::post('/reset-password', function (Request $request) {
 Route::middleware(['auth', 'no-cache'])->group(function () {
 
     Route::get('/dashboard', function () {
-        $user = auth()->user();
+        $user = Auth::user();
         $member = Member::where('email', $user->email)->first();
 
         if ($member && $member->role === 'TL') {
@@ -93,14 +93,14 @@ Route::middleware(['auth', 'no-cache'])->group(function () {
     })->name('dashboard');
 
     Route::get('/member', function () {
-        $user = auth()->user();
+        $user = Auth::user();
         $member = Member::where('email', $user->email)->first();
         if ($member && $member->role !== 'ADMIN') abort(403);
         return app(MemberController::class)->index();
     });
 
     Route::post('/member', function (Request $request) {
-        $user = auth()->user();
+        $user = Auth::user();
         $member = Member::where('email', $user->email)->first();
 
         if ($member && $member->role !== 'ADMIN') abort(403);
@@ -109,7 +109,7 @@ Route::middleware(['auth', 'no-cache'])->group(function () {
     });
 
     Route::post('/workspace', function () {
-        $user = auth()->user();
+        $user = Auth::user();
         $member = Member::where('email', $user->email)->first();
         if ($member && $member->role !== 'ADMIN') abort(403);
         return app(WorkspaceController::class)->store(request());
@@ -118,14 +118,14 @@ Route::middleware(['auth', 'no-cache'])->group(function () {
     Route::post('/workspace/select', [WorkspaceController::class, 'select']);
 
     Route::get('/project', function () {
-        $user = auth()->user();
+        $user = Auth::user();
         $member = Member::where('email', $user->email)->first();
         if ($member && $member->role !== 'ADMIN') abort(403);
         return app(ProjectController::class)->index();
     });
 
     Route::post('/project', function () {
-        $user = auth()->user();
+        $user = Auth::user();
         $member = Member::where('email', $user->email)->first();
         if ($member && $member->role !== 'ADMIN') abort(403);
         return app(ProjectController::class)->store(request());
@@ -145,18 +145,18 @@ Route::middleware(['auth', 'no-cache'])->group(function () {
     Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
 
     Route::post('/logout', function (Request $request) {
-    Auth::logout();
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
-    
-    return redirect()->to('/login'); 
-});
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->to('/login');
+    });
 });
 
 Route::middleware(['auth', 'no-cache'])->group(function () {
 
     Route::get('/settings', function () {
-        $user = auth()->user();
+        $user = Auth::user();
 
         if ($user->role === 'ADMIN') {
             return app(SettingsController::class)->index();
@@ -175,7 +175,7 @@ Route::middleware(['auth', 'no-cache'])->group(function () {
 Route::middleware(['auth', 'no-cache'])->group(function () {
 
     Route::get('/projects', function () {
-        $user = auth()->user();
+        $user = Auth::user();
         $member = Member::where('email', $user->email)->first();
 
         if (!$member || $member->role !== 'TL') abort(403);
@@ -184,7 +184,7 @@ Route::middleware(['auth', 'no-cache'])->group(function () {
     });
 
     Route::get('/team', function () {
-        $user = auth()->user();
+        $user = Auth::user();
         $member = Member::where('email', $user->email)->first();
 
         if (!$member || $member->role !== 'TL') abort(403);
@@ -202,7 +202,7 @@ Route::middleware('auth')->prefix('member')->group(function () {
     Route::put('/{member}', [MemberController::class, 'update']);
     Route::put('/{member}/assign', [MemberController::class, 'assignMember']);
     Route::put('/{member}/assign-workspace', [MemberController::class, 'assignWorkspace']);
-    Route::put('/{member}/independent',[MemberController::class, 'makeIndependent'])->name('members.make-independent');
+    Route::put('/{member}/independent', [MemberController::class, 'makeIndependent'])->name('members.make-independent');
 });
 
 Route::post('/invite/generate', [InvitationController::class, 'generate']);
@@ -251,7 +251,6 @@ Route::prefix('notifications')->middleware(['auth', 'no-cache'])->group(function
 Route::post('/api/v1/task-attachments', [TaskAttachmentController::class, 'upload']);
 Route::get('/member/dashboard/preview', [MDashboardController::class, 'index']);
 
-
 Route::post(
     '/ckeditor/upload',
     [LProjectController::class, 'uploadEditorImage']
@@ -261,31 +260,34 @@ Route::middleware(['auth'])->group(function () {
 
     Route::put('/user/notification-preferences', [UserController::class, 'updateNotificationPreferences']);
 
-    // FIXED: Pointing explicitly to your App\Models\Notification model path
     Route::put('/notifications/{id}/read', function ($id) {
-        \App\Models\Notification::where('id', $id)->where('user_id', auth()->id())->update(['is_read' => 1]);
+        \App\Models\Notification::where('id', $id)->where('user_id', Auth::id())->update(['is_read' => 1]);
         return back();
     });
 
-    // FIXED: Pointing explicitly to your App\Models\Notification model path
     Route::put('/notifications/read-all', function () {
-        \App\Models\Notification::where('user_id', auth()->id())->update(['is_read' => 1]);
+        \App\Models\Notification::where('user_id', Auth::id())->update(['is_read' => 1]);
         return back();
     });
 });
+
 Route::put('/user/notification-preferences', [\App\Http\Controllers\UserController::class, 'updateNotificationPreferences']);
-Route::post('/tasks/{id}/reply',
-    [TaskController::class,'reply']
+
+Route::post(
+    '/tasks/{id}/reply',
+    [TaskController::class, 'reply']
 );
 
-
-Route::post('/tasks/{id}/react',
-    [TaskController::class,'react']
+Route::post(
+    '/tasks/{id}/react',
+    [TaskController::class, 'react']
 );
 
-Route::put('/notifications/{id}/read', 
-    [NotificationController::class,'markAsRead']
+Route::put(
+    '/notifications/{id}/read',
+    [NotificationController::class, 'markAsRead']
 )->name('notifications.read');
+
 
 Route::put('/notifications/read-all',
     [NotificationController::class,'markAllRead']
@@ -295,3 +297,4 @@ Route::put(
     '/notifications/{id}/read',
     [NotificationController::class, 'markAsRead']
 )->middleware(['auth', 'no-cache']);
+
