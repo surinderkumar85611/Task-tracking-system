@@ -241,15 +241,79 @@
 
                 <div class="security-cards">
 
-                    <div class="mini-card">
-                        <div>
-                            <h4>Two Factor Authentication</h4>
-                            <p>Add extra protection to your account.</p>
+                    <div class="twofa-box">
+                        <div class="twofa-header">
+                            <h3>Two Factor Authentication (2FA)</h3>
                         </div>
-                        <label class="switch">
-                            <input type="checkbox" v-model="security.twoFactor">
-                            <span></span>
-                        </label>
+
+                        <div class="twofa-content">
+
+                            <div v-if="twoFA.enabled" class="twofa-enabled-container">
+                                <p style="
+                    color:#4caf50;
+                    font-weight:bold;
+                    margin-bottom:12px;
+                ">
+                                    🔒 Two-Factor Authentication is currently active on your account.
+                                </p>
+
+                                <div class="form-group inline-verification-input" style="margin-bottom:15px;">
+                                    <label>
+                                        Enter 6-digit code to confirm disabling
+                                    </label>
+
+                                    <input v-model="twoFA.code" placeholder="123456" />
+                                </div>
+
+                                <button class="primary-btn danger-btn" @click="disable2FA" :disabled="twoFA.loading">
+                                    {{ twoFA.loading ? "Disabling..." : "Disable 2FA" }}
+                                </button>
+                            </div>
+
+                            <div v-else>
+
+                                <p class="twofa-desc">
+                                    Secure your account using Google Authenticator code validation protocols.
+                                </p>
+
+                                <button class="primary-btn setup-btn" @click="generate2FA" :disabled="twoFA.loading">
+                                    Generate QR Code
+                                </button>
+
+                                <div v-if="twoFA.qr" class="qr-box">
+                                    <p>
+                                        Scan this QR in Google Authenticator:
+                                    </p>
+
+                                    <qrcode-vue :value="twoFA.qr" :size="200" level="H" />
+
+                                    <p class="manual-code">
+                                        <strong>
+                                            Or enter manually:
+                                        </strong>
+                                    </p>
+
+                                    <code>
+                    {{ twoFA.secret }}
+                </code>
+
+                                    <div class="form-group inline-verification-input">
+                                        <label>
+                                            Enter 6-digit code
+                                        </label>
+
+                                        <input v-model="twoFA.code" placeholder="123456" />
+                                    </div>
+
+                                    <button class="primary-btn success-btn" @click="enable2FA"
+                                        :disabled="twoFA.loading">
+                                        Enable 2FA
+                                    </button>
+                                </div>
+
+                            </div>
+
+                        </div>
                     </div>
 
                     <div class="mini-card">
@@ -371,6 +435,7 @@ import Sidebar from "./components/Sidebar.vue";
 import { useThemeStore } from "../stores/theme";
 import { useToast } from "vue-toastification";
 import { Head, usePage } from '@inertiajs/vue3';
+import QrcodeVue from 'qrcode.vue';
 
 const page = usePage();
 
@@ -419,13 +484,24 @@ const notifications = reactive({
     projects: true,
     reports: false,
 });
-
+const originalNotifications = reactive({
+    email: true,
+    tasks: true,
+    projects: true,
+    reports: false,
+});
 const stats = reactive({
     members: 18,
     projects: 7,
     tasks: 146,
 });
-
+const twoFA = reactive({
+    qr: null,
+    secret: null,
+    code: "",
+    enabled: false,
+    loading: false
+});
 const userInitials = computed(() => {
     if (!profile.name) return "";
     return profile.name
@@ -462,6 +538,22 @@ const fetchProfile = async () => {
         profile.id = user.id;
         profile.name = user.name;
         profile.email = user.email;
+        if (user.notification_preferences) {
+            notifications.email = !!user.notification_preferences.email;
+            notifications.tasks = !!user.notification_preferences.tasks;
+            notifications.projects = !!user.notification_preferences.projects;
+            notifications.reports = !!user.notification_preferences.reports;
+
+            originalNotifications.email = !!user.notification_preferences.email;
+            originalNotifications.tasks = !!user.notification_preferences.tasks;
+            originalNotifications.projects = !!user.notification_preferences.projects;
+            originalNotifications.reports = !!user.notification_preferences.reports;
+        }
+
+        twoFA.enabled =
+            user.two_factor_enabled === 1 ||
+            user.two_factor_enabled === true ||
+            user.two_factor_enabled === "1";
 
         const data = member?.member ?? member;
         profile.role = data?.role || "N/A";
@@ -493,12 +585,39 @@ const updateWorkspace = async () => {
 };
 
 const updateNotifications = async () => {
+
+    const hasChanges =
+        notifications.email !== originalNotifications.email ||
+        notifications.tasks !== originalNotifications.tasks ||
+        notifications.projects !== originalNotifications.projects ||
+        notifications.reports !== originalNotifications.reports;
+
+    if (!hasChanges) {
+        toast.warning("Nothing to update on saving the preferences");
+        return;
+    }
+
     try {
-        // Placeholder syntax logic match
-        // await axios.put("/user/notifications", notifications);
-        toast.success("Notification preferences saved");
+
+        await axios.put("/user/notification-preferences", {
+            email: notifications.email,
+            tasks: notifications.tasks,
+            projects: notifications.projects,
+            reports: notifications.reports
+        });
+
+        originalNotifications.email = notifications.email;
+        originalNotifications.tasks = notifications.tasks;
+        originalNotifications.projects = notifications.projects;
+        originalNotifications.reports = notifications.reports;
+
+        toast.success("Preferences saved successfully");
+
     } catch (error) {
+
         console.error(error);
+        toast.error("Failed to update preferences");
+
     }
 };
 
@@ -580,7 +699,83 @@ const updatePassword = async () => {
         console.error(error);
     }
 };
+const generate2FA = async () => {
+    try {
+        twoFA.loading = true;
 
+        const res = await axios.get("/leader/2fa/generate");
+
+        twoFA.qr = res.data.qr;
+        twoFA.secret = res.data.secret;
+
+        toast.success("QR generated. Scan it in Google Authenticator");
+    } catch (err) {
+        console.error(err);
+        toast.error("Failed to generate QR");
+    } finally {
+        twoFA.loading = false;
+    }
+};
+
+const enable2FA = async () => {
+    if (!twoFA.code) {
+        toast.error("Enter 6-digit code");
+        return;
+    }
+
+    try {
+        twoFA.loading = true;
+
+        await axios.post("/leader/2fa/enable", {
+            code: twoFA.code
+        });
+
+        twoFA.enabled = true;
+
+        toast.success("2FA enabled successfully");
+    } catch (err) {
+        toast.error(
+            err.response?.data?.message || "Invalid code"
+        );
+    } finally {
+        twoFA.loading = false;
+    }
+};
+
+const disable2FA = async () => {
+    if (!twoFA.code) {
+        toast.error(
+            "Please enter your 6-digit verification code to disable 2FA"
+        );
+        return;
+    }
+
+    try {
+        twoFA.loading = true;
+
+        await axios.post("/leader/2fa/disable", {
+            code: twoFA.code
+        });
+
+        twoFA.enabled = false;
+        twoFA.qr = null;
+        twoFA.secret = null;
+        twoFA.code = "";
+
+        toast.success(
+            "2FA has been disabled successfully"
+        );
+    } catch (err) {
+        console.error(err);
+
+        toast.error(
+            err.response?.data?.message ||
+            "Invalid verification code. Failed to disable 2FA"
+        );
+    } finally {
+        twoFA.loading = false;
+    }
+};
 const deleteWorkspace = async (workspace) => {
     if (!workspace) return;
     try {
@@ -946,5 +1141,72 @@ onMounted(() => {
     color: #ef4444;
     margin-top: 6px;
     font-size: 13px;
+}
+
+.twofa-box {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--bg);
+    overflow: hidden;
+}
+
+.twofa-header {
+    background: rgba(6, 182, 212, 0.05);
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.twofa-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.twofa-content {
+    padding: 24px;
+}
+
+.twofa-desc {
+    color: var(--subtext);
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.setup-btn {
+    background: #475569;
+}
+
+.success-btn {
+    background: #22c55e !important;
+}
+
+.qr-box {
+    margin-top: 20px;
+    padding: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 400px;
+}
+
+.manual-code {
+    margin-top: 8px;
+}
+
+.qr-box code {
+    background: var(--bg);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-family: monospace;
+    font-size: 14px;
+    color: #ec4899;
+}
+
+.inline-verification-input {
+    margin: 8px 0;
 }
 </style>

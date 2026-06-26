@@ -26,7 +26,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskAttachmentController;
 use App\Http\Controllers\Member\MDashboardController;
-
+use App\Http\Controllers\EditorController;
 Route::get('/', function () {
     if (Auth::check()) return redirect('/dashboard');
     return redirect('/login');
@@ -288,7 +288,13 @@ Route::put(
     [NotificationController::class, 'markAsRead']
 )->name('notifications.read');
 
-Route::put(
-    '/notifications/read-all',
-    [NotificationController::class, 'markAllRead']
+
+Route::put('/notifications/read-all',
+    [NotificationController::class,'markAllRead']
 )->name('notifications.readAll');
+
+Route::put(
+    '/notifications/{id}/read',
+    [NotificationController::class, 'markAsRead']
+)->middleware(['auth', 'no-cache']);
+
