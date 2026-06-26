@@ -707,8 +707,12 @@ const logout = () => {
 
 .progress-track-fill {
   height: 100%;
+  width: 0%;
   background: linear-gradient(90deg, #06b6d4, #3b82f6);
   border-radius: 4px;
+
+  transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: width;
 }
 
 /* --- Right Sidebar Column Panel Component Chain Stack --- */
