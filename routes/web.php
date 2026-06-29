@@ -27,6 +27,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskAttachmentController;
 use App\Http\Controllers\MemberDashboardController;
 use App\Http\Controllers\EditorController;
+
 Route::get('/', function () {
     if (Auth::check()) return redirect('/dashboard');
     return redirect('/login');
@@ -133,6 +134,8 @@ Route::middleware(['auth', 'no-cache'])->group(function () {
 
     Route::put('/project/{project}', [ProjectController::class, 'update']);
     Route::delete('/project/{project}', [ProjectController::class, 'destroy']);
+    Route::get('/project/{project}/export', [ProjectController::class, 'export'])
+        ->name('project.export');
 
     Route::middleware(['auth', 'no-cache'])->prefix('task')->group(function () {
         Route::post('/', [TaskController::class, 'store']);
@@ -289,8 +292,9 @@ Route::put(
 )->name('notifications.read');
 
 
-Route::put('/notifications/read-all',
-    [NotificationController::class,'markAllRead']
+Route::put(
+    '/notifications/read-all',
+    [NotificationController::class, 'markAllRead']
 )->name('notifications.readAll');
 
 Route::put(
