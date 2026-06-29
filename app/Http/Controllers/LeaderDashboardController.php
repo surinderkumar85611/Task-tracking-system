@@ -28,7 +28,18 @@ class LeaderDashboardController extends Controller
             })
             ->where('team_leader_id', $leader->id)
             ->get();
+        foreach ($projects as $project) {
 
+            $totalTasks = $project->tasks->count();
+
+            $completedTasks = $project->tasks
+                ->where('status', 'Completed')
+                ->count();
+
+            $project->progress = $totalTasks > 0
+                ? round(($completedTasks / $totalTasks) * 100)
+                : 0;
+        }
         $teamMembers = $leader->teamMembers ?? collect();
 
         $allTasks = collect();
@@ -61,29 +72,29 @@ class LeaderDashboardController extends Controller
                 ->count(),
         ];
 
-       $notifications = Notification::where('user_id', $user->id)
-    ->where('is_read', 0)
-    ->when(session('workspace_id'), function ($query) {
-        $query->where(function($q) {
-            $q->where('workspace_id', session('workspace_id'))
-              ->orWhereNull('workspace_id');
-        });
-    })
-    ->orderBy('created_at', 'desc')
-    ->get([
-        'id',
-        'title',
-        'message',
-        'is_read',
-        'created_at'
-    ]);
+        $notifications = Notification::where('user_id', $user->id)
+            ->where('is_read', 0)
+            ->when(session('workspace_id'), function ($query) {
+                $query->where(function ($q) {
+                    $q->where('workspace_id', session('workspace_id'))
+                        ->orWhereNull('workspace_id');
+                });
+            })
+            ->orderBy('created_at', 'desc')
+            ->get([
+                'id',
+                'title',
+                'message',
+                'is_read',
+                'created_at'
+            ]);
         return Inertia::render(
             'Leader/Dashboard',
             [
                 'leader' => $leader,
                 'projects' => $projects,
                 'teamMembers' => $teamMembers,
-                'notifications' => $notifications, 
+                'notifications' => $notifications,
                 'currentWorkspaceId' => session('workspace_id'),
                 'stats' => [
                     'projects' => $projects->count(),

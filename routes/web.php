@@ -25,7 +25,7 @@ use App\Models\Member;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskAttachmentController;
-use App\Http\Controllers\Member\MDashboardController;
+use App\Http\Controllers\MemberDashboardController;
 use App\Http\Controllers\EditorController;
 Route::get('/', function () {
     if (Auth::check()) return redirect('/dashboard');
@@ -298,3 +298,7 @@ Route::put(
     [NotificationController::class, 'markAsRead']
 )->middleware(['auth', 'no-cache']);
 
+Route::middleware(['auth'])->group(function () {
+    Route::get('/member/dashboard', [MemberDashboardController::class, 'index'])
+        ->name('member.dashboard');
+});

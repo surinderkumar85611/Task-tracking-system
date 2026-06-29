@@ -112,19 +112,24 @@ class AdminController extends Controller
                     ->count(),
             ],
 
-            'projects' => Project::where(
-                'workspace_id',
-                $workspaceId
-            )
-                ->select(
-                    'id',
-                    'name',
-                    'progress',
-                    'status',
-                    'deadline'
-                )
+            'projects' => Project::with('tasks')
+                ->where('workspace_id', $workspaceId)
                 ->orderBy('created_at', 'desc')
-                ->get(),
+                ->get()
+                ->map(function ($project) {
+
+                    $totalTasks = $project->tasks->count();
+
+                    $completedTasks = $project->tasks
+                        ->where('status', 'Completed')
+                        ->count();
+
+                    $project->progress = $totalTasks > 0
+                        ? round(($completedTasks / $totalTasks) * 100)
+                        : 0;
+
+                    return $project;
+                }),
 
             'members' => Member::where(
                 'workspace_id',
@@ -140,17 +145,17 @@ class AdminController extends Controller
                 ->get(),
 
             'notifications' => \App\Models\Notification::where('workspace_id', $workspaceId)
-    ->orderBy('created_at', 'desc')
-    ->get()
-    ->map(function ($notification) {
-        return [
-            'id' => $notification->id,
-            'title' => $notification->title,
-            'message' => $notification->message,
-            'is_read' => (bool) $notification->is_read,
-            'created_at' => $notification->created_at,
-        ];
-    }),
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($notification) {
+                    return [
+                        'id' => $notification->id,
+                        'title' => $notification->title,
+                        'message' => $notification->message,
+                        'is_read' => (bool) $notification->is_read,
+                        'created_at' => $notification->created_at,
+                    ];
+                }),
 
         ]);
     }
