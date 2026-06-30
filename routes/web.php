@@ -249,7 +249,6 @@ Route::prefix('notifications')->middleware(['auth', 'no-cache'])->group(function
 });
 
 Route::post('/api/v1/task-attachments', [TaskAttachmentController::class, 'upload']);
-Route::get('/member/dashboard/preview', [MDashboardController::class, 'index']);
 
 Route::post(
     '/ckeditor/upload',
@@ -297,8 +296,17 @@ Route::put(
     '/notifications/{id}/read',
     [NotificationController::class, 'markAsRead']
 )->middleware(['auth', 'no-cache']);
+Route::middleware(['auth', 'role:Member'])->group(function () {
 
-Route::middleware(['auth'])->group(function () {
     Route::get('/member/dashboard', [MemberDashboardController::class, 'index'])
         ->name('member.dashboard');
+
+    Route::put('/tasks/{task}/toggle', [MemberDashboardController::class, 'toggleTask'])
+        ->name('member.task.toggle');
+
+    Route::put('/notifications/{notification}/read', [MemberDashboardController::class, 'markNotificationRead'])
+        ->name('member.notification.read');
+
+    Route::put('/notifications/read-all', [MemberDashboardController::class, 'markAllNotificationsRead'])
+        ->name('member.notifications.read-all');
 });
