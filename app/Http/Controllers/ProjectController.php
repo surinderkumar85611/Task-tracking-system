@@ -8,6 +8,8 @@ use App\Models\Task;
 use App\Models\Member;
 use Inertia\Inertia;
 use App\Services\NotificationService;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProjectExport;
 
 class ProjectController extends Controller
 {
@@ -35,7 +37,7 @@ class ProjectController extends Controller
 
         if ($leader && !empty($leader->email)) {
             $targetUser = \App\Models\User::where('email', $leader->email)->first();
-            
+
             if ($targetUser) {
                 NotificationService::create(
                     $targetUser->id,
@@ -105,10 +107,10 @@ class ProjectController extends Controller
 
         if ($oldStatus !== $request->status) {
             $leader = Member::find($project->team_leader_id);
-            
+
             if ($leader && !empty($leader->email)) {
                 $targetUser = \App\Models\User::where('email', $leader->email)->first();
-                
+
                 if ($targetUser) {
                     NotificationService::create(
                         $targetUser->id,
@@ -132,6 +134,14 @@ class ProjectController extends Controller
         return back()->with(
             'success',
             'Project deleted successfully'
+        );
+    }
+
+    public function export(Project $project)
+    {
+        return Excel::download(
+            new ProjectExport($project),
+            $project->name . '.xlsx'
         );
     }
 }

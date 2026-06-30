@@ -123,6 +123,9 @@
                         </div>
 
                         <div class="group-control-actions">
+                            <button class="export-btn" @click="exportProject(project)">
+                                Export
+                            </button>
                             <button class="monday-btn-primary" @click="openImportModal(project)">
                                 📥 Import Tasks
                             </button>
@@ -947,6 +950,10 @@ const props = defineProps({
     projects: { type: Array, default: () => [] },
     teamLeaders: { type: Array, default: () => [] },
 });
+
+const exportProject = (project) => {
+    window.location.href = `/project/${project.id}/export`;
+};
 
 const search = ref("");
 const showProfileMenu = ref(false);
@@ -2304,6 +2311,7 @@ tbody tr {
 .monday-update-icon-btn.has-notes {
     color: #0073ea;
 }
+
 .update-indicator-dot {
     position: absolute;
     top: 6px;
@@ -2477,6 +2485,7 @@ tbody tr {
 
     flex-shrink: 0;
 }
+
 .chat-bubble-card {
     background: var(--bg);
     border: 1px solid var(--border);
