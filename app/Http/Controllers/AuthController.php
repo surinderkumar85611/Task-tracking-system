@@ -65,13 +65,12 @@ class AuthController extends Controller
 
             session()->forget('workspace_id');
 
-            $member = Member::where(
-                'email',
-                $user->email
-            )->first();
+            if ($user->role === 'ADMIN') {
+                return redirect('/admin/dashboard');
+            }
 
-            if ($member && $member->role === 'TL') {
-                return redirect('/dashboard');
+            if ($user->role === 'MEMBER') {
+                return redirect('/member/dashboard');
             }
 
             return redirect('/dashboard');
