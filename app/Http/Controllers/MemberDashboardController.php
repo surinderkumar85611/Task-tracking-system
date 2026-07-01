@@ -4,149 +4,98 @@ namespace App\Http\Controllers;
 
 use App\Models\Member;
 use App\Models\Project;
-use App\Models\Task;
 use App\Models\Notification;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Task;
 use Inertia\Inertia;
-dd('MEMBER DASHBOARD HIT');
+
 class MemberDashboardController extends Controller
 {
     public function index()
     {
-        $authUser = Auth::user();
+        $user = auth()->user();
 
-        $member = Member::where('email', $authUser->email)->first();
+        $member = Member::where('email', $user->email)->first();
 
         if (!$member) {
             abort(403);
         }
 
-        $team = $member->team_id
-            ? Member::where('team_id', $member->team_id)->get()
-            : collect();
-
-        $teamLeader = Member::where('id', $member->assigned_to)->first();
-
-        $tasks = Task::with('project')
-            ->whereJsonContains('member_id', $member->id)
-            ->orderByRaw("FIELD(status,'In Progress','Review','Todo','Completed')")
-            ->orderBy('due_date')
+        $tasks = Task::whereNotNull('id')
+            ->when(session('workspace_id'), function ($query) {
+                $query->where('workspace_id', session('workspace_id'));
+            })
             ->get()
-            ->map(function ($task) {
-                return [
-                    'id' => $task->id,
-                    'title' => $task->title,
-                    'status' => $task->status,
-                    'priority' => $task->priority ?? 'Medium',
-                    'deadline' => optional($task->due_date)->toDateString(),
-                    'project_id' => $task->project_id,
-                    'project_name' => $task->project->name ?? 'Unknown',
-                ];
+            ->filter(function ($task) use ($member) {
+
+                if (is_array($task->member_id)) {
+                    return in_array($member->id, $task->member_id);
+                }
+
+                $decoded = json_decode($task->member_id, true);
+
+                if (is_array($decoded)) {
+                    return in_array($member->id, $decoded);
+                }
+
+                return (int)$task->member_id === (int)$member->id;
             });
 
+        $projectIds = $tasks->pluck('project_id')->unique();
+
         $projects = Project::with(['tasks'])
-            ->whereHas('tasks', function ($q) use ($member) {
-                $q->whereJsonContains('member_id', $member->id);
-            })
-            ->orderBy('name')
+            ->whereIn('id', $projectIds)
             ->get();
 
         foreach ($projects as $project) {
-            $projectTasks = $project->tasks->filter(function ($task) use ($member) {
-                return in_array($member->id, $task->member_id ?? []);
-            });
+
+            $projectTasks = $tasks->where('project_id', $project->id);
 
             $total = $projectTasks->count();
+
             $completed = $projectTasks->where('status', 'Completed')->count();
 
-            $project->total_tasks = $total;
-            $project->completed_tasks = $completed;
-            $project->progress = $total ? round(($completed / $total) * 100) : 0;
+            $project->progress = $total > 0
+                ? round(($completed / $total) * 100)
+                : 0;
         }
 
-        $totalTasks = $tasks->count();
         $completedTasks = $tasks->where('status', 'Completed')->count();
         $pendingTasks = $tasks->where('status', '!=', 'Completed')->count();
 
-        $overdueTasks = $tasks->filter(function ($task) {
-            return $task['status'] !== 'Completed'
-                && $task['deadline']
-                && now()->gt($task['deadline']);
-        })->count();
+        $teamMembers = Member::where('team_id', $member->team_id)->get();
 
-        $stats = [
-            'projects' => $projects->count(),
-            'tasks' => $totalTasks,
-            'completed' => $completedTasks,
-            'pending' => $pendingTasks,
-            'overdue' => $overdueTasks,
-            'completion_rate' => $totalTasks ? round(($completedTasks / $totalTasks) * 100) : 0,
-        ];
+        $projectHistory = Project::whereIn('id', $projectIds)
+            ->where('status', 'Completed')
+            ->latest()
+            ->get();
 
-        $projectTotal = $projects->sum('total_tasks');
-        $projectDone = $projects->sum('completed_tasks');
+        $taskHistory = $tasks->where('status', 'Completed')->values();
 
-        $performanceData = [
-            'productivity_score' => $stats['completion_rate'],
-            'project_completion_rate' => $projectTotal ? round(($projectDone / $projectTotal) * 100) : 0,
-        ];
-
-        $notifications = Notification::where('user_id', $authUser->id)
-            ->orderBy('is_read')
-            ->orderByDesc('created_at')
-            ->limit(25)
-            ->get()
-            ->map(function ($n) {
-                return [
-                    'id' => $n->id,
-                    'title' => $n->title,
-                    'message' => $n->message,
-                    'is_read' => (bool) $n->is_read,
-                    'created_at' => $n->created_at->diffForHumans(),
-                ];
-            });
+        $notifications = Notification::where('user_id', $user->id)
+            ->when(session('workspace_id'), function ($query) {
+                $query->where(function ($q) {
+                    $q->where('workspace_id', session('workspace_id'))
+                        ->orWhereNull('workspace_id');
+                });
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return Inertia::render('Member/Dashboard', [
             'member' => $member,
-            'team' => [
-                'id' => $member->team_id,
-                'members' => $team,
-            ],
-            'teamLeader' => $teamLeader,
-            'tasks' => $tasks,
             'projects' => $projects,
-            'stats' => $stats,
-            'performanceData' => $performanceData,
+            'tasks' => $tasks->values(),
+            'teamMembers' => $teamMembers,
+            'projectHistory' => $projectHistory,
+            'taskHistory' => $taskHistory,
             'notifications' => $notifications,
+            'stats' => [
+                'assignedProjects' => $projects->count(),
+                'assignedTasks' => $tasks->count(),
+                'completedTasks' => $completedTasks,
+                'pendingTasks' => $pendingTasks,
+            ],
+            'currentWorkspace' => session('workspace_id')
         ]);
-    }
-
-    public function toggleTask(Task $task)
-    {
-        $member = Member::where('email', Auth::user()->email)->first();
-
-        abort_unless(in_array($member->id, $task->member_id ?? []), 403);
-
-        $task->status = $task->status === 'Completed' ? 'In Progress' : 'Completed';
-        $task->save();
-
-        return back();
-    }
-
-    public function markNotificationRead(Notification $notification)
-    {
-        abort_unless($notification->user_id === Auth::id(), 403);
-
-        $notification->update(['is_read' => true]);
-
-        return back();
-    }
-
-    public function markAllNotificationsRead()
-    {
-        Notification::where('user_id', Auth::id())
-            ->update(['is_read' => true]);
-
-        return back();
     }
 }
