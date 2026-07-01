@@ -123,8 +123,9 @@
                         </div>
 
                         <div class="group-control-actions">
-                            <button class="export-btn" @click="exportProject(project)">
-                                Export
+                            <button class="export-btn" @click="exportProject(project)"
+                                :disabled="exportingId === project.id">
+                                {{ exportingId === project.id ? 'Exporting...' : '📤 Export' }}
                             </button>
                             <button class="monday-btn-primary" @click="openImportModal(project)">
                                 📥 Import Tasks
@@ -194,9 +195,9 @@
                                             <div class="modal-pills-row">
                                                 <div v-for="mId in task.member_id" :key="mId" class="member-pill-badge">
                                                     <span class="pill-avatar-dot">{{ getMemberInitials(project, mId)
-                                                    }}</span>
+                                                        }}</span>
                                                     <span class="pill-name-text">{{ getMemberFirstNameOnly(project, mId)
-                                                    }}</span>
+                                                        }}</span>
                                                     <span class="pill-remove-btn"
                                                         @click.stop="toggleMemberAssignment(task, mId)">×</span>
                                                 </div>
@@ -2426,7 +2427,6 @@ tbody tr {
     letter-spacing: 0.5px;
 }
 
-/* THIS IS NOW THE SCROLLABLE AREA */
 .notes-display-box {
     flex: 1;
     min-height: 0;
@@ -2436,9 +2436,6 @@ tbody tr {
     flex-direction: column;
 }
 
-
-
-/* REPLY BAR STAYS FIXED */
 .replying-box {
     flex-shrink: 0;
 
@@ -2446,7 +2443,6 @@ tbody tr {
     margin-bottom: 10px;
 }
 
-/* CKEDITOR STAYS FIXED */
 .notes-editor-section {
     flex-shrink: 0;
 
@@ -3112,7 +3108,6 @@ tbody tr {
     background-color: #4a4e69 !important;
 }
 
-
 .modal-backdrop {
     position: fixed;
     top: 0;
@@ -3281,18 +3276,14 @@ tbody tr {
     background: white;
 }
 
-/* Ensure the CKEditor container is visible and has a crisp layout */
 .notes-editor-section .ck-editor__editable_inline {
     min-height: 200px;
     max-height: 400px;
     color: #1e1e2d !important;
-    /* Prevents text from being white on white background */
     background-color: #ffffff !important;
-    /* Force clean editor look like Image 2 */
     text-align: left !important;
 }
 
-/* Force the toolbar items to show clearly */
 .notes-editor-section .ck-toolbar {
     background: #f3f6f9 !important;
     border: 1px solid #e4e6ef !important;
@@ -3307,7 +3298,6 @@ tbody tr {
     color: #a1a5b7;
 }
 
-/* Ensure the editor text area has a solid background and legible text */
 .notes-editor-section .ck-editor__editable_inline {
     min-height: 250px !important;
     background-color: #ffffff !important;
@@ -3315,14 +3305,11 @@ tbody tr {
     text-align: left !important;
 }
 
-/* Ensure the toolbar icons stand out clearly */
 .notes-editor-section .ck.ck-toolbar {
     background-color: #f8f9fa !important;
     border: 1px solid #ccced1 !important;
 }
 
-/* Fix any dropdown rendering bugs inside absolute modals */
-/* Fix any dropdown and link balloon rendering bugs inside absolute modals */
 :deep(.ck-body-wrapper) {
     z-index: 999999 !important;
 }
@@ -3330,7 +3317,6 @@ tbody tr {
 :deep(.ck-balloon-panel) {
     z-index: 999999 !important;
     position: fixed !important;
-    /* Forces the link window to stay on top of the modal */
 }
 
 :deep(.ck.ck-dropdown__panel) {
@@ -3340,7 +3326,43 @@ tbody tr {
 :deep(.ck.ck-tooltip) {
     z-index: 999999 !important;
 }
+
+.export-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    padding: 8px 16px;
+    border-radius: 6px;
+
+    background: transparent;
+    color: #ffffff;
+
+    border: 1px solid rgba(255, 255, 255, 0.18);
+
+    font-size: 14px;
+    font-weight: 500;
+
+    cursor: pointer;
+    transition: all .2s ease;
+}
+
+.export-btn:hover {
+    background: rgba(255, 255, 255, .08);
+    border-color: rgba(255, 255, 255, .35);
+}
+
+.export-btn:active {
+    transform: scale(.98);
+}
+
+.export-btn svg {
+    width: 16px;
+    height: 16px;
+}
 </style>
+
 <style>
 /* Global styles to target CKEditor elements appended directly to the body */
 .ck-body-wrapper,
