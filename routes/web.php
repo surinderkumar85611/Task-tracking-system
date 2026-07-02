@@ -302,6 +302,6 @@ Route::put(
 )->middleware(['auth', 'no-cache']);
 
 Route::middleware(['auth', 'no-cache'])->group(function () {
-        Route::get('/member/dashboard', [MemberDashboardController::class, 'index'])
+    Route::get('/member/dashboard', [MemberDashboardController::class, 'index'])
         ->name('member.dashboard');
 });

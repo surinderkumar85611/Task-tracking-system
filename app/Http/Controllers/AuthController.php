@@ -66,7 +66,7 @@ class AuthController extends Controller
             session()->forget('workspace_id');
 
             if ($user->role === 'ADMIN') {
-                return redirect('/admin/dashboard');
+                return redirect('/dashboard');
             }
 
             if ($user->role === 'MEMBER') {
