@@ -16,6 +16,13 @@ use Illuminate\Support\Facades\DB;
 
 class WorkspaceController extends Controller
 {
+    private function authorizeWorkspace(Workspace $workspace): void
+    {
+        if ($workspace->owner_id != auth()->id()) {
+            abort(403, 'Unauthorized access.');
+        }
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -24,6 +31,7 @@ class WorkspaceController extends Controller
         ]);
 
         $workspace = Workspace::create([
+            'owner_id'    => auth()->id(),
             'name' => $request->name,
             'description' => $request->description,
         ]);
@@ -35,7 +43,15 @@ class WorkspaceController extends Controller
 
     public function select(Request $request)
     {
-        session(['workspace_id' => $request->workspace_id]);
+        $workspace = Workspace::where('id', $request->workspace_id)
+            ->where('owner_id', auth()->id())
+            ->first();
+
+        if (!$workspace) {
+            return back()->with('error', 'Workspace not found or access denied.');
+        }
+
+        session(['workspace_id' => $workspace->id]);
         session()->forget('show_workspace_modal');
 
         return back();
@@ -48,11 +64,15 @@ class WorkspaceController extends Controller
 
     public function show(Workspace $workspace)
     {
+        $this->authorizeWorkspace($workspace);
+
         return response()->json($workspace);
     }
 
     public function update(Request $request, Workspace $workspace)
     {
+        $this->authorizeWorkspace($workspace);
+
         $request->validate([
             'name' => 'required|min:3|max:100',
             'description' => 'nullable|max:500',
@@ -71,6 +91,8 @@ class WorkspaceController extends Controller
 
     public function destroy(Workspace $workspace)
     {
+        $this->authorizeWorkspace($workspace);
+
         DB::transaction(function () use ($workspace) {
             Member::where('workspace_id', $workspace->id)
                 ->update([
