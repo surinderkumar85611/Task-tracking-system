@@ -41,7 +41,6 @@
                 <span v-if="!isCollapsed" class="nav-text">Projects</span>
             </Link>
 
-
             <Link href="/member" :class="{ active: isActive('/member') }" title="Members">
                 <span class="nav-icon">👤</span>
                 <span v-if="!isCollapsed" class="nav-text">Members</span>

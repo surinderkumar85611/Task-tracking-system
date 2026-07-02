@@ -13,6 +13,13 @@ use App\Exports\ProjectExport;
 
 class ProjectController extends Controller
 {
+    private function authorizeProject(Project $project): void
+    {
+        if ($project->workspace_id != session('workspace_id')) {
+            abort(403, 'Unauthorized access.');
+        }
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -96,6 +103,8 @@ class ProjectController extends Controller
 
     public function update(Request $request, Project $project)
     {
+        $this->authorizeProject($project);
+
         $oldStatus = $project->status;
 
         $project->update([
@@ -129,6 +138,8 @@ class ProjectController extends Controller
 
     public function destroy(Project $project)
     {
+        $this->authorizeProject($project);
+
         $project->delete();
 
         return back()->with(
@@ -139,6 +150,8 @@ class ProjectController extends Controller
 
     public function export(Project $project)
     {
+        $this->authorizeProject($project);
+
         return Excel::download(
             new ProjectExport($project),
             $project->name . '.xlsx'

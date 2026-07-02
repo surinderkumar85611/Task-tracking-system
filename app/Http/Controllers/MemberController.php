@@ -11,6 +11,13 @@ use Illuminate\Support\Facades\Auth;
 
 class MemberController extends Controller
 {
+    private function authorizeMember(Member $member): void
+    {
+        if ($member->workspace_id != session('workspace_id')) {
+            abort(403, 'Unauthorized access.');
+        }
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -94,7 +101,9 @@ class MemberController extends Controller
         $emptyMembers = Member::whereNull('workspace_id')
             ->get();
 
-        $workspaces = Workspace::all();
+        $workspaces = Workspace::where('owner_id', auth()->id())
+            ->orderBy('name')
+            ->get();
 
         return Inertia::render('Members', [
             'teamLeaders' => $leaders,
@@ -107,6 +116,8 @@ class MemberController extends Controller
 
     public function assignMember(Request $request, Member $member)
     {
+        $this->authorizeMember($member);
+
         $leader = Member::findOrFail($request->assigned_to);
 
         if ($member->role === 'TL') {
@@ -148,6 +159,8 @@ class MemberController extends Controller
 
     public function update(Request $request, Member $member)
     {
+        $this->authorizeMember($member);
+
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -181,10 +194,10 @@ class MemberController extends Controller
         ]);
     }
 
-    public function assignWorkspace(
-        Request $request,
-        Member $member
-    ) {
+    public function assignWorkspace(Request $request, Member $member)
+    {
+        $this->authorizeMember($member);
+
         if ($member->role !== 'TL') {
 
             return response()->json([
@@ -205,6 +218,7 @@ class MemberController extends Controller
 
     public function makeIndependent(Member $member)
     {
+        $this->authorizeMember($member);
         if (
             $member->role === 'TL'
             &&

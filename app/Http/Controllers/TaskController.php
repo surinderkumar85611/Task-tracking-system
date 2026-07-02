@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use App\Services\NotificationService;
 use App\Models\Member;
 use App\Models\User;
+
 class TaskController extends Controller
 {
     public function getTaskFields()
@@ -102,13 +103,12 @@ class TaskController extends Controller
         $task = Task::create([
             'workspace_id' => $request->workspace_id,
             'project_id' => $request->project_id,
-            // Convert array of IDs to clean values
             'member_id' => is_array($request->member_id) ? array_values($request->member_id) : [],
             'title' => $request->title,
             'description' => $request->description,
             'priority' => $request->priority ?? 'Medium',
             'status' => $request->status ?? 'Todo',
-            'due_date' => $request->deadline ?? $request->due_date, // Catches both naming styles
+            'due_date' => $request->deadline ?? $request->due_date,
             'allocated_duration' => $request->allocated_duration,
             'timer_started_at' => $request->timer_started_at,
             'notes' => $request->notes ? [
@@ -162,36 +162,36 @@ class TaskController extends Controller
                 }
             }
         }
-        // Notify Team Leader when a task is created
-$project = $task->project;
 
-if ($project && $project->team_leader_id) {
+        $project = $task->project;
 
-    $leader = Member::find($project->team_leader_id);
+        if ($project && $project->team_leader_id) {
 
-    if ($leader && $leader->email) {
+            $leader = Member::find($project->team_leader_id);
 
-        $leaderUser = User::where('email', $leader->email)->first();
+            if ($leader && $leader->email) {
 
-        if ($leaderUser) {
+                $leaderUser = User::where('email', $leader->email)->first();
 
-            NotificationService::create(
-                $leaderUser->id,
-                $request->workspace_id ?? session('workspace_id'),
-                'task_created',
-                'New Task Created',
-                'A new task has been created: ' . $task->title,
-                [
-                    'task_id' => $task->id
-                ]
-            );
+                if ($leaderUser) {
 
+                    NotificationService::create(
+                        $leaderUser->id,
+                        $request->workspace_id ?? session('workspace_id'),
+                        'task_created',
+                        'New Task Created',
+                        'A new task has been created: ' . $task->title,
+                        [
+                            'task_id' => $task->id
+                        ]
+                    );
+                }
+            }
         }
-    }
-}
 
         return back();
     }
+
     public function update(Request $request, $id)
     {
         $task = Task::findOrFail($id);
@@ -218,92 +218,63 @@ if ($project && $project->team_leader_id) {
                 ?? $user->username
                 ?? 'Team Member';
 
-
             array_unshift($existingNotes, [
-
                 'id' => time(),
-
                 'sender' => $senderName,
-
                 'text' => trim($request->notes),
-
                 'reply_to' => $request->reply_to ?? null,
-
                 'reactions' => [],
-
                 'created_at' => now()->toIso8601String(),
-
             ]);
-
-
-
-
-
 
             $project = $task->project;
 
 
             if ($project) {
-
-
-
                 if (auth()->user()->role === 'admin') {
-
-
                     if ($project->team_leader_id) {
-
-    $leader = Member::find($project->team_leader_id);
-
-    if ($leader) {
-
-        $leaderUser = User::where('email', $leader->email)->first();
-
-        if ($leaderUser) {
-
-            NotificationService::create(
-                $leaderUser->id,
-                session('workspace_id'),
-                'task_update',
-                'New Task Update',
-                $senderName . ' added an update on ' . $task->title,
-                [
-                    'task_id' => $task->id
-                ]
-            );
-
-        }
-    }
-}
-                } else {
-
-
-                    $admins = \App\Models\User::where(
-                        'role',
-                        'admin'
-                    )->get();
-
-
-                    foreach ($admins as $admin) {
-
-
-                        NotificationService::create(
-
-                            $admin->id,
-
-                            session('workspace_id'),
-
-                            'task_update',
-
-                            'New Task Update',
-
-                            $senderName . ' added an update on ' . $task->title,
-
-                            [
-                                'task_id' => $task->id
-                            ]
-
-                        );
+                        $leader = Member::find($project->team_leader_id);
+                        if ($leader) {
+                            $leaderUser = User::where('email', $leader->email)->first();
+                            if ($leaderUser)
+                                NotificationService::create(
+                                    $leaderUser->id,
+                                    session('workspace_id'),
+                                    'task_update',
+                                    'New Task Update',
+                                    $senderName . ' added an update on ' . $task->title,
+                                    [
+                                        'task_id' => $task->id
+                                    ]
+                                );
+                        }
                     }
+                }
+            } else {
+
+                $admins = \App\Models\User::where(
+                    'role',
+                    'admin'
+                )->get();
+
+                foreach ($admins as $admin) {
+                    NotificationService::create(
+
+                        $admin->id,
+
+                        session('workspace_id'),
+
+                        'task_update',
+
+                        'New Task Update',
+
+                        $senderName . ' added an update on ' . $task->title,
+
+                        [
+                            'task_id' => $task->id
+                        ]
+
+                    );
                 }
             }
         }
@@ -362,6 +333,7 @@ if ($project && $project->team_leader_id) {
 
         return back();
     }
+
     public function destroy($id)
     {
         $task = Task::with('project')->findOrFail($id);
@@ -369,6 +341,7 @@ if ($project && $project->team_leader_id) {
 
         return back();
     }
+
     public function reply(Request $request, $id)
     {
 
@@ -387,50 +360,33 @@ if ($project && $project->team_leader_id) {
 
 
         array_unshift($notes, [
-
             'id' => time(),
-
             'sender' => $user->name ?? 'User',
-
             'text' => $request->message,
-
-
-            // this connects reply with old message
             'reply_to' => $request->reply_to,
-
-
             'reactions' => [],
-
-
             'created_at' => now()->toIso8601String()
-
         ]);
-
 
         $task->update([
             'notes' => $notes
         ]);
-
 
         return response()->json([
             'success' => true,
             'notes' => $notes
         ]);
     }
+
     public function react(Request $request, $id)
     {
-
         $task = Task::findOrFail($id);
-
-
         $request->validate([
             'message_id' => 'required',
             'reaction' => 'required'
         ]);
 
-
         $notes = $task->notes ?? [];
-
 
         foreach ($notes as &$note) {
 
@@ -454,41 +410,29 @@ if ($project && $project->team_leader_id) {
                     return $item['user_id'] == auth()->id();
                 });
 
-
-
-                // remove reaction if already clicked
                 if ($existingIndex !== false) {
 
                     unset(
                         $note['reactions'][$request->reaction][$existingIndex]
                     );
 
-
                     $note['reactions'][$request->reaction] =
                         array_values(
                             $note['reactions'][$request->reaction]
                         );
-                }
-
-                // add reaction
-                else {
+                } else {
 
                     $note['reactions'][$request->reaction][] = [
-
                         'user_id' => auth()->id(),
-
                         'user' => auth()->user()->name
-
                     ];
                 }
             }
         }
 
-
         $task->update([
             'notes' => $notes
         ]);
-
 
         return response()->json([
             'success' => true,
