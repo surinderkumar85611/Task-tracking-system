@@ -27,6 +27,28 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskAttachmentController;
 use App\Http\Controllers\MemberDashboardController;
 use App\Http\Controllers\EditorController;
+use App\Http\Controllers\SuperAdmin\AuthController as SuperAdminAuthController;
+use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
+
+Route::prefix('super-admin')->name('super-admin.')->group(function () {
+
+    Route::group([], function () {
+
+        Route::get('/login', [SuperAdminAuthController::class, 'showLogin'])
+            ->name('login');
+
+        Route::post('/login', [SuperAdminAuthController::class, 'login']);
+    });
+
+    Route::middleware('auth:super_admin')->group(function () {
+
+        Route::get('/dashboard', [SuperAdminDashboardController::class, 'index'])
+            ->name('dashboard');
+
+        Route::post('/logout', [SuperAdminAuthController::class, 'logout'])
+            ->name('logout');
+    });
+});
 
 Route::get('/', function () {
     if (Auth::check()) return redirect('/dashboard');
@@ -154,9 +176,6 @@ Route::middleware(['auth', 'no-cache'])->group(function () {
 
         return redirect()->to('/login');
     });
-});
-
-Route::middleware(['auth', 'no-cache'])->group(function () {
 
     Route::get('/settings', function () {
         $user = Auth::user();
@@ -173,9 +192,6 @@ Route::middleware(['auth', 'no-cache'])->group(function () {
 
         abort(403, 'Unauthorized access');
     })->name('settings');
-});
-
-Route::middleware(['auth', 'no-cache'])->group(function () {
 
     Route::get('/projects', function () {
         $user = Auth::user();
@@ -289,7 +305,6 @@ Route::put(
     '/notifications/{id}/read',
     [NotificationController::class, 'markAsRead']
 )->name('notifications.read');
-
 
 Route::put(
     '/notifications/read-all',
