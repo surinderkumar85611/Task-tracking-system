@@ -114,7 +114,7 @@ const login = () => {
   validateEmail();
   validatePassword();
 
-  if (hasErrors.value) return; // Prevents submitting if frontend validation fails
+  if (hasErrors.value) return;
 
   router.post("/login", form, {
     preserveState: true,

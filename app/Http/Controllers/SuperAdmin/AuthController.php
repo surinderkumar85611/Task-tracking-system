@@ -20,18 +20,19 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (
-            Auth::guard('super_admin')
-            ->attempt($credentials, $request->boolean('remember'))
-        ) {
+        if (Auth::guard('super_admin')->attempt($credentials)) {
+
             $request->session()->regenerate();
 
-            return redirect('/super-admin/dashboard');
+            return response()->json([
+                'success' => true,
+                'message' => 'Welcome back!'
+            ]);
         }
 
         return back()->withErrors([
             'email' => 'Invalid email or password.',
-        ]);
+        ])->onlyInput('email');
     }
 
     public function logout(Request $request)

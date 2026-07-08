@@ -98,11 +98,22 @@
 
             <div class="modal">
 
-                <h2>Create User</h2>
+                <div class="modal-header">
+
+                    <div>
+                        <h2>Create New User</h2>
+                        <p>Create an Administrator or Team Leader account.</p>
+                    </div>
+
+                    <button class="close-btn" @click="showCreateModal = false">
+                        ✕
+                    </button>
+
+                </div>
 
                 <div class="form-group">
 
-                    <label>Role</label>
+                    <label>User Role</label>
 
                     <select v-model="form.role">
 
@@ -122,7 +133,7 @@
 
                     <label>Full Name</label>
 
-                    <input v-model="form.name" placeholder="Enter full name">
+                    <input v-model="form.name" type="text" placeholder="John Doe">
 
                 </div>
 
@@ -130,7 +141,7 @@
 
                     <label>Email Address</label>
 
-                    <input v-model="form.email" type="email" placeholder="Enter email address">
+                    <input v-model="form.email" type="email" placeholder="john@example.com">
 
                 </div>
 
@@ -138,7 +149,7 @@
 
                     <label>Password</label>
 
-                    <input v-model="form.password" type="password" placeholder="Enter password">
+                    <input v-model="form.password" type="password" placeholder="Create password">
 
                 </div>
 
@@ -153,11 +164,15 @@
                 <div class="modal-actions">
 
                     <button class="cancel-btn" @click="showCreateModal = false">
+
                         Cancel
+
                     </button>
 
                     <button class="save-btn" @click="createAdmin">
+
                         Create User
+
                     </button>
 
                 </div>
@@ -190,7 +205,7 @@ const form = reactive({
 })
 
 function createAdmin() {
-    router.post('/super-admin/admins', form, {
+    router.post('/super-admin/admin', form, {
         onSuccess: () => {
             showCreateModal.value = false
 
@@ -432,131 +447,137 @@ tbody tr:hover {
     transform: scale(1.05);
 }
 
-.modal h2 {
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .65);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    animation: fade .25s;
+}
+
+.modal {
+    width: 520px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 18px;
+    padding: 30px;
+    color: white;
+    box-shadow:
+        0 35px 60px rgba(0, 0, 0, .45);
+    animation: popup .3s ease;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 28px;
+}
+
+.modal-header p {
+    margin-top: 6px;
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.close-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: none;
+    background: #0f172a;
+    color: white;
+    cursor: pointer;
+    transition: .25s;
+}
+
+.close-btn:hover {
+    background: #ef4444;
+}
+
+.form-group {
     margin-bottom: 20px;
 }
 
-.modal input {
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #cbd5e1;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.form-group input,
+.form-group select {
     width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
     box-sizing: border-box;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: white;
+    font-size: 15px;
+    transition: .25s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, .18);
 }
 
 .modal-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
-    margin-top: 15px;
-}
-
-.modal-overlay {
-
-    position: fixed;
-
-    inset: 0;
-
-    background: rgba(15, 23, 42, .45);
-
-    backdrop-filter: blur(6px);
-
-    display: flex;
-
-    justify-content: center;
-
-    align-items: center;
-
-    animation: fade .25s;
-
-    z-index: 999;
-}
-
-.modal {
-
-    width: 520px;
-
-    background: white;
-
-    border-radius: 22px;
-
-    padding: 35px;
-
-    box-shadow:
-        0 30px 60px rgba(0, 0, 0, .25);
-
-    animation: popup .35s ease;
+    gap: 15px;
+    margin-top: 30px;
 }
 
 .cancel-btn {
-    background: #e5e7eb;
+    background: #334155;
+    color: white;
     border: none;
-    padding: 10px 18px;
-    border-radius: 8px;
+    padding: 12px 24px;
+    border-radius: 10px;
     cursor: pointer;
+    transition: .25s;
+}
+
+.cancel-btn:hover {
+    background: #475569;
 }
 
 .save-btn {
-    background: #2563eb;
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
     color: white;
     border: none;
-    padding: 10px 18px;
-    border-radius: 8px;
+    padding: 12px 28px;
+    border-radius: 10px;
     cursor: pointer;
-}
-
-.modal select {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-sizing: border-box;
-}
-
-.form-group {
-    margin-bottom: 18px;
-}
-
-.form-group label {
-    display: block;
-    font-size: 14px;
     font-weight: 600;
-    margin-bottom: 8px;
-    color: #374151;
-}
-
-.form-group input,
-.form-group select {
-
-    width: 100%;
-
-    padding: 14px;
-
-    border: 1px solid #d1d5db;
-
-    border-radius: 12px;
-
     transition: .25s;
-
-    font-size: 15px;
-
-    background: #f9fafb;
 }
 
-.form-group input:focus,
-.form-group select:focus {
-    border-color: #2563eb;
-    background: white;
-    box-shadow:
-        0 0 0 4px rgba(37, 99, 235, .15);
+.save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px rgba(37, 99, 235, .35);
 }
 
 @keyframes popup {
+
     from {
         opacity: 0;
-        transform: translateY(40px) scale(.9);
+        transform: translateY(30px) scale(.95);
     }
 
     to {
@@ -566,24 +587,13 @@ tbody tr:hover {
 }
 
 @keyframes fade {
+
     from {
         opacity: 0;
     }
 
     to {
         opacity: 1;
-    }
-}
-
-@keyframes fadeUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
     }
 }
 
