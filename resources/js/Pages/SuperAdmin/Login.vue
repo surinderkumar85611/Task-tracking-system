@@ -1,80 +1,89 @@
 <template>
     <div class="login-page">
-
         <div class="left-panel">
-
             <div class="brand">
-
                 <div class="logo">
                     BTT
                 </div>
-
                 <h1>Team Management</h1>
-
                 <p>
                     Manage admins, team leaders and members
                     from one secure dashboard.
                 </p>
-
                 <ul>
                     <li>✓ Secure authentication</li>
                     <li>✓ Team management</li>
                     <li>✓ Team collaboration</li>
                     <li>✓ Project tracking</li>
                 </ul>
-
             </div>
-
         </div>
 
         <div class="right-panel">
-
             <div class="login-card">
-
                 <h2>Welcome Back</h2>
-
                 <p>
                     Sign in to continue
                 </p>
-
                 <div class="form-group">
-
                     <label>Email</label>
-
                     <input v-model="form.email" type="email" placeholder="Enter email">
-
                 </div>
-
                 <div class="form-group">
-
                     <label>Password</label>
-
                     <input v-model="form.password" type="password" placeholder="Enter password">
-
                 </div>
-
-                <button @click="login">
-                    Sign In
+                <button @click="login" :disabled="loading">
+                    {{ loading ? "Signing In..." : "Sign In" }}
                 </button>
-
             </div>
-
         </div>
-
     </div>
 </template>
 
 <script setup>
-import { reactive } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { reactive } from 'vue';
+import { router } from '@inertiajs/vue3';
+import { useToast } from "vue-toastification";
+import axios from "axios";
+
+const toast = useToast();
 
 const form = reactive({
     email: '',
     password: '',
 })
 
-function login() {
-    router.post('/super-admin/login', form)
+async function login() {
+
+    if (!form.email.trim()) {
+        toast.error("Please enter your email address.");
+        return;
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailPattern.test(form.email)) {
+        toast.error("Please enter a valid email address.");
+        return;
+    }
+
+    if (!form.password.trim()) {
+        toast.error("Please enter your password.");
+        return;
+    }
+
+    try {
+        await axios.post("/super-admin/login", form);
+        toast.success("Welcome back!");
+        setTimeout(() => {
+            router.visit("/super-admin/dashboard");
+        }, 1200);
+    } catch (error) {
+        if (error.response?.data?.errors?.email) {
+            toast.error(error.response.data.errors.email[0]);
+        }
+    }
 }
 </script>
 
