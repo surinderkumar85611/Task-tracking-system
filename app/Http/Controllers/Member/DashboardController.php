@@ -1,14 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Member;
 
+use App\Http\Controllers\Controller;
 use App\Models\Member;
 use App\Models\Project;
 use App\Models\Notification;
 use App\Models\Task;
 use Inertia\Inertia;
 
-class MemberDashboardController extends Controller
+class DashboardController extends Controller
 {
     public function index()
     {
