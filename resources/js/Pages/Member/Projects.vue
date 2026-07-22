@@ -23,6 +23,44 @@
                             <input type="text" v-model="search" placeholder="Search projects..." class="search-box" />
                         </div>
 
+                        <div class="notif-wrap">
+                            <button
+                                class="theme-btn notif-btn"
+                                :class="{ 'has-notes': tasksWithNotes.length > 0 }"
+                                title="Chat and updates"
+                                @click="toggleNotifDropdown"
+                            >
+                                💬
+                                <span v-if="tasksWithNotes.length" class="notif-badge">{{ tasksWithNotes.length }}</span>
+                            </button>
+
+                            <div class="notif-dropdown" v-if="showNotifDropdown" @click.stop>
+                                <div class="notif-dropdown-header">
+                                    <span>💬 Chat &amp; Updates</span>
+                                    <button class="notif-close" @click="showNotifDropdown = false">✕</button>
+                                </div>
+
+                                <div class="notif-list" v-if="tasksWithNotes.length">
+                                    <button
+                                        v-for="entry in tasksWithNotes"
+                                        :key="entry.task.id"
+                                        class="notif-item"
+                                        @click="openFromNotif(entry)"
+                                    >
+                                        <span class="notif-item-icon">🆘</span>
+                                        <span class="notif-item-body">
+                                            <span class="notif-item-title">{{ entry.task.title }}</span>
+                                            <span class="notif-item-sub">{{ entry.project.name }} · {{ entry.task.notes.length }} update{{ entry.task.notes.length === 1 ? '' : 's' }}</span>
+                                        </span>
+                                    </button>
+                                </div>
+
+                                <div class="notif-empty" v-else>
+                                    No chat updates yet
+                                </div>
+                            </div>
+                        </div>
+
                         <button class="theme-btn" @click="theme.toggleTheme">
                             {{ theme.isDark ? "☀️" : "🌙" }}
                         </button>
@@ -62,6 +100,62 @@
 
                 </section>
 
+                <!-- PROJECT PERFORMANCE (completion rate + monthly load) -->
+                <section class="project-perf-card">
+                    <div class="perf-donut-block">
+                        <div class="perf-block-header">Overall Completion</div>
+                        <div class="donut-wrap">
+                            <svg viewBox="0 0 120 120" class="donut-svg">
+                                <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border-deep)" stroke-width="12" />
+                                <circle
+                                    v-for="(seg, idx) in donutSegments" :key="idx"
+                                    cx="60" cy="60" r="50" fill="none"
+                                    :stroke="seg.color" stroke-width="12"
+                                    :stroke-dasharray="seg.dasharray"
+                                    :stroke-dashoffset="seg.dashoffset"
+                                    transform="rotate(-90 60 60)"
+                                />
+                            </svg>
+                            <div class="donut-center">
+                                <strong>{{ completionPercent }}%</strong>
+                                <span>Done</span>
+                            </div>
+                        </div>
+                        <div class="donut-legend">
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background: var(--c-green)"></span>
+                                Completed <b>{{ completedCount }}</b>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background: var(--c-blue)"></span>
+                                In Progress <b>{{ inProgressCount }}</b>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background: var(--c-amber)"></span>
+                                Pending <b>{{ pendingCount }}</b>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="perf-divider"></div>
+
+                    <div class="perf-bar-block">
+                        <div class="perf-block-header">Projects Assigned Per Month</div>
+                        <div class="bar-chart">
+                            <div v-for="bucket in monthlyProjects" :key="bucket.label + bucket.year" class="bar-col">
+                                <span class="bar-value">{{ bucket.count }}</span>
+                                <div class="bar-track">
+                                    <div
+                                        class="bar-fill"
+                                        :style="{ height: (bucket.count / maxMonthlyProjectCount) * 100 + '%' }"
+                                    ></div>
+                                </div>
+                                <span class="bar-label">{{ bucket.label }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- PROJECTS -->
                 <div class="projects-list">
 
@@ -74,8 +168,8 @@
                         <div class="project-card-top">
                             <div class="project-title-block">
                                 <h2>{{ project.name }}</h2>
-                                <span class="status-pill" :class="statusClass(project.status)">
-                                    {{ project.status }}
+                                <span class="status-pill" :class="statusClass(effectiveProjectStatus(project))">
+                                    {{ effectiveProjectStatus(project) }}
                                 </span>
                             </div>
 
@@ -152,16 +246,211 @@
 
             </div>
         </main>
+
+        <!-- TASK NOTES / CHAT SIDEBAR -->
+        <div class="updates-sidebar-overlay" :class="{ open: showUpdatesSidebarPane }" @click="closeUpdatesSidebar">
+            <div class="updates-sidebar-panel" @click.stop>
+                <div class="sidebar-panel-header">
+                    <div class="panel-header-left">
+                        <span class="panel-task-icon">🆘</span>
+                        <div>
+                            <h2>{{ activeTaskForUpdates?.title || 'Task Chat' }}</h2>
+                            <p class="panel-subtitle">Project: {{ activeProjectForUpdates?.name || '—' }}</p>
+                        </div>
+                    </div>
+                    <button class="close-panel-btn" @click="closeUpdatesSidebar">✕</button>
+                </div>
+
+                <div class="sidebar-panel-body">
+                    <div class="notes-display-box">
+                        <label>📌 Updates Timeline</label>
+
+                        <div
+                            ref="messagesContainer"
+                            v-if="activeTaskForUpdates?.notes && activeTaskForUpdates.notes.length > 0"
+                            class="messages-thread-wrapper"
+                        >
+                            <div
+                                v-for="(note, index) in activeTaskForUpdates.notes"
+                                :key="note.id || index"
+                                class="chat-message"
+                            >
+                                <div class="chat-bubble-meta">
+                                    <span class="chat-bubble-author">
+                                        <span class="mini-avatar chat-variant">
+                                            {{ note.sender ? note.sender.charAt(0).toUpperCase() : 'A' }}
+                                        </span>
+                                        <span class="chat-author-name">{{ note.sender || 'System User' }}</span>
+                                    </span>
+                                    <span class="chat-bubble-time">{{ formatDate(note.created_at) }}</span>
+                                </div>
+
+                                <div v-if="note.reply_to" class="reply-reference">
+                                    <div class="reply-box">
+                                        <template v-if="getReplyMessage(note.reply_to)">
+                                            <div class="reply-author">{{ getReplyMessage(note.reply_to).sender }}</div>
+                                            <div class="reply-text" v-html="getReplyPreview(getReplyMessage(note.reply_to).text)"></div>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <div class="chat-bubble-body ck-content" v-html="note.text"></div>
+
+                                <div class="reaction-summary">
+                                    <div v-for="(users, emoji) in (note.reactions || {})" :key="emoji" class="reaction-wrapper">
+                                        <button v-if="Array.isArray(users) && users.length" class="reaction-chip" @click="addReaction(note, emoji)">
+                                            {{ emoji }} {{ users.length }}
+                                        </button>
+                                        <div class="reaction-tooltip">
+                                            <div class="tooltip-title">Reacted by</div>
+                                            <div v-for="user in users" :key="user.user_id" class="tooltip-user">{{ user.user }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="message-hover-actions">
+                                    <div class="reaction-picker">
+                                        <button v-for="emoji in ['👍', '❤️', '😂', '🎉', '😮', '😢']" :key="emoji" @click="addReaction(note, emoji)">
+                                            {{ emoji }}
+                                        </button>
+                                    </div>
+                                    <button class="reply-btn" @click="startReply(note)">↩ Reply</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else class="notes-empty">
+                            💬 No updates logged yet. Write a message below!
+                        </div>
+                    </div>
+
+                    <div v-if="replyingTo" class="replying-box">
+                        Replying to: <b>{{ replyingTo.sender }}</b>
+                        <button @click="cancelReply">✕</button>
+                    </div>
+
+                    <div class="notes-editor-section">
+                        <label class="editor-label">Write a message:</label>
+                        <ckeditor :editor="editor" v-model="updatesDraftText" :config="editorConfig" />
+                    </div>
+                </div>
+
+                <div class="sidebar-panel-footer">
+                    <button class="btn-flat-cancel" @click="closeUpdatesSidebar">Close</button>
+                    <button class="monday-btn-primary" @click="saveTaskNotesUpdate">Send Message</button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from "vue";
+import { router } from "@inertiajs/vue3";
+import axios from "axios";
+import { useToast } from "vue-toastification";
 import Sidebar from "./Sidebar.vue";
 import { useThemeStore } from "../../stores/theme.js";
 import { Head } from "@inertiajs/vue3";
+import {
+    ClassicEditor,
+    Essentials,
+    Paragraph,
+    Bold,
+    Italic,
+    Underline,
+    Heading,
+    Link,
+    List,
+    BlockQuote,
+    Image,
+    ImageToolbar,
+    ImageUpload,
+    ImageResize,
+    MediaEmbed,
+    Table,
+    TableToolbar,
+    Alignment,
+    Font,
+    Indent,
+    SourceEditing
+} from 'ckeditor5';
+import { Ckeditor } from '@ckeditor/ckeditor5-vue';
+
+class LaravelUploadAdapter {
+    constructor(loader) {
+        this.loader = loader;
+    }
+
+    upload() {
+        return this.loader.file.then(file => {
+            const data = new FormData();
+            data.append('upload', file);
+
+            return fetch('/ckeditor/upload', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: data
+            })
+                .then(res => res.json())
+                .then(res => ({ default: res.url }));
+        });
+    }
+
+    abort() { }
+}
+
+function uploadPlugin(editor) {
+    editor.plugins.get('FileRepository').createUploadAdapter = loader => {
+        return new LaravelUploadAdapter(loader);
+    };
+}
 
 const theme = useThemeStore();
+const toast = useToast();
+const editor = ClassicEditor;
+const ckeditor = Ckeditor;
+
+const editorConfig = {
+    licenseKey: 'GPL',
+    heading: {
+        options: [
+            { model: 'paragraph', title: 'Paragraph', class: 'ck-heading_paragraph' },
+            { model: 'heading1', view: 'h1', title: 'Heading 1', class: 'ck-heading_heading1' },
+            { model: 'heading2', view: 'h2', title: 'Heading 2', class: 'ck-heading_heading2' },
+            { model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3' }
+        ]
+    },
+    extraPlugins: [uploadPlugin],
+    plugins: [
+        Essentials, Paragraph, Bold, Italic, Underline, Heading, Link, List, BlockQuote,
+        Image, ImageToolbar, ImageUpload, ImageResize, MediaEmbed, Table, TableToolbar,
+        Alignment, Font, Indent, SourceEditing
+    ],
+    toolbar: {
+        items: [
+            'undo', 'redo', '|', 'heading', '|', 'fontFamily', 'fontSize', '|',
+            'fontColor', 'fontBackgroundColor', '|', 'bold', 'italic', 'underline', '|',
+            'alignment', '|', 'link', '|', 'bulletedList', 'numberedList', '|',
+            'insertImage', '|', 'insertTable', '|', 'blockQuote', '|', 'sourceEditing'
+        ],
+        shouldNotGroupWhenFull: false
+    },
+    image: {
+        toolbar: ['imageTextAlternative', 'imageResize', 'imageStyle:inline', 'imageStyle:block']
+    },
+    table: {
+        contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
+    },
+    simpleUpload: {
+        uploadUrl: '/ckeditor/upload',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        }
+    }
+};
 
 const props = defineProps({
     projects: { type: Array, default: () => [] },
@@ -203,6 +492,7 @@ const totalProjects = computed(() => (props.projects || []).length);
 const inProgressCount = computed(() => allTasks.value.filter(isInProgress).length);
 const completedCount = computed(() => allTasks.value.filter(isCompleted).length);
 const pendingCount = computed(() => allTasks.value.filter(isPending).length);
+const totalTasks = computed(() => allTasks.value.length);
 
 const projectCompletedCount = (project) => (project.tasks || []).filter(isCompleted).length;
 
@@ -210,6 +500,250 @@ const projectProgress = (project) => {
     const total = (project.tasks || []).length;
     if (!total) return 0;
     return Math.round((projectCompletedCount(project) / total) * 100);
+};
+
+// Derives the status pill straight from task completion, so it can never
+// contradict the progress percentage shown next to it (e.g. a project
+// stuck at "In Progress" while every task underneath is actually done).
+const effectiveProjectStatus = (project) => {
+    const total = (project.tasks || []).length;
+    if (!total) return project.status || 'Planning';
+
+    const completed = projectCompletedCount(project);
+    if (completed === total) return 'Completed';
+    if (completed > 0) return 'In Progress';
+
+    const anyInProgress = (project.tasks || []).some(isInProgress);
+    return anyInProgress ? 'In Progress' : 'Planning';
+};
+
+/* ---------------- Project performance: completion donut ---------------- */
+const completionPercent = computed(() => {
+    if (!totalTasks.value) return 0;
+    return Math.round((completedCount.value / totalTasks.value) * 100);
+});
+
+const donutSegments = computed(() => {
+    const total = totalTasks.value || 1;
+    const circumference = 2 * Math.PI * 50;
+
+    const parts = [
+        { value: completedCount.value, color: 'var(--c-green)' },
+        { value: inProgressCount.value, color: 'var(--c-blue)' },
+        { value: pendingCount.value, color: 'var(--c-amber)' },
+    ];
+
+    let cumulative = 0;
+    return parts.map(part => {
+        const length = (part.value / total) * circumference;
+        const seg = {
+            color: part.color,
+            dasharray: `${length} ${circumference - length}`,
+            dashoffset: -cumulative,
+        };
+        cumulative += length;
+        return seg;
+    });
+});
+
+/* ---------------- Project performance: monthly projects bar chart ---------------- */
+const monthlyProjects = computed(() => {
+    const now = new Date();
+    const buckets = [];
+
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        buckets.push({
+            year: d.getFullYear(),
+            month: d.getMonth(),
+            label: d.toLocaleString('default', { month: 'short' }),
+            count: 0,
+        });
+    }
+
+    (props.projects || []).forEach(project => {
+        const dateSource = project.created_at || project.start_date;
+        if (!dateSource) return;
+        const d = new Date(dateSource);
+        const bucket = buckets.find(b => b.year === d.getFullYear() && b.month === d.getMonth());
+        if (bucket) bucket.count++;
+    });
+
+    return buckets;
+});
+
+const maxMonthlyProjectCount = computed(() => Math.max(1, ...monthlyProjects.value.map(b => b.count)));
+
+/* ---------------- Header chat/updates dropdown ---------------- */
+const tasksWithNotes = computed(() => {
+    const entries = [];
+    (props.projects || []).forEach(project => {
+        (project.tasks || []).forEach(task => {
+            if (task.notes && task.notes.length > 0) {
+                entries.push({ task, project });
+            }
+        });
+    });
+    return entries;
+});
+
+const showNotifDropdown = ref(false);
+
+const toggleNotifDropdown = () => {
+    showNotifDropdown.value = !showNotifDropdown.value;
+};
+
+const closeNotifDropdown = (e) => {
+    if (!e.target.closest('.notif-wrap')) {
+        showNotifDropdown.value = false;
+    }
+};
+
+onMounted(() => {
+    document.addEventListener('click', closeNotifDropdown);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('click', closeNotifDropdown);
+});
+
+const openFromNotif = (entry) => {
+    showNotifDropdown.value = false;
+    openUpdatesSidebar(entry.task, entry.project);
+};
+
+/* ---------------- Task notes / chat sidebar ---------------- */
+const showUpdatesSidebarPane = ref(false);
+const activeTaskForUpdates = ref(null);
+const activeProjectForUpdates = ref(null);
+const updatesDraftText = ref("");
+const messagesContainer = ref(null);
+const replyingTo = ref(null);
+
+const markTaskAsRead = (task) => {
+    if (task.is_read) return;
+
+    task.is_read = true;
+
+    router.put(`/task/${task.id}`, {
+        id: task.id,
+        project_id: task.project_id,
+        title: task.title,
+        member_id: task.member_id,
+        status: task.status,
+        priority: task.priority,
+        deadline: task.due_date,
+        allocated_duration: task.allocated_duration,
+        timer_started_at: task.timer_started_at,
+        is_read: true,
+    }, {
+        preserveScroll: true,
+        onError: () => {
+            task.is_read = false;
+            toast.error("Couldn't mark task as read.");
+        },
+    });
+};
+
+const openUpdatesSidebar = (task, project) => {
+    activeTaskForUpdates.value = task;
+    activeProjectForUpdates.value = project || null;
+    updatesDraftText.value = "";
+    showUpdatesSidebarPane.value = true;
+
+    markTaskAsRead(task);
+};
+
+const closeUpdatesSidebar = () => {
+    showUpdatesSidebarPane.value = false;
+    activeTaskForUpdates.value = null;
+    activeProjectForUpdates.value = null;
+    updatesDraftText.value = "";
+    replyingTo.value = null;
+};
+
+const startReply = (note) => {
+    replyingTo.value = note;
+};
+
+const cancelReply = () => {
+    replyingTo.value = null;
+};
+
+const addReaction = async (note, reaction) => {
+    try {
+        const response = await axios.post(`/tasks/${activeTaskForUpdates.value.id}/react`, {
+            message_id: note.id,
+            reaction: reaction,
+        });
+        activeTaskForUpdates.value.notes = response.data.notes;
+    } catch (error) {
+        toast.error(error.response?.data?.message || "Failed to add reaction");
+    }
+};
+
+const saveTaskNotesUpdate = () => {
+    if (!activeTaskForUpdates.value || !updatesDraftText.value.trim()) return;
+
+    const messageText = updatesDraftText.value.trim();
+    const task = activeTaskForUpdates.value;
+
+    const payload = {
+        id: task.id,
+        project_id: task.project_id,
+        title: task.title,
+        member_id: task.member_id,
+        status: task.status,
+        priority: task.priority,
+        deadline: task.due_date,
+        notes: messageText,
+        reply_to: replyingTo.value ? replyingTo.value.id : null,
+    };
+
+    router.put(`/task/${task.id}`, payload, {
+        preserveScroll: true,
+        onSuccess: async () => {
+            if (!task.notes) task.notes = [];
+
+            task.notes.unshift({
+                id: Date.now(),
+                sender: 'You',
+                text: messageText,
+                reply_to: replyingTo.value ? replyingTo.value.id : null,
+                reactions: {},
+                created_at: new Date().toISOString(),
+            });
+
+            updatesDraftText.value = "";
+            replyingTo.value = null;
+            await nextTick();
+
+            if (messagesContainer.value) {
+                messagesContainer.value.scrollTop = 0;
+            }
+        },
+        onError: () => toast.error("Failed to send message."),
+    });
+};
+
+const formatDate = (isoString) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+const getReplyMessage = (replyId) => {
+    if (!activeTaskForUpdates.value?.notes) return null;
+    return activeTaskForUpdates.value.notes.find(note => note.id == replyId);
+};
+
+const getReplyPreview = (html) => {
+    if (!html) return "";
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    const image = div.querySelector("img");
+    if (image) return `🖼️ Image attachment`;
+    return div.textContent || div.innerText || "";
 };
 </script>
 
@@ -380,13 +914,145 @@ const projectProgress = (project) => {
 }
 
 /* ==========================================================================
+   HEADER CHAT / UPDATES
+   ========================================================================== */
+.notif-wrap {
+    position: relative;
+}
+
+.notif-btn {
+    position: relative;
+    color: var(--text-muted);
+}
+
+.notif-btn.has-notes {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.notif-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--c-red);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--dashboard-bg);
+}
+
+.notif-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 300px;
+    max-height: 360px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    box-shadow: 0 12px 30px var(--shadow-cards);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.notif-dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-divider);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-header);
+    background: var(--card-inner-bg);
+}
+
+.notif-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.notif-close:hover {
+    color: var(--text-main);
+}
+
+.notif-list {
+    overflow-y: auto;
+    padding: 6px;
+}
+
+.notif-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s ease;
+}
+
+.notif-item:hover {
+    background: var(--card-inner-hover);
+}
+
+.notif-item-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.notif-item-body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.notif-item-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.notif-item-sub {
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+.notif-empty {
+    padding: 26px 14px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+/* ==========================================================================
    STATS
    ========================================================================== */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 @media (max-width: 900px) {
@@ -469,6 +1135,169 @@ const projectProgress = (project) => {
     color: var(--text-muted);
     font-size: 11px;
     line-height: 1.4;
+}
+
+/* ==========================================================================
+   PROJECT PERFORMANCE (donut + monthly bar, single combined card)
+   ========================================================================== */
+.project-perf-card {
+    display: flex;
+    align-items: stretch;
+    gap: 28px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 22px 26px;
+    box-shadow: 0 2px 6px var(--shadow-cards);
+    margin-bottom: 24px;
+}
+
+@media (max-width: 800px) {
+    .project-perf-card { flex-direction: column; }
+}
+
+.perf-block-header {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-header);
+    margin-bottom: 16px;
+}
+
+.perf-donut-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 0 0 210px;
+}
+
+.perf-divider {
+    width: 1px;
+    background: var(--border-divider);
+    align-self: stretch;
+}
+
+@media (max-width: 800px) {
+    .perf-divider { width: 100%; height: 1px; }
+}
+
+.perf-bar-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.donut-wrap {
+    position: relative;
+    width: 130px;
+    height: 130px;
+    margin: 0 auto 16px;
+}
+
+.donut-svg {
+    width: 100%;
+    height: 100%;
+}
+
+.donut-svg circle {
+    transition: stroke-dasharray 0.4s ease, stroke-dashoffset 0.4s ease;
+}
+
+.donut-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.donut-center strong {
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--text-header);
+}
+
+.donut-center span {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.donut-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+}
+
+.legend-item b {
+    margin-left: auto;
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.bar-chart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    height: 150px;
+    flex: 1;
+}
+
+.bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    height: 100%;
+}
+
+.bar-value {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text-header);
+    margin-bottom: 6px;
+}
+
+.bar-track {
+    flex: 1;
+    width: 26px;
+    background: var(--card-inner-bg);
+    border-radius: 6px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+}
+
+.bar-fill {
+    width: 100%;
+    background: linear-gradient(180deg, var(--c-blue), var(--c-violet));
+    border-radius: 6px;
+    transition: height 0.4s ease;
+    min-height: 3px;
+}
+
+.bar-label {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
 }
 
 /* ==========================================================================
@@ -724,5 +1553,407 @@ const projectProgress = (project) => {
         gap: 6px;
         padding: 14px 4px;
     }
+}
+
+/* ==========================================================================
+   TASK NOTES / CHAT SIDEBAR
+   ========================================================================== */
+.updates-sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0);
+    z-index: 1500;
+    display: flex;
+    justify-content: flex-end;
+    pointer-events: none;
+    transition: background-color 0.3s ease;
+}
+
+.updates-sidebar-overlay.open {
+    background: rgba(15, 23, 42, 0.45);
+    pointer-events: auto;
+}
+
+.updates-sidebar-panel {
+    width: 640px;
+    max-width: 100%;
+    height: 100%;
+    background: var(--panel-bg);
+    border-left: 1px solid var(--border-subtle);
+    box-shadow: -8px 0 30px var(--shadow-cards);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.updates-sidebar-overlay.open .updates-sidebar-panel {
+    transform: translateX(0);
+}
+
+.sidebar-panel-header {
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    background: var(--card-inner-bg);
+}
+
+.panel-header-left {
+    display: flex;
+    gap: 14px;
+}
+
+.panel-task-icon {
+    font-size: 22px;
+}
+
+.sidebar-panel-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-header);
+    margin: 0;
+}
+
+.panel-subtitle {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.close-panel-btn {
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.close-panel-btn:hover {
+    color: var(--text-main);
+}
+
+.sidebar-panel-body {
+    padding: 22px 24px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    overflow: hidden;
+}
+
+.sidebar-panel-body label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.notes-display-box {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.messages-thread-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 6px;
+    min-height: 0;
+}
+
+.chat-message {
+    background: var(--card-inner-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+    position: relative;
+    transition: border-color 0.15s ease;
+}
+
+.chat-message:hover {
+    border-color: var(--accent);
+}
+
+.chat-bubble-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-divider);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+}
+
+.chat-bubble-author {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mini-avatar.chat-variant {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat-author-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.chat-bubble-time {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.chat-bubble-body {
+    font-size: 13px;
+    color: var(--text-main);
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.notes-empty {
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 13px;
+    text-align: center;
+    padding: 30px 10px;
+    background: var(--card-inner-bg);
+    border: 1px dashed var(--border-deep);
+    border-radius: 10px;
+}
+
+.reply-reference {
+    margin-bottom: 8px;
+}
+
+.reply-box {
+    background: var(--dashboard-bg);
+    border-left: 3px solid var(--c-violet);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+}
+
+.reply-author {
+    font-weight: 600;
+    color: var(--c-violet);
+    margin-bottom: 3px;
+}
+
+.reply-text {
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.reaction-summary {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.reaction-wrapper {
+    position: relative;
+}
+
+.reaction-chip {
+    border: 1px solid var(--border-subtle);
+    background: var(--panel-bg);
+    border-radius: 14px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s ease;
+}
+
+.reaction-chip:hover {
+    border-color: var(--accent);
+}
+
+.reaction-tooltip {
+    position: absolute;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2937;
+    color: white;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 11.5px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: 0.15s ease;
+    z-index: 999;
+}
+
+.reaction-wrapper:hover .reaction-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.tooltip-title {
+    font-weight: 700;
+    margin-bottom: 3px;
+}
+
+.message-hover-actions {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    z-index: 20;
+}
+
+.chat-message:hover .message-hover-actions {
+    display: flex;
+}
+
+.reaction-picker {
+    display: flex;
+    gap: 2px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    padding: 3px 6px;
+    box-shadow: 0 4px 12px var(--shadow-cards);
+}
+
+.reaction-picker button {
+    background: transparent;
+    border: none;
+    font-size: 15px;
+    cursor: pointer;
+    padding: 3px;
+}
+
+.reaction-picker button:hover {
+    transform: scale(1.2);
+}
+
+.reply-btn {
+    background: var(--panel-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px var(--shadow-cards);
+}
+
+.reply-btn:hover {
+    background: var(--card-inner-hover);
+}
+
+.replying-box {
+    background: var(--card-inner-bg);
+    border: 1px solid var(--border-subtle);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.replying-box button {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.notes-editor-section {
+    flex-shrink: 0;
+}
+
+.editor-label {
+    display: block;
+}
+
+.sidebar-panel-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-subtle);
+    background: var(--card-inner-bg);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.btn-flat-cancel {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 9px 16px;
+}
+
+.btn-flat-cancel:hover {
+    color: var(--text-main);
+}
+
+.monday-btn-primary {
+    background: var(--accent);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 13px;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.monday-btn-primary:hover {
+    opacity: 0.9;
+}
+
+/* CKEditor theming inside the panel */
+:deep(.ck-editor__editable_inline) {
+    min-height: 140px;
+    max-height: 300px;
+    color: #1e1e2d !important;
+    background-color: #ffffff !important;
+    text-align: left !important;
+}
+
+:deep(.ck.ck-toolbar) {
+    background: #f3f6f9 !important;
+    border-color: #e4e6ef !important;
+}
+
+:deep(.ck-body-wrapper) {
+    z-index: 999999 !important;
+}
+
+:deep(.ck-balloon-panel) {
+    z-index: 999999 !important;
+    position: fixed !important;
 }
 </style>

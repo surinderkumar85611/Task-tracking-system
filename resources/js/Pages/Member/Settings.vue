@@ -50,12 +50,44 @@
                     </div>
 
                     <div class="avatar-section">
-                        <div class="avatar-circle">
-                            {{ userInitials }}
+                        <div class="avatar-wrapper" @click="triggerAvatarUpload" title="Change profile photo">
+                            <img
+                                v-if="avatarPreview || profile.avatar_url"
+                                :src="avatarPreview || profile.avatar_url"
+                                class="avatar-image"
+                                alt="Profile photo"
+                            />
+                            <div v-else class="avatar-circle">
+                                {{ userInitials }}
+                            </div>
+
+                            <div class="avatar-edit-overlay">
+                                <span>📷</span>
+                            </div>
                         </div>
+
+                        <input
+                            ref="avatarInput"
+                            type="file"
+                            accept="image/png, image/jpeg, image/webp"
+                            class="hidden-file-input"
+                            @change="handleAvatarChange"
+                        />
+
                         <div>
                             <h3>{{ profile.name }}</h3>
                             <span>{{ profile.email }}</span>
+                            <button type="button" class="change-photo-link" @click="triggerAvatarUpload">
+                                Change photo
+                            </button>
+                            <button
+                                v-if="avatarPreview"
+                                type="button"
+                                class="cancel-photo-link"
+                                @click="cancelAvatarChange"
+                            >
+                                Undo
+                            </button>
                         </div>
                     </div>
 
@@ -68,24 +100,27 @@
 
                         <div class="form-group">
                             <label>Email Address</label>
-                            <input type="email" v-model="profile.email" />
+                            <input type="email" :value="profile.email" disabled />
+                            <small class="field-hint">Contact your admin to change your email</small>
                         </div>
 
                         <div class="form-group">
                             <label>Department</label>
                             <input type="text" :value="profile.department" disabled />
+                            <small class="field-hint">Set by your workspace admin</small>
                         </div>
 
                         <div class="form-group">
                             <label>Role</label>
                             <input type="text" :value="profile.role" disabled />
+                            <small class="field-hint">Set by your workspace admin</small>
                         </div>
 
                     </div>
 
                     <div class="card-footer">
-                        <button class="primary-btn" @click="updateProfile">
-                            Save Changes
+                        <button class="primary-btn" @click="updateProfile" :disabled="savingProfile">
+                            {{ savingProfile ? "Saving..." : "Save Changes" }}
                         </button>
                     </div>
 
@@ -173,7 +208,10 @@
                                         v-model="security.currentPassword" placeholder="Enter current password" @blur="
                                             validateCurrentPassword();
                                         handlePasswordBlur('currentPassword')
-                                            " @input="validateCurrentPassword" />
+                                            " @input="
+                                            validateCurrentPassword();
+                                        if (passwordTouched.newPassword) validateNewPassword();
+                                            " />
                                     <button type="button" class="eye-btn"
                                         @click="showCurrentPassword = !showCurrentPassword">
                                         {{ showCurrentPassword ? '👁️' : '👁️' }}
@@ -222,8 +260,8 @@
                             </div>
 
                             <div class="form-group password-btn-alignment">
-                                <button class="primary-btn" @click="updatePassword">
-                                    Update Security
+                                <button class="primary-btn" @click="updatePassword" :disabled="updatingPassword">
+                                    {{ updatingPassword ? "Updating..." : "Update Security" }}
                                 </button>
                             </div>
 
@@ -384,6 +422,7 @@ const profile = reactive({
     email: "",
     department: "",
     role: "",
+    avatar_url: null,
 });
 
 const security = reactive({
@@ -407,6 +446,7 @@ const fetchProfile = async () => {
         profile.id = user.id;
         profile.name = user.name;
         profile.email = user.email;
+        profile.avatar_url = user.avatar_url || user.avatar || null;
 
         if (user.notification_preferences) {
             notifications.email = !!user.notification_preferences.email;
@@ -434,13 +474,78 @@ const fetchProfile = async () => {
     }
 };
 
+/* ---------------- Avatar upload ---------------- */
+const avatarInput = ref(null);
+const avatarFile = ref(null);
+const avatarPreview = ref(null);
+const savingProfile = ref(false);
+
+const triggerAvatarUpload = () => {
+    avatarInput.value?.click();
+};
+
+const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+        toast.error("Please choose an image file");
+        e.target.value = "";
+        return;
+    }
+
+    const maxSizeBytes = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSizeBytes) {
+        toast.error("Image must be smaller than 5MB");
+        e.target.value = "";
+        return;
+    }
+
+    if (avatarPreview.value) {
+        URL.revokeObjectURL(avatarPreview.value);
+    }
+
+    avatarFile.value = file;
+    avatarPreview.value = URL.createObjectURL(file);
+};
+
+const cancelAvatarChange = () => {
+    if (avatarPreview.value) {
+        URL.revokeObjectURL(avatarPreview.value);
+    }
+    avatarFile.value = null;
+    avatarPreview.value = null;
+    if (avatarInput.value) avatarInput.value.value = "";
+};
+
 const updateProfile = async () => {
+    savingProfile.value = true;
+
     try {
-        await axios.put("/user/profile", profile);
+        const formData = new FormData();
+        formData.append("name", profile.name);
+        formData.append("email", profile.email);
+        formData.append("_method", "PUT"); // Laravel method-spoofing for multipart PUT
+
+        if (avatarFile.value) {
+            formData.append("avatar", avatarFile.value);
+        }
+
+        const res = await axios.post("/user/profile", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        if (res.data?.avatar_url) {
+            profile.avatar_url = res.data.avatar_url;
+        }
+
+        cancelAvatarChange();
         toast.success("Profile updated successfully");
     } catch (error) {
         console.error(error);
-        toast.error("Failed to update profile");
+        toast.error(error.response?.data?.message || "Failed to update profile");
+    } finally {
+        savingProfile.value = false;
     }
 };
 
@@ -461,6 +566,8 @@ const validateNewPassword = () => {
         passwordErrors.newPassword = "Password must be at least 8 characters";
     } else if (!regex.test(security.newPassword)) {
         passwordErrors.newPassword = "Must include uppercase, lowercase, number & special character";
+    } else if (security.currentPassword && security.newPassword === security.currentPassword) {
+        passwordErrors.newPassword = "New password must be different from your current password";
     } else {
         passwordErrors.newPassword = "";
     }
@@ -493,6 +600,8 @@ const passwordTouched = reactive({
     confirmPassword: false,
 });
 
+const updatingPassword = ref(false);
+
 const updatePassword = async () => {
     passwordTouched.currentPassword = true;
     passwordTouched.newPassword = true;
@@ -505,6 +614,8 @@ const updatePassword = async () => {
     if (passwordErrors.currentPassword || passwordErrors.newPassword || passwordErrors.confirmPassword) {
         return;
     }
+
+    updatingPassword.value = true;
 
     try {
         const response = await axios.post("/user/change-password", {
@@ -527,12 +638,21 @@ const updatePassword = async () => {
 
         toast.success(response.data.message || "Password updated successfully");
     } catch (error) {
-        if (error.response?.data?.message === "Current password is incorrect") {
+        const serverMessage = error.response?.data?.message || "";
+
+        if (serverMessage === "Current password is incorrect") {
             passwordErrors.currentPassword = "Current password does not match";
             passwordTouched.currentPassword = true;
-            return;
+        } else if (/same as|must be different|reuse/i.test(serverMessage)) {
+            // Covers a backend rule like Laravel's `different:current_password`
+            passwordErrors.newPassword = "New password must be different from your current password";
+            passwordTouched.newPassword = true;
+        } else {
+            console.error(error);
+            toast.error(serverMessage || "Failed to update password");
         }
-        console.error(error);
+    } finally {
+        updatingPassword.value = false;
     }
 };
 
@@ -862,11 +982,23 @@ onMounted(() => {
     justify-content: flex-end;
 }
 
+/* ==========================================================================
+   AVATAR / PROFILE PHOTO
+   ========================================================================== */
 .avatar-section {
     display: flex;
     align-items: center;
     gap: 18px;
     margin-bottom: 28px;
+}
+
+.avatar-wrapper {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    cursor: pointer;
 }
 
 .avatar-circle {
@@ -881,6 +1013,70 @@ onMounted(() => {
     font-size: 20px;
     font-weight: 700;
     flex-shrink: 0;
+}
+
+.avatar-image {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    border: 1px solid var(--border-subtle);
+}
+
+.avatar-edit-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.avatar-wrapper:hover .avatar-edit-overlay {
+    opacity: 1;
+}
+
+.hidden-file-input {
+    display: none;
+}
+
+.change-photo-link {
+    display: inline-block;
+    margin-top: 6px;
+    margin-right: 12px;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--accent);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.change-photo-link:hover {
+    text-decoration: underline;
+}
+
+.cancel-photo-link {
+    display: inline-block;
+    margin-top: 6px;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.cancel-photo-link:hover {
+    color: var(--c-red);
 }
 
 .avatar-section h3 {
@@ -938,6 +1134,12 @@ onMounted(() => {
 .form-group input:disabled {
     opacity: 0.55;
     cursor: not-allowed;
+}
+
+.field-hint {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
 }
 
 .form-group textarea {
