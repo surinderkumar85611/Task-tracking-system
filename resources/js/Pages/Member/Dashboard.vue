@@ -210,8 +210,8 @@
                       📁 {{ task.project.name }}
                     </p>
 
-                    <small class="due-date" v-if="task.deadline">
-                      Due: {{ task.deadline }}
+                    <small class="due-date" v-if="task.due_date">
+                      Due: {{ task.due_date }}
                     </small>
                   </div>
 
@@ -243,8 +243,8 @@
                     <span class="status-pill" :class="statusClass(task.status)">
                       {{ task.status }}
                     </span>
-                    <small class="due-date" v-if="task.deadline">
-                      Due: {{ task.deadline }}
+                    <small class="due-date" v-if="task.due_date">
+                      Due: {{ task.due_date }}
                     </small>
                   </div>
                 </div>
@@ -367,7 +367,7 @@
             </div>
           </section>
 
-          <!-- RECENT ACTIVITY — task table -->
+          <!-- RECENT ACTIVITY — real event feed, built from notifications -->
           <section class="dashboard-card">
             <div class="card-header">
               <h2>Recent Activity</h2>
@@ -375,25 +375,29 @@
 
             <div class="leads-table">
               <div class="leads-table-head">
-                <span>Task</span>
+                <span>Activity</span>
                 <span>Project</span>
-                <span>Status</span>
+                <span>By</span>
               </div>
 
-              <div v-for="task in (myTasks || [])" :key="task.id" class="leads-row">
+              <div v-for="activity in (recentActivity || [])" :key="activity.id" class="leads-row">
                 <div class="lead-identity">
-                  <span class="lead-dot" :class="task.status?.toLowerCase().replace(' ', '-')"></span>
-                  <span class="lead-title">{{ task.title }}</span>
+                  <span class="lead-dot" :class="activityDotClass(activity.type)"></span>
+                  <span class="lead-title" :title="activity.message">
+                    {{ activity.message }}
+                  </span>
                 </div>
 
-                <span class="lead-project">{{ task.project?.name || '—' }}</span>
+                <span class="lead-project">
+                  {{ activity.project_name || activity.task_title || '—' }}
+                </span>
 
-                <span class="status-pill" :class="statusClass(task.status)">
-                  {{ task.status }}
+                <span class="status-pill" :class="{ 'is-you': activity.is_own }">
+                  {{ activity.is_own ? 'You' : activity.actor_name }}
                 </span>
               </div>
 
-              <div v-if="!(myTasks || []).length" class="empty-state-inline">
+              <div v-if="!(recentActivity || []).length" class="empty-state-inline">
                 No recent activity yet.
               </div>
             </div>
@@ -419,7 +423,7 @@
                 </div>
 
                 <small class="due-date">
-                  Due: {{ project.deadline }}
+                  Due: {{ project.deadline || 'No deadline' }}
                 </small>
 
                 <div class="mini-progress">
@@ -455,17 +459,17 @@
             </div>
 
             <div class="timeline-list">
-              <div v-for="task in filteredTasks.slice(0, 5)" :key="task.id" class="timeline-item">
+              <div v-for="task in upcomingDeadlineTasks" :key="task.id" class="timeline-item">
                 <span class="timeline-dot" :class="statusClass(task.status)"></span>
 
                 <div class="timeline-content">
-                  <span class="timeline-date">{{ task.deadline || 'No deadline' }}</span>
+                  <span class="timeline-date">{{ task.due_date || 'No deadline' }}</span>
                   <strong>{{ task.title }}</strong>
                   <small v-if="task.project?.name">{{ task.project.name }}</small>
                 </div>
               </div>
 
-              <div v-if="!filteredTasks.length" class="empty-state-inline">
+              <div v-if="!upcomingDeadlineTasks.length" class="empty-state-inline">
                 No upcoming deadlines.
               </div>
             </div>
@@ -493,12 +497,13 @@ const page = usePage();
 
 const props = defineProps({
   member: Object,
-  myTasks: Array,
-  teamProjects: Array,
+  myTasks: { type: Array, default: () => [] },
+  teamProjects: { type: Array, default: () => [] },
   teamMembers: Array,
   stats: Object,
   currentWorkspaceId: Number,
-  notifications: Array
+  notifications: Array,
+  recentActivity: { type: Array, default: () => [] }
 });
 
 const search = ref("");
@@ -556,6 +561,66 @@ const statusClass = (status) => {
 
 const priorityClass = (priority) => {
   return (priority || "normal").toLowerCase();
+};
+
+/* ---------------- Date helpers (all tasks use due_date, "YYYY-MM-DD" or ISO) ---------------- */
+const startOfDay = (d) => {
+  const copy = new Date(d);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+};
+
+const today = computed(() => startOfDay(new Date()));
+
+const isCompletedTask = (task) => (task.status || "").toLowerCase() === "completed";
+
+const parsedDueDate = (task) => {
+  if (!task.due_date) return null;
+  const d = new Date(task.due_date);
+  if (isNaN(d.getTime())) return null;
+  return startOfDay(d);
+};
+
+/* ---------------- Today's Activity ---------------- */
+const dueToday = computed(() => {
+  return (props.myTasks || []).filter(task => {
+    if (isCompletedTask(task)) return false;
+    const due = parsedDueDate(task);
+    return due && due.getTime() === today.value.getTime();
+  }).length;
+});
+
+const overdueTasks = computed(() => {
+  return (props.myTasks || []).filter(task => {
+    if (isCompletedTask(task)) return false;
+    const due = parsedDueDate(task);
+    return due && due.getTime() < today.value.getTime();
+  }).length;
+});
+
+const upcomingTasks = computed(() => {
+  return (props.myTasks || []).filter(task => {
+    if (isCompletedTask(task)) return false;
+    const due = parsedDueDate(task);
+    return due && due.getTime() > today.value.getTime();
+  }).length;
+});
+
+/* ---------------- Upcoming Deadlines timeline (soonest first, incomplete only) ---------------- */
+const upcomingDeadlineTasks = computed(() => {
+  return (props.myTasks || [])
+    .filter(task => !isCompletedTask(task) && parsedDueDate(task))
+    .sort((a, b) => parsedDueDate(a) - parsedDueDate(b))
+    .slice(0, 5);
+});
+
+/* ---------------- Recent Activity dot color, keyed off notification type ---------------- */
+const activityDotClass = (type) => {
+  const key = (type || "").toLowerCase();
+  if (key.includes("completed")) return "completed";
+  if (key.includes("urgent") || key.includes("priority")) return "todo";
+  if (key.includes("status") || key.includes("progress")) return "in-progress";
+  return "";
 };
 
 watch(
@@ -1706,6 +1771,11 @@ const markAllRead = () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.status-pill.is-you {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /* --- Upcoming Deadlines: timeline --- */
