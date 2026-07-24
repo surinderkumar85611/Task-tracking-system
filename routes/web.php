@@ -25,10 +25,13 @@ use App\Models\Member;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskAttachmentController;
-use App\Http\Controllers\MemberDashboardController;
 use App\Http\Controllers\EditorController;
 use App\Http\Controllers\SuperAdmin\AuthController as SuperAdminAuthController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
+use App\Http\Controllers\Member\DashboardController as MemberDashboardController;
+use App\Http\Controllers\Member\TaskController as MemberTaskController;
+use App\Http\Controllers\Member\ProjectController as MemberProjectController;
+use App\Http\Controllers\Member\SettingsController as MemberSettingsController;
 
 Route::prefix('super-admin')->name('super-admin.')->group(function () {
 
@@ -315,8 +318,20 @@ Route::put(
     '/notifications/{id}/read',
     [NotificationController::class, 'markAsRead']
 )->middleware(['auth', 'no-cache']);
+Route::middleware(['auth', 'no-cache'])
+    ->prefix('member')
+    ->name('member.')
+    ->group(function () {
 
-Route::middleware(['auth', 'no-cache'])->group(function () {
-    Route::get('/member/dashboard', [MemberDashboardController::class, 'index'])
-        ->name('member.dashboard');
-});
+        Route::get('/dashboard', [MemberDashboardController::class, 'index'])
+            ->name('dashboard');
+
+        Route::get('/tasks', [MemberTaskController::class, 'index'])
+            ->name('tasks');
+
+        Route::get('/projects', [MemberProjectController::class, 'index'])
+            ->name('projects');
+
+        Route::get('/settings', [MemberSettingsController::class, 'index'])
+            ->name('settings');
+    });
