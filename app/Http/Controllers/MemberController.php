@@ -233,4 +233,18 @@ class MemberController extends Controller
 
         return back();
     }
+
+    public function destroy(Member $member)
+    {
+        Member::where('assigned_to', $member->id)
+            ->update([
+                'assigned_to' => null
+            ]);
+
+        $member->delete();
+
+        return back()->with([
+            'success' => 'Member deleted successfully.'
+        ]);
+    }
 }

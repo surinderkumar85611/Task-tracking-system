@@ -272,7 +272,7 @@
                     <div class="hierarchy-directory-wrapper">
                         <TeamHierarchy :leaders="teamLeaders" :currentWorkspace="currentWorkspace"
                             @drag-member="dragMember" @drop-member="dropMember" @drop-leader="dropLeader"
-                            @assign-workspace="dropTeamLeaderToWorkspace" />
+                            @assign-workspace="dropTeamLeaderToWorkspace" @remove-member="removeMember" />
                     </div>
                 </div>
 
@@ -431,6 +431,36 @@
                     </div>
                 </div>
             </Transition>
+
+            <div v-if="showDeleteModal" class="modal-overlay">
+                <div class="delete-modal">
+
+                    <h3>Delete Member</h3>
+
+                    <p>
+                        Are you sure you want to delete
+                        <strong>
+                            {{ memberToDelete?.first_name }}
+                            {{ memberToDelete?.last_name }}
+                        </strong>?
+                    </p>
+
+                    <p class="delete-warning">
+                        This action cannot be undone.
+                    </p>
+
+                    <div class="modal-actions">
+                        <button class="btn-secondary" @click="cancelDeleteMember">
+                            Cancel
+                        </button>
+
+                        <button class="btn-danger" @click="confirmDeleteMember">
+                            Delete
+                        </button>
+                    </div>
+
+                </div>
+            </div>
         </main>
 
     </div>
@@ -921,6 +951,40 @@ const updateMember = () => {
         }
     );
 };
+
+const showDeleteModal = ref(false);
+const memberToDelete = ref(null);
+
+const removeMember = (member) => {
+    memberToDelete.value = member;
+    showDeleteModal.value = true;
+};
+
+const confirmDeleteMember = () => {
+
+    if (!memberToDelete.value) return;
+
+    router.delete(
+        `/member/${memberToDelete.value.id}`,
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success("Member deleted successfully");
+                showDeleteModal.value = false;
+                memberToDelete.value = null;
+            },
+            onError: () => {
+                toast.error("Failed to delete member");
+            }
+        }
+    );
+};
+
+const cancelDeleteMember = () => {
+    showDeleteModal.value = false;
+    memberToDelete.value = null;
+};
+
 const logout = () => {
     router.post("/logout", {}, {
         replace: true,
@@ -1777,5 +1841,53 @@ watch(() => form.role, (role) => {
 
 .independent-zone:hover {
     background: rgba(239, 68, 68, .08);
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.delete-modal {
+    width: 420px;
+    max-width: 95%;
+    background: #1f2937;
+    color: white;
+    padding: 24px;
+    border-radius: 12px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.btn-secondary {
+    background: #374151;
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.btn-danger {
+    background: #dc2626;
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.btn-danger:hover {
+    background: #b91c1c;
 }
 </style>
