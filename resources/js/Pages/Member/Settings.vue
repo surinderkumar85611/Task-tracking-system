@@ -77,17 +77,19 @@
                         <div>
                             <h3>{{ profile.name }}</h3>
                             <span>{{ profile.email }}</span>
-                            <button type="button" class="change-photo-link" @click="triggerAvatarUpload">
-                                Change photo
-                            </button>
-                            <button
-                                v-if="avatarPreview"
-                                type="button"
-                                class="cancel-photo-link"
-                                @click="cancelAvatarChange"
-                            >
-                                Undo
-                            </button>
+                            <div class="photo-actions">
+                                <button type="button" class="change-photo-link" @click="triggerAvatarUpload">
+                                    Change photo
+                                </button>
+                                <button
+                                    v-if="avatarPreview"
+                                    type="button"
+                                    class="cancel-photo-link"
+                                    @click="cancelAvatarChange"
+                                >
+                                    Undo
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -100,7 +102,7 @@
 
                         <div class="form-group">
                             <label>Email Address</label>
-                            <input type="email" :value="profile.email" disabled />
+                            <input type="email" :value="profile.email" disabled readonly />
                             <small class="field-hint">Contact your admin to change your email</small>
                         </div>
 
@@ -441,7 +443,8 @@ const fetchProfile = async () => {
         ]);
 
         const user = userRes.data;
-        const member = memberRes.data;
+        const memberData = memberRes.data;
+        console.log("[Settings] /member/me raw response:", memberData);
 
         profile.id = user.id;
         profile.name = user.name;
@@ -465,10 +468,10 @@ const fetchProfile = async () => {
             user.two_factor_enabled === true ||
             user.two_factor_enabled === "1";
 
-        const data = member?.member ?? member;
+        const data = memberData?.member ?? memberData?.data ?? memberData;
 
-        profile.role = data?.role || "N/A";
-        profile.department = data?.department || "N/A";
+        profile.role = user.role || data?.role || "N/A";
+        profile.department = user.department || data?.department || "N/A";
     } catch (error) {
         console.error("fetchProfile error:", error);
     }
@@ -525,7 +528,6 @@ const updateProfile = async () => {
         const formData = new FormData();
         formData.append("name", profile.name);
         formData.append("email", profile.email);
-        formData.append("_method", "PUT"); // Laravel method-spoofing for multipart PUT
 
         if (avatarFile.value) {
             formData.append("avatar", avatarFile.value);
@@ -1048,8 +1050,6 @@ onMounted(() => {
 
 .change-photo-link {
     display: inline-block;
-    margin-top: 6px;
-    margin-right: 12px;
     background: none;
     border: none;
     padding: 0;
@@ -1065,7 +1065,6 @@ onMounted(() => {
 
 .cancel-photo-link {
     display: inline-block;
-    margin-top: 6px;
     background: none;
     border: none;
     padding: 0;
@@ -1087,8 +1086,16 @@ onMounted(() => {
 }
 
 .avatar-section span {
+    display: block;
     font-size: 13px;
     color: var(--text-muted);
+}
+
+.photo-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 8px;
 }
 
 .settings-grid {
@@ -1132,8 +1139,11 @@ onMounted(() => {
 }
 
 .form-group input:disabled {
-    opacity: 0.55;
+    opacity: 0.75;
     cursor: not-allowed;
+    background: var(--card-inner-bg);
+    color: var(--text-muted);
+    border-style: dashed;
 }
 
 .field-hint {

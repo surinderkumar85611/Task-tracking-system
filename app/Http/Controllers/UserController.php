@@ -63,5 +63,28 @@ class UserController extends Controller
             'message' => 'Notification preferences updated successfully'
         ]);
     }
+    public function updateProfile(Request $request)
+{
+    $user = auth()->user();
+
+    $request->validate([
+        'name'   => 'required|string|max:255',
+        'avatar' => 'nullable|image|mimes:jpeg,png,webp|max:5120', // 5MB
+    ]);
+
+    $user->name = $request->name;
+
+    if ($request->hasFile('avatar')) {
+        $path = $request->file('avatar')->store('avatars', 'public');
+        $user->avatar_url = asset('storage/' . $path);
+    }
+
+    $user->save();
+
+    return response()->json([
+        'message'    => 'Profile updated successfully',
+        'avatar_url' => $user->avatar_url,
+    ]);
+}
 } 
 

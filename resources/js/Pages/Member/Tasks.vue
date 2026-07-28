@@ -27,17 +27,21 @@
                         <!-- CHAT -->
                         <div class="notif-wrap">
                             <button
-    class="theme-btn notif-btn"
+    class="theme-btn notif-btn chat-fab"
     :class="{ 'has-unread': unreadCount > 0 }"
     title="Team Chat"
     @click="toggleChatDropdown"
 >
     <svg
         class="chat-icon"
-        viewBox="0 0 24 24"
-        fill="currentColor"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
     >
-        <path d="M20 3H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h3v3l4-3h9a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z"/>
+        <path
+            d="M16 4C9.373 4 4 8.94 4 15c0 3.09 1.394 5.87 3.646 7.85.24.21.38.52.36.85l-.2 3.34a1 1 0 0 0 1.37 1l3.62-1.55a1 1 0 0 1 .62-.05c.83.17 1.69.26 2.58.26 6.627 0 12-4.94 12-11S22.627 4 16 4Z"
+            fill="currentColor"
+        />
     </svg>
 
     <span
@@ -2154,9 +2158,37 @@ const getReplyPreview = (html) => {
 }
 
 .chat-icon{
-    font-size:22px;
+    width: 50px;
+    height: 42px;
     line-height:1;
     transition:.25s ease;
+}
+
+.chat-fab{
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #34c38f, #29a679);
+    color: #ffffff;
+    box-shadow: 0 4px 10px rgba(52, 195, 143, 0.35);
+}
+
+.chat-fab:hover{
+    background: linear-gradient(135deg, #2fb582, #23945f);
+    box-shadow: 0 6px 14px rgba(52, 195, 143, 0.45);
+    transform: translateY(-1px);
+}
+
+.chat-fab.has-unread{
+    background: linear-gradient(135deg, #34c38f, #29a679);
+    border: none;
+    animation: chat-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes chat-pulse {
+    0%, 100% { box-shadow: 0 4px 10px rgba(52, 195, 143, 0.35), 0 0 0 0 rgba(52, 195, 143, 0.45); }
+    50% { box-shadow: 0 4px 10px rgba(52, 195, 143, 0.35), 0 0 0 6px rgba(52, 195, 143, 0); }
 }
 
 .notif-btn{

@@ -22,6 +22,8 @@ class DashboardController extends Controller
             abort(403);
         }
 
+        $member->avatar_url = $user->avatar_url;
+
         $tasks = Task::whereNotNull('id')
             ->when(session('workspace_id'), function ($query) {
                 $query->where('workspace_id', session('workspace_id'));

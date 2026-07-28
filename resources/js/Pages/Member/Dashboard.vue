@@ -9,15 +9,24 @@
 
       <!-- TOPBAR -->
       <div class="topbar">
-        <div class="search-wrap">
-          <svg class="search-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.6"/>
-            <path d="M17 17L13.5 13.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          </svg>
-          <input v-model="search" type="text" placeholder="Search tasks or projects..." class="search-box" />
+        <div class="topbar-greeting">
+          <h2>
+            Good to see you, {{ member.first_name }} <span class="wave">👋</span>
+          </h2>
+          <p>
+            You have <strong>{{ stats.pending }}</strong> pending tasks today.
+          </p>
         </div>
 
         <div class="topbar-icons">
+
+          <div class="search-wrap">
+            <svg class="search-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M17 17L13.5 13.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <input v-model="search" type="text" placeholder="Search tasks or projects..." class="search-box" />
+          </div>
 
           <div class="workspace-label" v-if="currentWorkspace">
             <span class="workspace-dot"></span>
@@ -99,7 +108,19 @@
 
           <!-- PROFILE -->
           <div class="profile-container">
-            <img src="https://i.pravatar.cc/100" class="avatar" @click.stop="showProfileMenu = !showProfileMenu" />
+            <img
+              v-if="member?.avatar_url"
+              :src="member.avatar_url"
+              class="avatar"
+              @click.stop="showProfileMenu = !showProfileMenu"
+            />
+            <div
+              v-else
+              class="avatar avatar-fallback"
+              @click.stop="showProfileMenu = !showProfileMenu"
+            >
+              {{ profileInitials }}
+            </div>
 
             <div v-if="showProfileMenu" class="profile-dropdown">
               <button @click="logout">
@@ -112,20 +133,6 @@
       </div>
 
       <div class="content-wrapper">
-
-        <!-- HEADER -->
-       
-
-        <div class="welcome-banner">
-          <div class="welcome-banner-text">
-            <h2>
-              Good to see you, {{ member.first_name }} <span class="wave">👋</span>
-            </h2>
-            <p>
-              You have <strong>{{ stats.pending }}</strong> pending tasks today.
-            </p>
-          </div>
-        </div>
 
         <!-- STATS -->
         <section class="stats-grid">
@@ -200,14 +207,14 @@
                 <div class="kanban-column-body">
                   <div v-for="task in column.tasks" :key="task.id" class="kanban-task-card" :class="column.key">
                     <div class="kanban-task-top">
-                      <h4>{{ task.title }}</h4>
+                      <h4 v-html="highlightMatch(task.title)"></h4>
                       <span class="priority-badge" :class="priorityClass(task.priority)">
                         {{ task.priority || 'Normal' }}
                       </span>
                     </div>
 
                     <p class="task-row-project" v-if="task.project?.name">
-                      📁 {{ task.project.name }}
+                      📁 <span v-html="highlightMatch(task.project.name)"></span>
                     </p>
 
                     <small class="due-date" v-if="task.due_date">
@@ -229,14 +236,14 @@
 
                 <div class="task-row-main">
                   <div class="task-row-top">
-                    <h3>{{ task.title }}</h3>
+                    <h3 v-html="highlightMatch(task.title)"></h3>
                     <span class="priority-badge" :class="priorityClass(task.priority)">
                       {{ task.priority || 'Normal' }}
                     </span>
                   </div>
 
                   <p class="task-row-project" v-if="task.project?.name">
-                    📁 {{ task.project.name }}
+                    📁 <span v-html="highlightMatch(task.project.name)"></span>
                   </p>
 
                   <div class="task-row-bottom">
@@ -416,7 +423,7 @@
             <div class="project-list">
               <div v-for="project in filteredProjects" :key="project.id" class="project-mini-card">
                 <div class="project-card-meta">
-                  <h3>{{ project.name }}</h3>
+                  <h3 v-html="highlightMatch(project.name)"></h3>
                   <span class="project-percentage">
                     {{ project.progress || 0 }}%
                   </span>
@@ -513,6 +520,36 @@ let notificationRefreshInterval = null;
 
 const workspaces = computed(() => page.props.workspaces || []);
 const currentWorkspace = computed(() => workspaces.value[0] || null);
+
+/* ---------------- Profile avatar fallback initials ---------------- */
+const profileInitials = computed(() => {
+  const first = props.member?.first_name?.charAt(0) || "";
+  const last = props.member?.last_name?.charAt(0) || "";
+  const initials = `${first}${last}`.toUpperCase();
+  return initials || "U";
+});
+
+/* ---------------- Search match highlighting ---------------- */
+const escapeHtml = (value) => {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+};
+
+const escapeRegExp = (value) => {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
+const highlightMatch = (text) => {
+  const safeText = escapeHtml(text);
+  const term = search.value.trim();
+
+  if (!term) return safeText;
+
+  const regex = new RegExp(`(${escapeRegExp(term)})`, "ig");
+  return safeText.replace(regex, '<mark class="search-highlight">$1</mark>');
+};
 
 const filteredTasks = computed(() => {
   if (!search.value) return props.myTasks || [];
@@ -833,6 +870,30 @@ const markAllRead = () => {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.topbar-greeting h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+  color: var(--text-header);
+}
+
+.topbar-greeting .wave {
+  display: inline-block;
+}
+
+.topbar-greeting p {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.topbar-greeting p strong {
+  color: var(--accent);
+  font-weight: 700;
 }
 
 /* ==========================================================================
@@ -1858,6 +1919,16 @@ const markAllRead = () => {
   border: 1px solid var(--border-subtle);
 }
 
+.avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .profile-dropdown {
   position: absolute;
   right: 0;
@@ -2058,5 +2129,14 @@ const markAllRead = () => {
   border: none;
   border-top: 1px solid var(--border-divider);
   margin: 20px 0;
+}
+
+/* --- Search match highlighting --- */
+.search-highlight {
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 0 2px;
+  border-radius: 3px;
+  font-weight: 700;
 }
 </style>

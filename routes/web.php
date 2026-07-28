@@ -218,6 +218,7 @@ Route::middleware(['auth', 'no-cache'])->group(function () {
 
 Route::post('/user/change-password', [UserController::class, 'changePassword']);
 Route::get('/user/profile', [UserController::class, 'profile']);
+Route::post('/user/profile', [UserController::class, 'updateProfile'])->middleware(['auth', 'no-cache']);
 
 Route::middleware('auth')->prefix('member')->group(function () {
     Route::get('/me', [MemberController::class, 'me']);
