@@ -17,51 +17,68 @@
                     <div class="header-right">
                         <div class="search-wrap">
                             <svg class="search-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.6"/>
-                                <path d="M17 17L13.5 13.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                                <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.6" />
+                                <path d="M17 17L13.5 13.5" stroke="currentColor" stroke-width="1.6"
+                                    stroke-linecap="round" />
                             </svg>
                             <input type="text" v-model="search" placeholder="Search tasks..." class="search-box" />
                         </div>
 
-                        <!-- NOTIFICATIONS / CHAT BELL -->
+                        <!-- CHAT -->
                         <div class="notif-wrap">
                             <button
-                                class="theme-btn notif-btn"
-                                :class="{ 'has-unread': unreadCount > 0 }"
-                                title="Task updates & chat"
-                                @click="toggleNotifDropdown"
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="bell-icon">
-                                    <path d="M12 3.5c-3 0-4.6 2.2-4.6 5.2v2.4c0 .9-.3 1.8-.9 2.5l-.9 1.1c-.5.6-.1 1.6.7 1.6h11.4c.8 0 1.2-1 .7-1.6l-.9-1.1c-.6-.7-.9-1.6-.9-2.5V8.7c0-3-1.6-5.2-4.6-5.2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                                    <path d="M10.2 19.5a1.9 1.9 0 0 0 3.6 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                                </svg>
-                                <span v-if="unreadCount > 0" class="notif-badge">{{ unreadCount }}</span>
-                            </button>
+    class="theme-btn notif-btn chat-fab"
+    :class="{ 'has-unread': unreadCount > 0 }"
+    title="Team Chat"
+    @click="toggleChatDropdown"
+>
+    <svg
+        class="chat-icon"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        <path
+            d="M16 4C9.373 4 4 8.94 4 15c0 3.09 1.394 5.87 3.646 7.85.24.21.38.52.36.85l-.2 3.34a1 1 0 0 0 1.37 1l3.62-1.55a1 1 0 0 1 .62-.05c.83.17 1.69.26 2.58.26 6.627 0 12-4.94 12-11S22.627 4 16 4Z"
+            fill="currentColor"
+        />
+    </svg>
 
-                            <div class="notif-dropdown" v-if="showNotifDropdown" @click.stop>
+    <span
+        v-if="unreadCount > 0"
+        class="notif-badge"
+    >
+        {{ unreadCount }}
+    </span>
+</button>
+
+                            <div class="notif-dropdown" v-if="showChatDropdown" @click.stop>
                                 <div class="notif-dropdown-header">
-                                    <span>💬 Task Updates</span>
-                                    <button class="notif-close" @click="showNotifDropdown = false">✕</button>
+                                    <span>💬 Chat &amp; Updates</span>
+                                    <button class="notif-close" @click="showChatDropdown = false">✕</button>
                                 </div>
 
-                                <div class="notif-list" v-if="tasksWithUnread.length">
-                                    <button
-                                        v-for="task in tasksWithUnread"
-                                        :key="task.id"
-                                        class="notif-item"
-                                        @click="openFromNotif(task)"
-                                    >
-                                        <span class="notif-item-icon">🆘</span>
+                                <div class="notif-list" v-if="allTasks.length">
+                                    <button v-for="task in allTasks" :key="task.id" class="notif-item"
+                                        @click="openFromNotif(task)">
+                                        <span class="notif-item-icon">
+                                            {{ (task.notes && task.notes.length > 0 && !task.is_read) ? '🆘' : '💬' }}
+                                        </span>
                                         <span class="notif-item-body">
                                             <span class="notif-item-title">{{ task.title }}</span>
-                                            <span class="notif-item-sub">{{ task.project?.name || '—' }} · new message</span>
+                                            <span class="notif-item-sub">
+                                                {{ task.project?.name || '—' }} ·
+                                                {{ (task.notes && task.notes.length) ? task.notes.length + ' message' +
+                                                    (task.notes.length > 1 ? 's' : '') : 'No messages yet' }}
+                                            </span>
                                         </span>
-                                        <span class="notif-item-dot"></span>
+                                        <span v-if="task.notes && task.notes.length > 0 && !task.is_read"
+                                            class="notif-item-dot"></span>
                                     </button>
                                 </div>
 
                                 <div class="notif-empty" v-else>
-                                    You're all caught up 🎉
+                                    No tasks yet
                                 </div>
                             </div>
                         </div>
@@ -122,15 +139,11 @@
 
                         <div class="donut-wrap">
                             <svg viewBox="0 0 120 120" class="donut-svg">
-                                <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border-deep)" stroke-width="12" />
-                                <circle
-                                    v-for="(seg, idx) in donutSegments" :key="idx"
-                                    cx="60" cy="60" r="50" fill="none"
-                                    :stroke="seg.color" stroke-width="12"
-                                    :stroke-dasharray="seg.dasharray"
-                                    :stroke-dashoffset="seg.dashoffset"
-                                    transform="rotate(-90 60 60)"
-                                />
+                                <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border-deep)"
+                                    stroke-width="12" />
+                                <circle v-for="(seg, idx) in donutSegments" :key="idx" cx="60" cy="60" r="50"
+                                    fill="none" :stroke="seg.color" stroke-width="12" :stroke-dasharray="seg.dasharray"
+                                    :stroke-dashoffset="seg.dashoffset" transform="rotate(-90 60 60)" />
                             </svg>
                             <div class="donut-center">
                                 <strong>{{ completionPercent }}%</strong>
@@ -163,10 +176,8 @@
                             <div v-for="bucket in monthlyAssigned" :key="bucket.label + bucket.year" class="bar-col">
                                 <span class="bar-value">{{ bucket.count }}</span>
                                 <div class="bar-track">
-                                    <div
-                                        class="bar-fill"
-                                        :style="{ height: (bucket.count / maxMonthlyCount) * 100 + '%' }"
-                                    ></div>
+                                    <div class="bar-fill"
+                                        :style="{ height: (bucket.count / maxMonthlyCount) * 100 + '%' }"></div>
                                 </div>
                                 <span class="bar-label">{{ bucket.label }}</span>
                             </div>
@@ -201,15 +212,11 @@
                             <span>Priority</span>
                             <span>Status</span>
                             <span>Due Date</span>
-                            <span>Actions</span>
+                            <span>Update Status</span>
                         </div>
 
-                        <div
-                            v-for="task in filteredTasks"
-                            :key="task.id"
-                            class="tasks-row"
-                            :class="{ 'is-overdue': isOverdue(task) }"
-                        >
+                        <div v-for="task in filteredTasks" :key="task.id" class="tasks-row"
+                            :class="{ 'is-overdue': isOverdue(task) }">
                             <span class="task-title-cell">{{ task.title }}</span>
 
                             <span class="task-project-cell">
@@ -238,23 +245,12 @@
                             </span>
 
                             <span class="actions-cell">
-                                <button
-                                    v-if="task.status !== 'Completed'"
-                                    class="action-btn complete-btn"
-                                    title="Mark as complete"
-                                    @click="markComplete(task)"
-                                >
-                                    ✅
-                                </button>
-                                <button
-                                    class="action-btn help-btn"
-                                    :class="{ 'has-notes': task.notes && task.notes.length > 0 }"
-                                    title="Need help / open chat"
-                                    @click="openUpdatesSidebar(task)"
-                                >
-                                    🆘
-                                    <span v-if="task.notes && task.notes.length > 0 && !task.is_read" class="update-indicator-dot"></span>
-                                </button>
+                                <select class="status-select" :class="statusClass(task.status)"
+                                    :value="task.status || 'Todo'" @change="onStatusChange(task, $event.target.value)">
+                                    <option value="Todo">To Do</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Completed">Completed</option>
+                                </select>
                             </span>
                         </div>
                     </div>
@@ -272,7 +268,7 @@
             <div class="updates-sidebar-panel" @click.stop>
                 <div class="sidebar-panel-header">
                     <div class="panel-header-left">
-                        <span class="panel-task-icon">🆘</span>
+                        <span class="panel-task-icon">💬</span>
                         <div>
                             <h2>{{ activeTaskForUpdates?.title || 'Task Chat' }}</h2>
                             <p class="panel-subtitle">Project: {{ activeTaskForUpdates?.project?.name || '—' }}</p>
@@ -285,16 +281,11 @@
                     <div class="notes-display-box">
                         <label>📌 Updates Timeline</label>
 
-                        <div
-                            ref="messagesContainer"
+                        <div ref="messagesContainer"
                             v-if="activeTaskForUpdates?.notes && activeTaskForUpdates.notes.length > 0"
-                            class="messages-thread-wrapper"
-                        >
-                            <div
-                                v-for="(note, index) in activeTaskForUpdates.notes"
-                                :key="note.id || index"
-                                class="chat-message"
-                            >
+                            class="messages-thread-wrapper">
+                            <div v-for="(note, index) in activeTaskForUpdates.notes" :key="note.id || index"
+                                class="chat-message">
                                 <div class="chat-bubble-meta">
                                     <span class="chat-bubble-author">
                                         <span class="mini-avatar chat-variant">
@@ -309,7 +300,8 @@
                                     <div class="reply-box">
                                         <template v-if="getReplyMessage(note.reply_to)">
                                             <div class="reply-author">{{ getReplyMessage(note.reply_to).sender }}</div>
-                                            <div class="reply-text" v-html="getReplyPreview(getReplyMessage(note.reply_to).text)"></div>
+                                            <div class="reply-text"
+                                                v-html="getReplyPreview(getReplyMessage(note.reply_to).text)"></div>
                                         </template>
                                     </div>
                                 </div>
@@ -317,20 +309,24 @@
                                 <div class="chat-bubble-body ck-content" v-html="note.text"></div>
 
                                 <div class="reaction-summary">
-                                    <div v-for="(users, emoji) in (note.reactions || {})" :key="emoji" class="reaction-wrapper">
-                                        <button v-if="Array.isArray(users) && users.length" class="reaction-chip" @click="addReaction(note, emoji)">
+                                    <div v-for="(users, emoji) in (note.reactions || {})" :key="emoji"
+                                        class="reaction-wrapper">
+                                        <button v-if="Array.isArray(users) && users.length" class="reaction-chip"
+                                            @click="addReaction(note, emoji)">
                                             {{ emoji }} {{ users.length }}
                                         </button>
                                         <div class="reaction-tooltip">
                                             <div class="tooltip-title">Reacted by</div>
-                                            <div v-for="user in users" :key="user.user_id" class="tooltip-user">{{ user.user }}</div>
+                                            <div v-for="user in users" :key="user.user_id" class="tooltip-user">{{
+                                                user.user }}</div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="message-hover-actions">
                                     <div class="reaction-picker">
-                                        <button v-for="emoji in ['👍', '❤️', '😂', '🎉', '😮', '😢']" :key="emoji" @click="addReaction(note, emoji)">
+                                        <button v-for="emoji in ['👍', '❤️', '😂', '🎉', '😮', '😢']" :key="emoji"
+                                            @click="addReaction(note, emoji)">
                                             {{ emoji }}
                                         </button>
                                     </div>
@@ -340,7 +336,7 @@
                         </div>
 
                         <div v-else class="notes-empty">
-                            💬 No updates logged yet. Ask for help by writing a message below!
+                            💬 No updates logged yet. Start the conversation below!
                         </div>
                     </div>
 
@@ -599,33 +595,32 @@ const tasksWithUnread = computed(() =>
 
 const unreadCount = computed(() => tasksWithUnread.value.length);
 
-const showNotifDropdown = ref(false);
+const showChatDropdown = ref(false);
 
-const toggleNotifDropdown = () => {
-    showNotifDropdown.value = !showNotifDropdown.value;
+const toggleChatDropdown = () => {
+    showChatDropdown.value = !showChatDropdown.value;
 };
 
-const closeNotifDropdown = (e) => {
-    // click-outside handler
+const closeDropdownsOnOutsideClick = (e) => {
     if (!e.target.closest('.notif-wrap')) {
-        showNotifDropdown.value = false;
+        showChatDropdown.value = false;
     }
 };
 
 onMounted(() => {
-    document.addEventListener('click', closeNotifDropdown);
+    document.addEventListener('click', closeDropdownsOnOutsideClick);
 });
 
 onBeforeUnmount(() => {
-    document.removeEventListener('click', closeNotifDropdown);
+    document.removeEventListener('click', closeDropdownsOnOutsideClick);
 });
 
 const openFromNotif = (task) => {
-    showNotifDropdown.value = false;
+    showChatDropdown.value = false;
     openUpdatesSidebar(task);
 };
 
-/* ---------------- Mark complete ---------------- */
+/* ---------------- Status update (dropdown in Actions column) ---------------- */
 const syncTask = (task, extra = {}) => {
     const payload = {
         id: task.id,
@@ -646,10 +641,16 @@ const syncTask = (task, extra = {}) => {
     });
 };
 
-const markComplete = (task) => {
-    task.status = "Completed";
+const onStatusChange = (task, newStatus) => {
+    const previous = task.status;
+    task.status = newStatus;
     syncTask(task);
-    toast.success("Task marked as complete");
+
+    if (newStatus === 'Completed') {
+        toast.success("Task marked as complete");
+    } else {
+        toast.success(`Status updated to ${newStatus}`);
+    }
 };
 
 /* ---------------- Chat / updates sidebar ---------------- */
@@ -662,7 +663,7 @@ const replyingTo = ref(null);
 /**
  * Marks a task's chat as read the instant it's opened.
  * Optimistic: flips the flag immediately so the "1" badge on the
- * bell and on the row's 🆘 button both disappear right away
+ * bell and on the row's chat entry both disappear right away
  * (they're driven by computed properties watching task.is_read).
  * Rolls back if the server save fails, so the badge doesn't lie.
  */
@@ -986,13 +987,36 @@ const getReplyPreview = (html) => {
 }
 
 @keyframes bell-ring {
-    0%, 84%, 100% { transform: rotate(0deg); }
-    86% { transform: rotate(-10deg); }
-    88% { transform: rotate(9deg); }
-    90% { transform: rotate(-7deg); }
-    92% { transform: rotate(5deg); }
-    94% { transform: rotate(-3deg); }
-    96% { transform: rotate(0deg); }
+
+    0%,
+    84%,
+    100% {
+        transform: rotate(0deg);
+    }
+
+    86% {
+        transform: rotate(-10deg);
+    }
+
+    88% {
+        transform: rotate(9deg);
+    }
+
+    90% {
+        transform: rotate(-7deg);
+    }
+
+    92% {
+        transform: rotate(5deg);
+    }
+
+    94% {
+        transform: rotate(-3deg);
+    }
+
+    96% {
+        transform: rotate(0deg);
+    }
 }
 
 .notif-badge {
@@ -1128,13 +1152,21 @@ const getReplyPreview = (html) => {
 }
 
 @media (max-width: 1300px) {
-    .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
+
 @media (max-width: 800px) {
-    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
+
 @media (max-width: 500px) {
-    .stats-grid { grid-template-columns: 1fr; }
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .stat-card {
@@ -1159,11 +1191,25 @@ const getReplyPreview = (html) => {
     height: 3px;
 }
 
-.total-card::before { background: var(--c-violet); }
-.progress-card::before { background: var(--c-blue); }
-.completed-card::before { background: var(--c-green); }
-.pending-card::before { background: var(--c-amber); }
-.overdue-card::before { background: var(--c-red); }
+.total-card::before {
+    background: var(--c-violet);
+}
+
+.progress-card::before {
+    background: var(--c-blue);
+}
+
+.completed-card::before {
+    background: var(--c-green);
+}
+
+.pending-card::before {
+    background: var(--c-amber);
+}
+
+.overdue-card::before {
+    background: var(--c-red);
+}
 
 .stat-card:hover {
     border-color: var(--border-deep);
@@ -1183,11 +1229,25 @@ const getReplyPreview = (html) => {
     margin-bottom: 14px;
 }
 
-.total-card .stat-icon-badge { background: rgba(139, 110, 232, 0.14); }
-.progress-card .stat-icon-badge { background: rgba(85, 110, 230, 0.14); }
-.completed-card .stat-icon-badge { background: rgba(52, 195, 143, 0.14); }
-.pending-card .stat-icon-badge { background: rgba(241, 180, 76, 0.16); }
-.overdue-card .stat-icon-badge { background: rgba(244, 106, 106, 0.14); }
+.total-card .stat-icon-badge {
+    background: rgba(139, 110, 232, 0.14);
+}
+
+.progress-card .stat-icon-badge {
+    background: rgba(85, 110, 230, 0.14);
+}
+
+.completed-card .stat-icon-badge {
+    background: rgba(52, 195, 143, 0.14);
+}
+
+.pending-card .stat-icon-badge {
+    background: rgba(241, 180, 76, 0.16);
+}
+
+.overdue-card .stat-icon-badge {
+    background: rgba(244, 106, 106, 0.14);
+}
 
 .stat-label {
     font-size: 11px;
@@ -1225,7 +1285,9 @@ const getReplyPreview = (html) => {
 }
 
 @media (max-width: 900px) {
-    .charts-row { grid-template-columns: 1fr; }
+    .charts-row {
+        grid-template-columns: 1fr;
+    }
 }
 
 .dashboard-card {
@@ -1434,7 +1496,7 @@ const getReplyPreview = (html) => {
 
 .tasks-table-head {
     display: grid;
-    grid-template-columns: 1.4fr 1fr 1.2fr 0.7fr 0.8fr 0.9fr 0.8fr;
+    grid-template-columns: 1.4fr 1fr 1.2fr 0.7fr 0.8fr 0.9fr 1fr;
     align-items: center;
     padding: 0 4px 12px;
     border-bottom: 1px solid var(--border-divider);
@@ -1452,7 +1514,7 @@ const getReplyPreview = (html) => {
 
 .tasks-row {
     display: grid;
-    grid-template-columns: 1.4fr 1fr 1.2fr 0.7fr 0.8fr 0.9fr 0.8fr;
+    grid-template-columns: 1.4fr 1fr 1.2fr 0.7fr 0.8fr 0.9fr 1fr;
     align-items: center;
     padding: 14px 4px;
     border-bottom: 1px solid var(--border-divider);
@@ -1530,9 +1592,20 @@ const getReplyPreview = (html) => {
     width: fit-content;
 }
 
-.priority-badge.high { background: rgba(244, 106, 106, 0.12); color: var(--c-red); }
-.priority-badge.medium { background: rgba(241, 180, 76, 0.15); color: #b9822e; }
-.priority-badge.low { background: rgba(52, 195, 143, 0.12); color: var(--c-green); }
+.priority-badge.high {
+    background: rgba(244, 106, 106, 0.12);
+    color: var(--c-red);
+}
+
+.priority-badge.medium {
+    background: rgba(241, 180, 76, 0.15);
+    color: #b9822e;
+}
+
+.priority-badge.low {
+    background: rgba(52, 195, 143, 0.12);
+    color: var(--c-green);
+}
 
 .status-pill {
     font-size: 10.5px;
@@ -1546,9 +1619,20 @@ const getReplyPreview = (html) => {
     width: fit-content;
 }
 
-.status-pill.in-progress { background: rgba(85, 110, 230, 0.12); color: var(--c-blue); }
-.status-pill.completed { background: rgba(52, 195, 143, 0.12); color: var(--c-green); }
-.status-pill.todo { background: rgba(241, 180, 76, 0.15); color: #b9822e; }
+.status-pill.in-progress {
+    background: rgba(85, 110, 230, 0.12);
+    color: var(--c-blue);
+}
+
+.status-pill.completed {
+    background: rgba(52, 195, 143, 0.12);
+    color: var(--c-green);
+}
+
+.status-pill.todo {
+    background: rgba(241, 180, 76, 0.15);
+    color: #b9822e;
+}
 
 .due-date-cell {
     font-size: 12.5px;
@@ -1571,42 +1655,42 @@ const getReplyPreview = (html) => {
 .actions-cell {
     display: flex;
     align-items: center;
-    gap: 6px;
 }
 
-.action-btn {
-    position: relative;
-    width: 30px;
-    height: 30px;
+.status-select {
+    width: 100%;
+    padding: 7px 10px;
     border-radius: 7px;
     border: 1px solid var(--border-subtle);
     background: var(--card-inner-bg);
+    color: var(--text-main);
+    font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    outline: none;
     transition: all 0.15s ease;
+    appearance: auto;
 }
 
-.action-btn:hover {
+.status-select:hover {
     border-color: var(--border-deep);
-    background: var(--card-inner-hover);
 }
 
-.action-btn.help-btn.has-notes {
+.status-select:focus {
     border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-.update-indicator-dot {
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    width: 8px;
-    height: 8px;
-    background: var(--c-red);
-    border-radius: 50%;
-    border: 2px solid var(--panel-bg);
+.status-select.in-progress {
+    color: var(--c-blue);
+}
+
+.status-select.completed {
+    color: var(--c-green);
+}
+
+.status-select.todo {
+    color: #b9822e;
 }
 
 .empty-state-inline {
@@ -1617,7 +1701,10 @@ const getReplyPreview = (html) => {
 }
 
 @media (max-width: 900px) {
-    .tasks-table-head { display: none; }
+    .tasks-table-head {
+        display: none;
+    }
+
     .tasks-row {
         grid-template-columns: 1fr;
         gap: 6px;
@@ -1710,7 +1797,7 @@ const getReplyPreview = (html) => {
     display: flex;
     flex-direction: column;
     gap: 18px;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .sidebar-panel-body label {
@@ -1728,6 +1815,7 @@ const getReplyPreview = (html) => {
     flex-direction: column;
     flex: 1;
     min-height: 0;
+    max-height: 50vh;
 }
 
 .messages-thread-wrapper {
@@ -2012,6 +2100,49 @@ const getReplyPreview = (html) => {
     text-align: left !important;
 }
 
+:deep(.ck-editor__editable_inline h1) {
+    font-size: 2em !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    margin: 0.5em 0 !important;
+}
+
+:deep(.ck-editor__editable_inline h2) {
+    font-size: 1.5em !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    margin: 0.5em 0 !important;
+}
+
+:deep(.ck-editor__editable_inline h3) {
+    font-size: 1.25em !important;
+    font-weight: 600 !important;
+    line-height: 1.3 !important;
+    margin: 0.5em 0 !important;
+}
+
+/* Same headings, but for already-sent messages rendered via v-html */
+.chat-bubble-body h1 {
+    font-size: 1.6em;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 0.4em 0;
+}
+
+.chat-bubble-body h2 {
+    font-size: 1.35em;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 0.4em 0;
+}
+
+.chat-bubble-body h3 {
+    font-size: 1.15em;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 0.4em 0;
+}
+
 :deep(.ck.ck-toolbar) {
     background: #f3f6f9 !important;
     border-color: #e4e6ef !important;
@@ -2024,5 +2155,54 @@ const getReplyPreview = (html) => {
 :deep(.ck-balloon-panel) {
     z-index: 999999 !important;
     position: fixed !important;
+}
+
+.chat-icon{
+    width: 50px;
+    height: 42px;
+    line-height:1;
+    transition:.25s ease;
+}
+
+.chat-fab{
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #34c38f, #29a679);
+    color: #ffffff;
+    box-shadow: 0 4px 10px rgba(52, 195, 143, 0.35);
+}
+
+.chat-fab:hover{
+    background: linear-gradient(135deg, #2fb582, #23945f);
+    box-shadow: 0 6px 14px rgba(52, 195, 143, 0.45);
+    transform: translateY(-1px);
+}
+
+.chat-fab.has-unread{
+    background: linear-gradient(135deg, #34c38f, #29a679);
+    border: none;
+    animation: chat-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes chat-pulse {
+    0%, 100% { box-shadow: 0 4px 10px rgba(52, 195, 143, 0.35), 0 0 0 0 rgba(52, 195, 143, 0.45); }
+    50% { box-shadow: 0 4px 10px rgba(52, 195, 143, 0.35), 0 0 0 6px rgba(52, 195, 143, 0); }
+}
+
+.notif-btn{
+    position:relative;
+    color:var(--text-muted);
+}
+
+.notif-btn:hover{
+    color:#556ee6;
+}
+
+.notif-btn.has-unread{
+    color:#556ee6;
+    background:rgba(85,110,230,.08);
+    border-color:#556ee6;
 }
 </style>

@@ -9,15 +9,24 @@
 
       <!-- TOPBAR -->
       <div class="topbar">
-        <div class="search-wrap">
-          <svg class="search-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.6"/>
-            <path d="M17 17L13.5 13.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          </svg>
-          <input v-model="search" type="text" placeholder="Search tasks or projects..." class="search-box" />
+        <div class="topbar-greeting">
+          <h2>
+            Good to see you, {{ member.first_name }} <span class="wave">👋</span>
+          </h2>
+          <p>
+            You have <strong>{{ stats.pending }}</strong> pending tasks today.
+          </p>
         </div>
 
         <div class="topbar-icons">
+
+          <div class="search-wrap">
+            <svg class="search-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M17 17L13.5 13.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <input v-model="search" type="text" placeholder="Search tasks or projects..." class="search-box" />
+          </div>
 
           <div class="workspace-label" v-if="currentWorkspace">
             <span class="workspace-dot"></span>
@@ -99,7 +108,19 @@
 
           <!-- PROFILE -->
           <div class="profile-container">
-            <img src="https://i.pravatar.cc/100" class="avatar" @click.stop="showProfileMenu = !showProfileMenu" />
+            <img
+              v-if="member?.avatar_url"
+              :src="member.avatar_url"
+              class="avatar"
+              @click.stop="showProfileMenu = !showProfileMenu"
+            />
+            <div
+              v-else
+              class="avatar avatar-fallback"
+              @click.stop="showProfileMenu = !showProfileMenu"
+            >
+              {{ profileInitials }}
+            </div>
 
             <div v-if="showProfileMenu" class="profile-dropdown">
               <button @click="logout">
@@ -112,20 +133,6 @@
       </div>
 
       <div class="content-wrapper">
-
-        <!-- HEADER -->
-       
-
-        <div class="welcome-banner">
-          <div class="welcome-banner-text">
-            <h2>
-              Good to see you, {{ member.first_name }} <span class="wave">👋</span>
-            </h2>
-            <p>
-              You have <strong>{{ stats.pending }}</strong> pending tasks today.
-            </p>
-          </div>
-        </div>
 
         <!-- STATS -->
         <section class="stats-grid">
@@ -200,18 +207,18 @@
                 <div class="kanban-column-body">
                   <div v-for="task in column.tasks" :key="task.id" class="kanban-task-card" :class="column.key">
                     <div class="kanban-task-top">
-                      <h4>{{ task.title }}</h4>
+                      <h4 v-html="highlightMatch(task.title)"></h4>
                       <span class="priority-badge" :class="priorityClass(task.priority)">
                         {{ task.priority || 'Normal' }}
                       </span>
                     </div>
 
                     <p class="task-row-project" v-if="task.project?.name">
-                      📁 {{ task.project.name }}
+                      📁 <span v-html="highlightMatch(task.project.name)"></span>
                     </p>
 
-                    <small class="due-date" v-if="task.deadline">
-                      Due: {{ task.deadline }}
+                    <small class="due-date" v-if="task.due_date">
+                      Due: {{ task.due_date }}
                     </small>
                   </div>
 
@@ -229,22 +236,22 @@
 
                 <div class="task-row-main">
                   <div class="task-row-top">
-                    <h3>{{ task.title }}</h3>
+                    <h3 v-html="highlightMatch(task.title)"></h3>
                     <span class="priority-badge" :class="priorityClass(task.priority)">
                       {{ task.priority || 'Normal' }}
                     </span>
                   </div>
 
                   <p class="task-row-project" v-if="task.project?.name">
-                    📁 {{ task.project.name }}
+                    📁 <span v-html="highlightMatch(task.project.name)"></span>
                   </p>
 
                   <div class="task-row-bottom">
                     <span class="status-pill" :class="statusClass(task.status)">
                       {{ task.status }}
                     </span>
-                    <small class="due-date" v-if="task.deadline">
-                      Due: {{ task.deadline }}
+                    <small class="due-date" v-if="task.due_date">
+                      Due: {{ task.due_date }}
                     </small>
                   </div>
                 </div>
@@ -367,7 +374,7 @@
             </div>
           </section>
 
-          <!-- RECENT ACTIVITY — task table -->
+          <!-- RECENT ACTIVITY — real event feed, built from notifications -->
           <section class="dashboard-card">
             <div class="card-header">
               <h2>Recent Activity</h2>
@@ -375,25 +382,29 @@
 
             <div class="leads-table">
               <div class="leads-table-head">
-                <span>Task</span>
+                <span>Activity</span>
                 <span>Project</span>
-                <span>Status</span>
+                <span>By</span>
               </div>
 
-              <div v-for="task in (myTasks || [])" :key="task.id" class="leads-row">
+              <div v-for="activity in (recentActivity || [])" :key="activity.id" class="leads-row">
                 <div class="lead-identity">
-                  <span class="lead-dot" :class="task.status?.toLowerCase().replace(' ', '-')"></span>
-                  <span class="lead-title">{{ task.title }}</span>
+                  <span class="lead-dot" :class="activityDotClass(activity.type)"></span>
+                  <span class="lead-title" :title="activity.message">
+                    {{ activity.message }}
+                  </span>
                 </div>
 
-                <span class="lead-project">{{ task.project?.name || '—' }}</span>
+                <span class="lead-project">
+                  {{ activity.project_name || activity.task_title || '—' }}
+                </span>
 
-                <span class="status-pill" :class="statusClass(task.status)">
-                  {{ task.status }}
+                <span class="status-pill" :class="{ 'is-you': activity.is_own }">
+                  {{ activity.is_own ? 'You' : activity.actor_name }}
                 </span>
               </div>
 
-              <div v-if="!(myTasks || []).length" class="empty-state-inline">
+              <div v-if="!(recentActivity || []).length" class="empty-state-inline">
                 No recent activity yet.
               </div>
             </div>
@@ -412,14 +423,14 @@
             <div class="project-list">
               <div v-for="project in filteredProjects" :key="project.id" class="project-mini-card">
                 <div class="project-card-meta">
-                  <h3>{{ project.name }}</h3>
+                  <h3 v-html="highlightMatch(project.name)"></h3>
                   <span class="project-percentage">
                     {{ project.progress || 0 }}%
                   </span>
                 </div>
 
                 <small class="due-date">
-                  Due: {{ project.deadline }}
+                  Due: {{ project.deadline || 'No deadline' }}
                 </small>
 
                 <div class="mini-progress">
@@ -455,17 +466,17 @@
             </div>
 
             <div class="timeline-list">
-              <div v-for="task in filteredTasks.slice(0, 5)" :key="task.id" class="timeline-item">
+              <div v-for="task in upcomingDeadlineTasks" :key="task.id" class="timeline-item">
                 <span class="timeline-dot" :class="statusClass(task.status)"></span>
 
                 <div class="timeline-content">
-                  <span class="timeline-date">{{ task.deadline || 'No deadline' }}</span>
+                  <span class="timeline-date">{{ task.due_date || 'No deadline' }}</span>
                   <strong>{{ task.title }}</strong>
                   <small v-if="task.project?.name">{{ task.project.name }}</small>
                 </div>
               </div>
 
-              <div v-if="!filteredTasks.length" class="empty-state-inline">
+              <div v-if="!upcomingDeadlineTasks.length" class="empty-state-inline">
                 No upcoming deadlines.
               </div>
             </div>
@@ -493,12 +504,13 @@ const page = usePage();
 
 const props = defineProps({
   member: Object,
-  myTasks: Array,
-  teamProjects: Array,
+  myTasks: { type: Array, default: () => [] },
+  teamProjects: { type: Array, default: () => [] },
   teamMembers: Array,
   stats: Object,
   currentWorkspaceId: Number,
-  notifications: Array
+  notifications: Array,
+  recentActivity: { type: Array, default: () => [] }
 });
 
 const search = ref("");
@@ -508,6 +520,36 @@ let notificationRefreshInterval = null;
 
 const workspaces = computed(() => page.props.workspaces || []);
 const currentWorkspace = computed(() => workspaces.value[0] || null);
+
+/* ---------------- Profile avatar fallback initials ---------------- */
+const profileInitials = computed(() => {
+  const first = props.member?.first_name?.charAt(0) || "";
+  const last = props.member?.last_name?.charAt(0) || "";
+  const initials = `${first}${last}`.toUpperCase();
+  return initials || "U";
+});
+
+/* ---------------- Search match highlighting ---------------- */
+const escapeHtml = (value) => {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+};
+
+const escapeRegExp = (value) => {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
+const highlightMatch = (text) => {
+  const safeText = escapeHtml(text);
+  const term = search.value.trim();
+
+  if (!term) return safeText;
+
+  const regex = new RegExp(`(${escapeRegExp(term)})`, "ig");
+  return safeText.replace(regex, '<mark class="search-highlight">$1</mark>');
+};
 
 const filteredTasks = computed(() => {
   if (!search.value) return props.myTasks || [];
@@ -556,6 +598,66 @@ const statusClass = (status) => {
 
 const priorityClass = (priority) => {
   return (priority || "normal").toLowerCase();
+};
+
+/* ---------------- Date helpers (all tasks use due_date, "YYYY-MM-DD" or ISO) ---------------- */
+const startOfDay = (d) => {
+  const copy = new Date(d);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+};
+
+const today = computed(() => startOfDay(new Date()));
+
+const isCompletedTask = (task) => (task.status || "").toLowerCase() === "completed";
+
+const parsedDueDate = (task) => {
+  if (!task.due_date) return null;
+  const d = new Date(task.due_date);
+  if (isNaN(d.getTime())) return null;
+  return startOfDay(d);
+};
+
+/* ---------------- Today's Activity ---------------- */
+const dueToday = computed(() => {
+  return (props.myTasks || []).filter(task => {
+    if (isCompletedTask(task)) return false;
+    const due = parsedDueDate(task);
+    return due && due.getTime() === today.value.getTime();
+  }).length;
+});
+
+const overdueTasks = computed(() => {
+  return (props.myTasks || []).filter(task => {
+    if (isCompletedTask(task)) return false;
+    const due = parsedDueDate(task);
+    return due && due.getTime() < today.value.getTime();
+  }).length;
+});
+
+const upcomingTasks = computed(() => {
+  return (props.myTasks || []).filter(task => {
+    if (isCompletedTask(task)) return false;
+    const due = parsedDueDate(task);
+    return due && due.getTime() > today.value.getTime();
+  }).length;
+});
+
+/* ---------------- Upcoming Deadlines timeline (soonest first, incomplete only) ---------------- */
+const upcomingDeadlineTasks = computed(() => {
+  return (props.myTasks || [])
+    .filter(task => !isCompletedTask(task) && parsedDueDate(task))
+    .sort((a, b) => parsedDueDate(a) - parsedDueDate(b))
+    .slice(0, 5);
+});
+
+/* ---------------- Recent Activity dot color, keyed off notification type ---------------- */
+const activityDotClass = (type) => {
+  const key = (type || "").toLowerCase();
+  if (key.includes("completed")) return "completed";
+  if (key.includes("urgent") || key.includes("priority")) return "todo";
+  if (key.includes("status") || key.includes("progress")) return "in-progress";
+  return "";
 };
 
 watch(
@@ -768,6 +870,30 @@ const markAllRead = () => {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.topbar-greeting h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+  color: var(--text-header);
+}
+
+.topbar-greeting .wave {
+  display: inline-block;
+}
+
+.topbar-greeting p {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.topbar-greeting p strong {
+  color: var(--accent);
+  font-weight: 700;
 }
 
 /* ==========================================================================
@@ -1708,6 +1834,11 @@ const markAllRead = () => {
   text-overflow: ellipsis;
 }
 
+.status-pill.is-you {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 /* --- Upcoming Deadlines: timeline --- */
 .timeline-list {
   display: flex;
@@ -1786,6 +1917,16 @@ const markAllRead = () => {
   border-radius: 50%;
   cursor: pointer;
   border: 1px solid var(--border-subtle);
+}
+
+.avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .profile-dropdown {
@@ -1988,5 +2129,14 @@ const markAllRead = () => {
   border: none;
   border-top: 1px solid var(--border-divider);
   margin: 20px 0;
+}
+
+/* --- Search match highlighting --- */
+.search-highlight {
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 0 2px;
+  border-radius: 3px;
+  font-weight: 700;
 }
 </style>
