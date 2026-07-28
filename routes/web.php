@@ -225,6 +225,7 @@ Route::middleware('auth')->prefix('member')->group(function () {
     Route::put('/{member}/assign', [MemberController::class, 'assignMember']);
     Route::put('/{member}/assign-workspace', [MemberController::class, 'assignWorkspace']);
     Route::put('/{member}/independent', [MemberController::class, 'makeIndependent'])->name('members.make-independent');
+    Route::delete('/{member}', [MemberController::class, 'destroy']);
 });
 
 Route::post('/invite/generate', [InvitationController::class, 'generate']);

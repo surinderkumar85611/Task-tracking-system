@@ -46,6 +46,9 @@
                     <!-- MEMBER -->
                     <div v-if="child.role === 'Member'" class="member-sub-pill-row" draggable="true"
                         @dragstart="startDrag($event, child)">
+                        <button class="member-delete-btn" @mousedown.stop @click.stop="$emit('remove-member', child)">
+                            ×
+                        </button>
                         <div class="mini-avatar-dot">
                             {{ getInitials(child.first_name, child.last_name) }}
                         </div>
@@ -64,7 +67,8 @@
 
                     <!-- TL -->
                     <TeamNode v-else :member="child" @drag-member="$emit('drag-member', $event)"
-                        @drop-member="$emit('drop-member', $event)" @drop-leader="$emit('drop-leader', $event)" />
+                        @drop-member="$emit('drop-member', $event)" @drop-leader="$emit('drop-leader', $event)"
+                        @remove-member="$emit('remove-member', $event)" />
 
                 </template>
 
@@ -94,7 +98,8 @@ const props = defineProps({
 const emit = defineEmits([
     'drag-member',
     'drop-member',
-    'drop-leader'
+    'drop-leader',
+    'remove-member'
 ]);
 
 const isDraggable = computed(() => {
@@ -174,5 +179,36 @@ const getTotalTeamCount = (node) => {
 
 .draggable-card:active {
     cursor: grabbing;
+}
+
+.member-delete-btn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+
+    width: 20px;
+    height: 20px;
+
+    border: none;
+    border-radius: 50%;
+
+    background: #ef4444;
+    color: #fff;
+
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 14px;
+    font-weight: bold;
+
+    opacity: 0;
+    transition: .2s;
+}
+
+.member-sub-pill-row:hover .member-delete-btn {
+    opacity: 1;
 }
 </style>
