@@ -246,7 +246,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
-import { router } from "@inertiajs/vue3";
+import { router, usePage } from "@inertiajs/vue3";
 import { useThemeStore } from "../stores/theme";
 import Sidebar from "./components/Sidebar.vue";
 import { useNotificationStore } from '@/stores/notificationStore';
@@ -254,6 +254,7 @@ import draggable from 'vuedraggable';
 import { Head } from '@inertiajs/vue3';
 
 const notificationStore = useNotificationStore();
+const page = usePage();
 let notificationRefreshInterval = null;
 const props = defineProps({
   stats: Object,
@@ -289,9 +290,21 @@ const teamMembersList = computed(() => props.members || []);
 
 const theme = useThemeStore();
 const showProfileMenu = ref(false);
+
+/* ---------------- Current logged-in user id ----------------
+   Used to filter out notifications the logged-in user triggered
+   themself (e.g. they changed their own task's status). Assumes
+   the standard Inertia shared prop `auth.user.id` — adjust the
+   path below if your app shares the authed user differently. */
+const currentUserId = computed(() => page.props.auth?.user?.id ?? null);
+
 const unreadNotifications = computed(() => {
   return [...(props.notifications || [])]
     .filter(notification => !notification.is_read)
+    .filter(notification => {
+      if (!currentUserId.value) return true;
+      return notification.created_by !== currentUserId.value;
+    })
     .sort(
       (a, b) =>
         new Date(b.created_at) -
@@ -300,9 +313,7 @@ const unreadNotifications = computed(() => {
 });
 
 const unreadCount = computed(() => {
-  return (props.notifications || [])
-    .filter(notification => !notification.is_read)
-    .length;
+  return unreadNotifications.value.length;
 });
 
 
@@ -359,7 +370,7 @@ const formatNotificationDate = (date) => {
 };
 
 const markAsRead = (id) => {
-  router.put(`notifications/${id}/read`, {}, {
+  router.put(`/notifications/${id}/read`, {}, {
     preserveScroll: true,
     onSuccess: () => {
       router.reload({ only: ["notifications"] });
