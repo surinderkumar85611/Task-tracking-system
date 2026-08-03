@@ -320,6 +320,7 @@ Route::put(
     '/notifications/{id}/read',
     [NotificationController::class, 'markAsRead']
 )->middleware(['auth', 'no-cache']);
+
 Route::middleware(['auth', 'no-cache'])
     ->prefix('member')
     ->name('member.')
