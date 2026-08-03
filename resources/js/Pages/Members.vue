@@ -18,7 +18,7 @@
                         {{ theme.isDark ? "☀️" : "🌙" }}
                     </button>
 
-                    <input type="text" placeholder="Search member..." class="header-search-bar" />
+                    <!-- <input type="text" placeholder="Search member..." class="header-search-bar" /> -->
 
                     <div class="notification-bell-container"
                         v-click-outside="() => notificationStore.showBellDropdown = false">

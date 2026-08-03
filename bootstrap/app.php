@@ -18,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'tl'       => \App\Http\Middleware\TeamLeaderMiddleware::class,
-            'no-cache' => \App\Http\Middleware\DisableBackForwardCache::class, 
+            'no-cache' => \App\Http\Middleware\DisableBackForwardCache::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
