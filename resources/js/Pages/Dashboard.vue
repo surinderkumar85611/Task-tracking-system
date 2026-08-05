@@ -6,141 +6,148 @@
     <Sidebar />
 
     <main class="main-content">
-      <div class="content-wrapper">
 
-        <header class="header">
-          <div class="header-welcome">
-            <h1>Admin Dashboard</h1>
-            <p>Welcome back, manage your dashboard.</p>
+      <!-- TOPBAR -->
+      <div class="topbar">
+        <div class="topbar-greeting">
+          <h2>
+            Admin Dashboard <span class="wave">👋</span>
+          </h2>
+          <p>
+            Welcome back, manage your dashboard.
+          </p>
+        </div>
+
+        <div class="topbar-icons">
+
+          <div class="search-wrap">
+            <svg class="search-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M17 17L13.5 13.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <input v-model="search" type="text" placeholder="Search projects..." class="search-box" />
           </div>
 
-          <div class="header-right">
-            <div class="search-container">
-              <input v-model="search" type="text" placeholder="Search projects..." class="search-box" />
-            </div>
+          <button class="theme-btn" @click="theme.toggleTheme" aria-label="Toggle theme">
+            {{ theme.isDark ? "☀️" : "🌙" }}
+          </button>
 
-            <button class="theme-btn" @click="theme.toggleTheme">
-              {{ theme.isDark ? "☀️" : "🌙" }}
+          <div class="notification-bell-container" v-click-outside="() => notificationStore.showBellDropdown = false">
+            <button class="icon-btn"
+              @click.stop="notificationStore.showBellDropdown = !notificationStore.showBellDropdown" aria-label="Notifications">
+              🔔
+              <span v-if="
+                unreadCount > 0 ||
+                notificationStore.activeUrgentTasks.length > 0
+              " class="bell-alert-green-dot">
+                {{
+                  unreadCount +
+                  notificationStore.activeUrgentTasks.length
+                }}
+              </span>
             </button>
 
-            <div class="notification-bell-container" v-click-outside="() => notificationStore.showBellDropdown = false">
-              <button class="icon-btn"
-                @click.stop="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
-                🔔
-                <span v-if="
-                  unreadCount > 0 ||
-                  notificationStore.activeUrgentTasks.length > 0
-                " class="bell-alert-badge-dot">
-                  {{
-                    unreadCount +
-                    notificationStore.activeUrgentTasks.length
-                  }}
-                </span>
-              </button>
+            <div v-if="notificationStore.showBellDropdown" class="notification-dropdown-panel">
+              <div class="notification-dropdown-header">
+                <h3>Urgent Task Alerts</h3>
+              </div>
 
-              <div v-if="notificationStore.showBellDropdown" class="notification-dropdown-panel">
-                <div class="notification-dropdown-header">
-                  <h3>Urgent Task Alerts</h3>
+              <div class="notification-dropdown-body">
+
+                <div class="notification-scroll-area">
+
+                  <!-- NORMAL NOTIFICATIONS -->
+                  <div v-for="notification in unreadNotifications" :key="'notif-' + notification.id"
+                    class="notification-alert-item" @click="markAsRead(notification.id)">
+                    <div class="alert-item-indicator">🔔</div>
+
+                    <div class="notification-content">
+                      <p class="notification-title">
+                        {{ notification.title }}
+                      </p>
+
+                      <p class="notification-message">
+                        {{ notification.message }}
+                      </p>
+
+                      <span class="notification-time">
+                        {{ formatNotificationDate(notification.created_at) }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- URGENT TASKS -->
+                  <div v-for="task in notificationStore.activeUrgentTasks" :key="'urgent-' + task.id"
+                    class="notification-alert-item urgent">
+                    <div class="alert-item-indicator urgent-indicator">⚠️</div>
+
+                    <div class="alert-item-details">
+                      <p class="alert-task-title">{{ task.title }}</p>
+
+                      <p class="alert-task-time-left"
+                        :style="{ color: notificationStore.getLiveTaskMetrics(task).color }">
+                        Only {{ notificationStore.getLiveTaskMetrics(task).string }} left!
+                      </p>
+                    </div>
+                  </div>
+
                 </div>
 
-                <div class="notification-dropdown-body">
+                <!-- EMPTY STATE -->
+                <div v-if="unreadNotifications.length === 0 && notificationStore.activeUrgentTasks.length === 0"
+                  class="notification-empty-state">
+                  🎉 No notifications right now.
+                </div>
 
-  <!-- SECTION: NORMAL NOTIFICATIONS -->
-  <div class="notification-section" v-if="unreadNotifications.length">
-
-    <h4 class="section-title">Notifications</h4>
-
-    <div
-      v-for="notification in unreadNotifications"
-      :key="'notif-' + notification.id"
-      class="notification-item normal"
-      @click="markAsRead(notification.id)"
-    >
-      <div class="notif-icon">🔔</div>
-
-      <div class="notif-content">
-        <p class="notif-title">{{ notification.title }}</p>
-        <p class="notif-message">{{ notification.message }}</p>
-        <span class="notif-time">
-          {{ formatNotificationDate(notification.created_at) }}
-        </span>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- SECTION: URGENT TASKS -->
-  <div class="notification-section" v-if="notificationStore.activeUrgentTasks.length">
-
-    <h4 class="section-title">Urgent Tasks</h4>
-
-    <div
-      v-for="task in notificationStore.activeUrgentTasks"
-      :key="'urgent-' + task.id"
-      class="notification-item urgent"
-    >
-      <div class="notif-icon urgent-icon">⚠️</div>
-
-      <div class="notif-content">
-        <p class="notif-title">{{ task.title }}</p>
-        <p class="notif-message">
-          Only {{ notificationStore.getLiveTaskMetrics(task).string }} left
-        </p>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- EMPTY STATE -->
-  <div
-    v-if="unreadNotifications.length === 0 && notificationStore.activeUrgentTasks.length === 0"
-    class="notification-empty-state"
-  >
-    🎉 No notifications right now
-  </div>
-
-</div>
-              </div>
-            </div>
-
-            <div class="profile-container">
-              <img src="https://i.pravatar.cc/100" class="avatar" @click.stop="showProfileMenu = !showProfileMenu" />
-
-              <div v-if="showProfileMenu" class="profile-dropdown">
-                <button @click="logout">Logout</button>
               </div>
             </div>
           </div>
-        </header>
+
+          <div class="profile-container">
+            <img src="https://i.pravatar.cc/100" class="avatar" @click.stop="showProfileMenu = !showProfileMenu" />
+
+            <div v-if="showProfileMenu" class="profile-dropdown">
+              <button @click="logout">Logout</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="content-wrapper">
 
         <draggable v-model="widgets" item-key="id" class="stats-grid" @end="saveWidgetOrder">
           <template #item="{ element }">
             <div class="stat-card" :class="element.widget_type.replace(/_/g, '-') + '-card'">
-              <div class="stat-glow"></div>
 
-              <div class="stat-inner">
-                <span class="stat-label">
-                  {{ element.title }}
+              <div class="stat-icon-badge">
+                <span v-if="element.widget_type === 'total_projects'">📁</span>
+                <span v-else-if="element.widget_type === 'team_members'">👥</span>
+                <span v-else-if="element.widget_type === 'completed_tasks'">✅</span>
+                <span v-else-if="element.widget_type === 'pending_tasks'">⏳</span>
+              </div>
+
+              <span class="stat-label">
+                {{ element.title }}
+              </span>
+
+              <h2 class="stat-value">
+                <span v-if="element.widget_type === 'total_projects'">
+                  {{ props.stats.totalProjects }}
                 </span>
 
-                <h2 class="stat-value">
-                  <span v-if="element.widget_type === 'total_projects'">
-                    {{ props.stats.totalProjects }}
-                  </span>
+                <span v-else-if="element.widget_type === 'team_members'">
+                  {{ props.stats.teamMembers }}
+                </span>
 
-                  <span v-else-if="element.widget_type === 'team_members'">
-                    {{ props.stats.teamMembers }}
-                  </span>
+                <span v-else-if="element.widget_type === 'completed_tasks'">
+                  {{ props.stats.completedTasks }}
+                </span>
 
-                  <span v-else-if="element.widget_type === 'completed_tasks'">
-                    {{ props.stats.completedTasks }}
-                  </span>
-
-                  <span v-else-if="element.widget_type === 'pending_tasks'">
-                    {{ props.stats.pendingTasks }}
-                  </span>
-                </h2>
-              </div>
+                <span v-else-if="element.widget_type === 'pending_tasks'">
+                  {{ props.stats.pendingTasks }}
+                </span>
+              </h2>
             </div>
           </template>
         </draggable>
@@ -208,31 +215,29 @@
                 <h2>Team Members</h2>
               </div>
 
-              <div class="team-members-list">
-                <div class="members-grid">
+              <div class="rep-list">
 
-                  <div class="member-card" v-for="member in teamMembersList" :key="member.id">
-                    <div class="member-avatar">
-                      {{ member.first_name.charAt(0) }}{{ member.last_name.charAt(0) }}
-                    </div>
+                <div class="rep-row" v-for="member in teamMembersList" :key="member.id">
+                  <div class="rep-avatar">
+                    {{ member.first_name.charAt(0) }}{{ member.last_name.charAt(0) }}
+                  </div>
 
-                    <div class="member-profile-details">
-                      <h4>
-                        {{ member.first_name }}
-                        {{ member.last_name }}
-                      </h4>
+                  <div class="rep-info">
+                    <strong>
+                      {{ member.first_name }}
+                      {{ member.last_name }}
+                    </strong>
 
-                      <p>
-                        {{ member.role }}
-                      </p>
-                    </div>
-
-                    <span class="status-pill online">
-                      Active
+                    <span>
+                      {{ member.role }}
                     </span>
                   </div>
 
+                  <span class="status-pill online">
+                    Active
+                  </span>
                 </div>
+
               </div>
             </div>
 
@@ -391,32 +396,73 @@ const logout = () => {
 </script>
 
 <style scoped>
-/* --- Design Theme Configuration Mapping Variables --- */
+/* ==========================================================================
+   THEME TOKENS — matches the Member dashboard's design system
+   ========================================================================== */
 .theme-dark {
-  --dashboard-bg: #0b0f19;
-  --panel-bg: rgba(15, 23, 42, 0.4);
-  --card-bg: rgba(22, 30, 49, 0.5);
-  --input-bg: rgba(17, 24, 39, 0.6);
-  --border-color: rgba(255, 255, 255, 0.04);
-  --text-main: #f1f5f9;
-  --text-muted: #64748b;
-  --header-title-color: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
-  --shadow-profile: rgba(0, 0, 0, 0.5);
+  --dashboard-bg: #222736;
+  --panel-bg: #2a2f42;
+  --card-inner-bg: #262b3d;
+  --card-inner-hover: #313749;
+  --activity-item-bg: #262b3d;
+  --stat-card-bg: #2a2f42;
+  --input-element-bg: #323a4f;
+  --input-element-focus: #3a4258;
+  --dropdown-panel-bg: #2a2f42;
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-deep: rgba(255, 255, 255, 0.12);
+  --border-divider: rgba(255, 255, 255, 0.07);
+  --text-main: #e4e6ef;
+  --text-header: #f6f7fb;
+  --text-muted: #8590a6;
+  --text-card-sub: #c1c5d6;
+  --due-date-color: #74809a;
+  --shadow-cards: rgba(0, 0, 0, 0.28);
+  --shadow-stats: rgba(0, 0, 0, 0.22);
+  --shadow-stats-hover: rgba(0, 0, 0, 0.34);
+  --accent: #556ee6;
+  --accent-2: #6f7fee;
+  --accent-soft: rgba(85, 110, 230, 0.16);
 }
 
 .theme-light {
-  --dashboard-bg: #f8fafc;
+  --dashboard-bg: #eef0f7;
   --panel-bg: #ffffff;
-  --card-bg: #f1f5f9;
-  --input-bg: #e2e8f0;
-  --border-color: rgba(15, 23, 42, 0.06);
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --header-title-color: linear-gradient(135deg, #0f172a 0%, #334155 100%);
-  --shadow-profile: rgba(15, 23, 42, 0.08);
+  --card-inner-bg: #f7f8fb;
+  --card-inner-hover: #eef0f6;
+  --activity-item-bg: #f7f8fb;
+  --stat-card-bg: #ffffff;
+  --input-element-bg: #f2f3f8;
+  --input-element-focus: #eaecf3;
+  --dropdown-panel-bg: #ffffff;
+  --border-subtle: rgba(33, 37, 61, 0.07);
+  --border-deep: rgba(33, 37, 61, 0.1);
+  --border-divider: rgba(33, 37, 61, 0.06);
+  --text-main: #33374d;
+  --text-header: #22263d;
+  --text-muted: #878ea3;
+  --text-card-sub: #495071;
+  --due-date-color: #9297ac;
+  --shadow-cards: rgba(56, 65, 109, 0.07);
+  --shadow-stats: rgba(56, 65, 109, 0.05);
+  --shadow-stats-hover: rgba(56, 65, 109, 0.1);
+  --accent: #556ee6;
+  --accent-2: #6f7fee;
+  --accent-soft: rgba(85, 110, 230, 0.08);
 }
 
-/* --- Core Shell Structure Framework --- */
+.dashboard {
+  --c-blue: #556ee6;
+  --c-violet: #8b6ee8;
+  --c-green: #34c38f;
+  --c-amber: #f1b44c;
+  --c-cyan: #50a5f1;
+  --c-red: #f46a6a;
+}
+
+/* ==========================================================================
+   LAYOUT
+   ========================================================================== */
 .dashboard {
   display: flex;
   height: 100vh;
@@ -425,13 +471,13 @@ const logout = () => {
   background-color: var(--dashboard-bg);
   color: var(--text-main);
   overflow: hidden;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .main-content {
   flex: 1;
-  padding: 40px;
   overflow-y: auto;
+  width: 100%;
   height: 100%;
 }
 
@@ -439,278 +485,304 @@ const logout = () => {
   max-width: 1600px;
   margin: 0 auto;
   width: 100%;
+  padding: 24px 36px 56px;
 }
 
-/* --- Layout Header Sections --- */
-.header {
+/* ==========================================================================
+   TOPBAR
+   ========================================================================== */
+.topbar {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 36px;
+  gap: 24px;
+  padding: 14px 28px;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 40;
 }
 
-.header-welcome h1 {
-  font-size: 30px;
-  font-weight: 800;
-  margin: 0 0 4px 0;
-  letter-spacing: -0.5px;
-  background: var(--header-title-color);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.header-welcome p {
-  color: var(--text-muted);
-  font-weight: 500;
-  margin: 0;
-  font-size: 14px;
-}
-
-.header-right {
+.topbar-icons {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
+}
+
+.topbar-greeting h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+  color: var(--text-header);
+}
+
+.topbar-greeting .wave {
+  display: inline-block;
+}
+
+.topbar-greeting p {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
 }
 
 .search-box {
-  width: 250px;
-  padding: 10px 16px;
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-  background: var(--input-bg);
+  width: 230px;
+  padding: 8px 13px 8px 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--input-element-bg);
   color: var(--text-main);
   outline: none;
-  font-size: 13.5px;
+  font-size: 13px;
   transition: all 0.2s ease;
 }
 
+.search-box::placeholder {
+  color: var(--text-muted);
+}
+
 .search-box:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  background: var(--panel-bg);
 }
 
 .theme-btn,
 .icon-btn {
-  background: var(--input-bg);
-  border: 1px solid var(--border-color);
+  background: var(--input-element-bg);
+  border: 1px solid var(--border-subtle);
   color: var(--text-main);
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  font-size: 14px;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  position: relative;
 }
 
 .theme-btn:hover,
 .icon-btn:hover {
-  transform: translateY(-1px);
+  background: var(--card-inner-hover);
+  border-color: var(--border-deep);
 }
 
-/* --- Premium Stats Metric Grid Blocks --- */
+/* ==========================================================================
+   STATS GRID (draggable widgets)
+   ========================================================================== */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 36px;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
 @media (max-width: 1200px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
-
 @media (max-width: 640px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
+  .stats-grid { grid-template-columns: 1fr; }
 }
 
 .stat-card {
   position: relative;
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 18px;
-  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  background: var(--stat-card-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 18px 20px 20px;
+  box-shadow: 0 2px 6px var(--shadow-stats);
+  transition: all 0.2s ease;
   overflow: hidden;
   cursor: grab;
-  box-shadow: 0 10px 20px -5px var(--shadow-profile);
-  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .stat-card:active {
   cursor: grabbing;
 }
 
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 24px -5px var(--shadow-profile);
-}
-
-.stat-glow {
+.stat-card::before {
+  content: "";
   position: absolute;
-  top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.06;
-  pointer-events: none;
+  top: 0;
+  right: 0;
+  height: 3px;
 }
 
-.total-projects-card .stat-glow {
-  background: radial-gradient(circle at top right, #3b82f6 0%, transparent 60%);
+.total-projects-card::before { background: var(--c-blue); }
+.team-members-card::before { background: var(--c-cyan); }
+.completed-tasks-card::before { background: var(--c-green); }
+.pending-tasks-card::before { background: var(--c-amber); }
+
+.stat-card:hover {
+  border-color: var(--border-deep);
+  box-shadow: 0 6px 16px -4px var(--shadow-stats-hover);
+  transform: translateY(-2px);
 }
 
-.total-projects-card {
-  border-left: 4px solid #3b82f6;
+.stat-icon-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+  margin-bottom: 14px;
 }
 
-.team-members-card .stat-glow {
-  background: radial-gradient(circle at top right, #06b6d4 0%, transparent 60%);
-}
-
-.team-members-card {
-  border-left: 4px solid #06b6d4;
-}
-
-.completed-tasks-card .stat-glow {
-  background: radial-gradient(circle at top right, #10b981 0%, transparent 60%);
-}
-
-.completed-tasks-card {
-  border-left: 4px solid #10b981;
-}
-
-.pending-tasks-card .stat-glow {
-  background: radial-gradient(circle at top right, #f59e0b 0%, transparent 60%);
-}
-
-.pending-tasks-card {
-  border-left: 4px solid #f59e0b;
-}
+.total-projects-card .stat-icon-badge { background: rgba(85, 110, 230, 0.14); }
+.team-members-card .stat-icon-badge { background: rgba(80, 165, 241, 0.14); }
+.completed-tasks-card .stat-icon-badge { background: rgba(52, 195, 143, 0.14); }
+.pending-tasks-card .stat-icon-badge { background: rgba(241, 180, 76, 0.16); }
 
 .stat-label {
-  display: block;
   font-size: 11px;
   font-weight: 700;
-  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.75px;
-  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
 }
 
 .stat-value {
-  font-size: 32px;
-  font-weight: 800;
-  color: var(--text-main);
-  margin: 0;
-  letter-spacing: -0.5px;
+  font-size: 25px;
+  font-weight: 700;
+  color: var(--text-header);
+  margin: 6px 0 0 0;
+  line-height: 1.2;
+  letter-spacing: -0.3px;
 }
 
-/* --- Dual Column Grid System Structure --- */
+/* ==========================================================================
+   DUAL COLUMN LAYOUT
+   ========================================================================== */
 .dashboard-layout-split {
   display: grid;
-  grid-template-columns: 1.62fr 1fr;
-  gap: 28px;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 20px;
 }
 
 @media (max-width: 1150px) {
-  .dashboard-layout-split {
-    grid-template-columns: 1fr;
-  }
+  .dashboard-layout-split { grid-template-columns: 1fr; }
 }
 
 .panel-container {
   background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 20px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
   padding: 24px;
-  box-shadow: 0 10px 30px -10px var(--shadow-profile);
-  backdrop-filter: blur(12px);
+  box-shadow: 0 2px 6px var(--shadow-cards);
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .panel-header h2 {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
   margin: 0;
-  color: var(--text-main);
-  letter-spacing: -0.2px;
+  color: var(--text-header);
+  letter-spacing: -0.1px;
 }
 
 .action-btn-primary {
-  background: #06b6d4;
+  background: var(--accent);
   color: #ffffff;
   border: none;
-  padding: 8px 16px;
-  border-radius: 10px;
+  padding: 8px 14px;
+  border-radius: 8px;
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: 12px;
   cursor: pointer;
   transition: background-color 0.15s, transform 0.15s;
 }
 
 .action-btn-primary:hover {
-  background: #0ea5e9;
+  background: var(--accent-2);
   transform: translateY(-0.5px);
 }
 
-/* --- Compact Sizing Fix for Active Projects Elements --- */
-.projects-compact-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* --- Active Projects --- */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
 }
 
-.project-strip-item {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-left: 3px solid #3b82f6;
-  border-radius: 12px;
-  padding: 14px 18px;
-  /* Balanced padding bounds to decrease component visual density */
-  transition: all 0.2s;
+.project-card {
+  background: var(--card-inner-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  padding: 16px;
+  transition: border-color 0.15s ease;
 }
 
-.project-strip-item:hover {
-  transform: translateX(3px);
-  background: var(--input-bg);
+.project-card:hover {
+  border-color: var(--border-deep);
 }
 
-.project-strip-meta {
+.project-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.project-strip-item h3 {
-  font-size: 14px;
+.project-card-header h3 {
+  font-size: 13.5px;
+  font-weight: 500;
   margin: 0;
   color: var(--text-main);
-  font-weight: 600;
 }
 
-.project-percentage-badge {
-  font-size: 11px;
+.project-status {
+  padding: 3px 9px;
+  border-radius: 5px;
+  background: rgba(52, 195, 143, 0.12);
+  color: var(--c-green);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.project-progress {
+  margin: 12px 0 0;
+  font-size: 19px;
   font-weight: 700;
-  color: #3b82f6;
-  background: rgba(59, 130, 246, 0.1);
-  padding: 3px 8px;
-  border-radius: 6px;
+  color: var(--text-header);
 }
 
 .progress-track-line {
   height: 5px;
-  background: var(--input-bg);
+  background: var(--border-deep);
   border-radius: 4px;
   margin-top: 10px;
   overflow: hidden;
@@ -719,28 +791,31 @@ const logout = () => {
 .progress-track-fill {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #06b6d4, #3b82f6);
+  background: var(--c-violet);
   border-radius: 4px;
-
   transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: width;
 }
 
-/* --- Right Sidebar Column Panel Component Chain Stack --- */
+.project-footer {
+  margin-top: 11px;
+  color: var(--text-muted);
+  font-size: 11.5px;
+}
+
+/* --- Right sidebar stack --- */
 .sidebar-right-stack {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 20px;
 }
 
-/* Productivity Highlight Card Size Reduction Fix */
 .productivity-card {
-  background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%);
-  border-radius: 20px;
-  padding: 22px 24px;
-  /* Scaled down slightly to fit cleanly */
+  background: linear-gradient(150deg, #556ee6 0%, #6f7fee 100%);
+  border-radius: 10px;
+  padding: 20px 22px;
   color: #ffffff;
-  box-shadow: 0 10px 25px rgba(6, 182, 212, 0.2);
+  box-shadow: 0 4px 14px var(--shadow-cards);
 }
 
 .prod-top-row {
@@ -751,421 +826,306 @@ const logout = () => {
 }
 
 .prod-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .prod-percentage {
-  font-size: 36px;
-  font-weight: 800;
+  font-size: 28px;
+  font-weight: 700;
   margin: 0;
   color: #ffffff;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.4px;
 }
 
 .prod-desc-text {
   margin: 0 0 16px 0;
-  font-size: 13.5px;
-  opacity: 0.85;
-  font-weight: 500;
+  font-size: 12.5px;
+  opacity: 0.9;
+  font-weight: 400;
 }
 
 .prod-view-btn {
   background: #ffffff;
-  color: #0f172a;
+  color: var(--accent);
   border: none;
-  padding: 10px 20px;
-  border-radius: 10px;
+  padding: 9px 16px;
+  border-radius: 8px;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 11.5px;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform 0.15s;
 }
 
 .prod-view-btn:hover {
   transform: translateY(-1px);
 }
 
-/* --- Team Roster Block Components Layout Alignment --- */
-.team-members-list {
+/* --- Team Members: ranked rep list --- */
+.rep-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
-.member-strip-card {
+.rep-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  /* Scaled parameters down precisely to balance typography blocks */
-  border-radius: 12px;
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  transition: all 0.2s;
+  gap: 13px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--border-divider);
+  transition: background 0.15s ease;
 }
 
-.member-strip-card:hover {
-  transform: translateX(3px);
-  background: var(--input-bg);
+.rep-row:last-child {
+  border-bottom: none;
 }
 
-.member-avatar-mask {
+.rep-row:hover {
+  background: var(--card-inner-hover);
+}
+
+.rep-avatar {
   width: 36px;
   height: 36px;
-  border-radius: 10px;
-  object-fit: cover;
-}
-
-.member-profile-details {
-  flex: 1;
-}
-
-.member-profile-details h4 {
-  font-size: 13.5px;
+  border-radius: 50%;
+  background: var(--c-cyan);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 600;
-  margin: 0 0 1px 0;
-  color: var(--text-main);
+  font-size: 11.5px;
+  flex-shrink: 0;
 }
 
-.member-profile-details p {
+.rep-row:nth-child(5n+2) .rep-avatar { background: var(--c-blue); }
+.rep-row:nth-child(5n+3) .rep-avatar { background: var(--c-violet); }
+.rep-row:nth-child(5n+4) .rep-avatar { background: var(--c-cyan); }
+.rep-row:nth-child(5n+5) .rep-avatar { background: var(--c-amber); }
+.rep-row:nth-child(5n+6) .rep-avatar { background: var(--c-green); }
+
+.rep-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.rep-info strong {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rep-info span {
+  font-size: 12px;
   color: var(--text-muted);
-  font-size: 11.5px;
-  margin: 0;
+  margin-top: 2px;
 }
 
 .status-pill {
   font-size: 10px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 20px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 5px;
+  text-transform: capitalize;
+  flex-shrink: 0;
 }
 
 .status-pill.online {
-  background: rgba(34, 197, 94, 0.12);
-  color: #22c55e;
+  background: rgba(52, 195, 143, 0.12);
+  color: var(--c-green);
 }
 
 .status-pill.away {
-  background: rgba(251, 191, 36, 0.12);
-  color: #fbbf24;
+  background: rgba(241, 180, 76, 0.15);
+  color: #b9822e;
 }
 
-/* --- Dynamic Overlay Dropdown Utilities --- */
+/* --- Profile / Notifications --- */
 .profile-container {
   position: relative;
 }
 
 .avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   cursor: pointer;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-subtle);
 }
 
 .profile-dropdown {
   position: absolute;
   right: 0;
-  top: 50px;
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
+  top: 46px;
+  background: var(--dropdown-panel-bg);
+  border: 1px solid var(--border-deep);
+  border-radius: 9px;
   overflow: hidden;
-  z-index: 60;
-  box-shadow: 0 10px 25px var(--shadow-profile);
+  z-index: 10;
+  box-shadow: 0 10px 24px var(--shadow-cards);
+  min-width: 140px;
 }
 
 .profile-dropdown button {
   background: transparent;
   border: none;
   color: var(--text-main);
-  padding: 10px 20px;
+  padding: 11px 16px;
   cursor: pointer;
   width: 100%;
-  font-size: 13px;
   text-align: left;
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .profile-dropdown button:hover {
-  background: var(--input-bg);
-  color: #ef4444;
+  background: var(--card-inner-hover);
+}
+
+.notification-bell-container {
+  position: relative;
 }
 
 .notification-dropdown-panel {
   position: absolute;
   right: 0;
-  top: 50px;
+  top: 46px;
   width: 320px;
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 14px;
-  box-shadow: 0 20px 40px var(--shadow-profile);
-  z-index: 50;
+  background: var(--dropdown-panel-bg);
+  border: 1px solid var(--border-deep);
+  border-radius: 11px;
+  box-shadow: 0 16px 36px -10px var(--shadow-cards);
+  z-index: 9999;
   overflow: hidden;
 }
 
 .notification-dropdown-header {
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--border-deep);
+  color: var(--text-main);
 }
 
 .notification-dropdown-header h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
-  color: var(--text-main);
 }
 
 .notification-dropdown-body {
-  padding: 12px;
-  max-height: 300px;
+  padding: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+  color: var(--text-main);
+}
+
+.notification-scroll-area {
+  max-height: 280px;
   overflow-y: auto;
 }
 
 .notification-alert-item {
   display: flex;
-  gap: 10px;
-  padding: 10px 6px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.bell-alert-badge-dot {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  background: #ef4444;
-  color: white;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 1px 5px;
-  border-radius: 7px;
-  border: 2px solid var(--dashboard-bg);
-}
-
-.notification-empty-state {
-  font-size: 12.5px;
-  color: var(--text-muted);
-  text-align: center;
-  padding: 14px 0;
-}
-
-.member-initials {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
-  color: white;
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.projects-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
-}
-
-.project-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 16px;
-  transition: .3s;
-}
-
-.project-card:hover {
-  transform: translateY(-3px);
-}
-
-.project-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.project-status {
-  padding: 4px 10px;
-  border-radius: 20px;
-  background: rgba(0, 255, 150, .12);
-  color: #00ff95;
-  font-size: 12px;
-}
-
-.project-progress {
-  margin: 15px 0;
-  font-size: 22px;
-  font-weight: 700;
-}
-
-.project-footer {
-  margin-top: 12px;
-  opacity: .7;
-}
-
-.members-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 15px;
-}
-
-.member-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 18px;
-  text-align: center;
-  transition: .3s;
-}
-
-.member-card:hover {
-  transform: translateY(-3px);
-}
-
-.member-avatar {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: linear-gradient(135deg,
-      #6d5dfc,
-      #4f46e5);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  margin: 0 auto 12px;
-
-  font-weight: 700;
-  font-size: 18px;
-  color: white;
-}
-
-.member-card h4 {
-  margin: 0;
-}
-
-.member-card p {
-  margin-top: 6px;
-  opacity: .7;
-}
-/* --- Unified Notification Dropdown Styles --- */
-
-.notification-dropdown-panel {
-  position: absolute;
-  right: 0;
-  top: 50px;
-  width: 320px;
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 14px;
-  box-shadow: 0 20px 40px var(--shadow-profile);
-  z-index: 9999;
-  overflow: hidden; /* Kept hidden here to clip children to rounded corners */
-  backdrop-filter: blur(12px);
-}
-
-.notification-dropdown-header {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.notification-dropdown-header h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.notification-dropdown-body {
-  padding: 8px;
-  max-height: 350px;
-  overflow-y: auto;
-}
-
-.notification-section {
-  margin-bottom: 14px;
-}
-
-.section-title {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #64748b;
-  margin: 8px 6px;
-}
-
-.notification-item {
-  display: flex;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 12px;
-  margin-bottom: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 11px;
+  padding: 10px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.15s ease;
+  border: 1px solid var(--border-subtle);
+  margin-bottom: 6px;
 }
 
-.notification-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+.notification-alert-item:hover {
+  background: var(--card-inner-hover);
 }
 
-.notification-item.normal {
-  background: rgba(59, 130, 246, 0.06);
-}
-
-.notification-item.urgent {
-  background: rgba(239, 68, 68, 0.06);
-}
-
-.notif-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+.alert-item-indicator {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent-soft);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(59, 130, 246, 0.15);
   flex-shrink: 0;
+  font-size: 12px;
 }
 
-.urgent-icon {
-  background: rgba(239, 68, 68, 0.15);
+.urgent-indicator {
+  background: rgba(244, 106, 106, 0.14);
 }
 
-.notif-content { flex: 1; }
-
-.notif-title {
-  font-size: 13px;
+.notification-title {
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--text-main);
   margin: 0;
 }
 
-.notif-message {
-  font-size: 12px;
-  color: #94a3b8;
+.notification-message {
+  font-size: 11.5px;
+  color: var(--text-muted);
   margin: 3px 0;
 }
 
-.notif-time {
-  font-size: 11px;
-  color: #64748b;
+.notification-time {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.alert-task-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.alert-task-time-left {
+  font-size: 11.5px;
+  font-weight: 600;
+  margin: 3px 0 0 0;
 }
 
 .notification-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  color: var(--text-muted);
   text-align: center;
-  padding: 24px;
-  color: #94a3b8;
-  font-size: 13px;
+  font-size: 12.5px;
+}
+
+.icon-btn {
+  position: relative;
+}
+
+.bell-alert-green-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--c-red);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 0 4px;
+  border: 2px solid var(--panel-bg);
 }
 </style>
