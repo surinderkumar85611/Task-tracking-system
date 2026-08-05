@@ -128,7 +128,7 @@
                                 {{ exportingId === project.id ? 'Exporting...' : '📤 Export' }}
                             </button>
                             <button class="monday-btn-primary" @click="openImportModal(project)">
-                                📥 Import Tasks
+                                📥 Import
                             </button>
                             <button class="action-icon-btn" title="Edit Project Config"
                                 @click="openEditProjectModal(project)">✏️ Edit</button>
