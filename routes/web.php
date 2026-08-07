@@ -168,10 +168,6 @@ Route::middleware(['auth', 'no-cache'])->group(function () {
         Route::delete('/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
     });
 
-    Route::post('/task', [TaskController::class, 'store']);
-    Route::put('/task/{task}', [TaskController::class, 'update'])->name('task.update');
-    Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
-
     Route::post('/logout', function (Request $request) {
         Auth::logout();
         $request->session()->invalidate();
