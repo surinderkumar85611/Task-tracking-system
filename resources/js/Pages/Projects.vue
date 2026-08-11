@@ -282,7 +282,7 @@
                                     </td>
                                     <td class="cell-start">
                                         <div class="timer-cell-wrapper">
-                                            <div v-if="task.status !== 'Completed' && task.allocated_duration && task.timer_started_at"
+                                            <div v-if="task.allocated_duration && task.timer_started_at"
                                                 class="timer-active-container">
                                                 <div class="table-progress-track">
                                                     <div class="table-progress-fill" :style="{
@@ -296,7 +296,7 @@
                                                 </span>
                                             </div>
                                             <div v-else class="timer-empty-label">
-                                                {{ task.status === 'Completed' ? '✅ Completed' : '—' }}
+                                                —
                                             </div>
                                         </div>
                                     </td>
@@ -305,22 +305,14 @@
                                         <input type="date" v-model="task.due_date" @change="syncTaskRow(task)"
                                             class="monday-date-cell" />
                                     </td>
-                                    <td class="cell-action">
-
-                                        <button v-if="task.status !== 'Completed'"
-                                            @click="removeTaskRow(task.id, project)" title="Delete task">
+                                    <td class="cell-action" @click="removeTaskRow(task.id, project)">
+                                        <button v-if="task.status !== 'Completed'">
                                             🗑
                                         </button>
 
-                                        <button v-else-if="!task.review || !task.review.trim()" class="review-btn"
-                                            @click.stop="openReviewModal(task)">
+                                        <button v-else class="review-btn" @click="openReviewModal(task)">
                                             Review
                                         </button>
-
-                                        <button v-else class="reviewed-btn" @click.stop="openReviewModal(task)">
-                                            ✓ Reviewed
-                                        </button>
-
                                     </td>
                                 </tr>
 
@@ -994,13 +986,6 @@ const closeReviewModal = () => {
 
 const saveReview = () => {
 
-    const review = reviewText.value.trim();
-
-    if (!review) {
-        toast.error("Please enter a review before saving.");
-        return;
-    }
-
     router.put(
         `/task/${selectedReviewTask.value.id}`,
         {
@@ -1011,7 +996,6 @@ const saveReview = () => {
             preserveScroll: true,
 
             onSuccess: () => {
-                selectedReviewTask.value.review = review;
 
                 toast.success(
                     "Review saved"
@@ -1019,10 +1003,6 @@ const saveReview = () => {
 
                 closeReviewModal();
             },
-
-            onError: () => {
-                toast.error("Failed to save review.");
-            }
         }
     );
 };
@@ -1186,10 +1166,6 @@ const handleTimerDurationChange = (task) => {
 };
 
 const getTimerMetrics = (task) => {
-    if (task.status === "Completed") {
-        return { percentage: 100, string: "Completed", color: "#00c875", };
-    }
-
     if (!task.allocated_duration || !task.timer_started_at) {
         return { percentage: 0, string: "00:00", color: "#7e8299" };
     }
@@ -1544,11 +1520,6 @@ const toggleMemberAssignment = (task, memberId) => {
     } else {
         task.member_id.push(memberId);
     }
-
-    if (task.status === "Completed") {
-        task.timer_started_at = null;
-    }
-
     syncTaskRow(task);
 };
 
@@ -1946,12 +1917,12 @@ const logout = () => {
 }
 
 .col-due {
-    width: 10%; 
+    width: 10%;
     text-align: center;
 }
 
 .col-action {
-    width: 9%;
+    width: 5%;
     text-align: center;
 }
 

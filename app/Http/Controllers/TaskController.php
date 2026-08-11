@@ -196,18 +196,6 @@ class TaskController extends Controller
     {
         $task = Task::findOrFail($id);
 
-        if ($request->has('review') && $request->review !== $task->review) {
-            $request->validate([
-                'review' => 'nullable|string',
-            ]);
-
-            $task->update([
-                'review' => $request->review,
-            ]);
-
-            return back();
-        }
-
         $request->validate([
             'project_id' => 'required',
             'title' => 'required',
