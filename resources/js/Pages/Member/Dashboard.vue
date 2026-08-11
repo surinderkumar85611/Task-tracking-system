@@ -96,7 +96,6 @@
 
                 </div>
 
-                <!-- EMPTY STATE -->
                 <div v-if="unreadNotifications.length === 0 && notificationStore.activeUrgentTasks.length === 0"
                   class="notification-empty-state">
                   🎉 No notifications right now.
@@ -145,7 +144,6 @@
             <small class="stat-subtitle">Total tasks assigned to you</small>
           </div>
 
-          <!-- Team Projects -->
           <div class="stat-card team-projects-card">
             <div class="stat-icon-badge">📁</div>
             <span class="stat-label">Team Projects</span>
@@ -153,7 +151,6 @@
             <small class="stat-subtitle">Active projects you're involved in</small>
           </div>
 
-          <!-- Completed -->
           <div class="stat-card completed-tasks-card">
             <div class="stat-icon-badge">✅</div>
             <span class="stat-label">Completed Tasks</span>
@@ -161,7 +158,6 @@
             <small class="stat-subtitle">Successfully finished tasks</small>
           </div>
 
-          <!-- Pending -->
           <div class="stat-card pending-tasks-card">
             <div class="stat-icon-badge">⏳</div>
             <span class="stat-label">Pending Tasks</span>
@@ -169,7 +165,6 @@
             <small class="stat-subtitle">Tasks awaiting completion</small>
           </div>
 
-          <!-- Completion -->
           <div class="stat-card completion-rate-card">
             <div class="stat-icon-badge">📈</div>
             <span class="stat-label">Completion Rate</span>
@@ -179,7 +174,6 @@
 
         </section>
 
-        <!-- MY TASKS + COMPLETION DONUT + TODAY'S ACTIVITY -->
         <div class="top-row-grid">
 
           <div class="dashboard-card main-panel">
@@ -195,7 +189,6 @@
               </div>
             </div>
 
-            <!-- KANBAN BOARD VIEW -->
             <div class="kanban-board" v-if="taskView === 'board'">
               <div v-for="column in kanbanColumns" :key="column.key" class="kanban-column">
                 <div class="kanban-column-header">
@@ -229,7 +222,6 @@
               </div>
             </div>
 
-            <!-- LIST VIEW -->
             <div class="task-list" v-else-if="filteredTasks.length">
               <div v-for="task in filteredTasks" :key="task.id" class="task-row-card">
                 <div class="task-status-dot" :class="statusClass(task.status)"></div>
@@ -263,7 +255,6 @@
             </div>
           </div>
 
-          <!-- COMPLETION DONUT -->
           <div class="dashboard-card donut-card">
             <div class="card-header">
               <h2>Completion Rate</h2>
@@ -298,7 +289,6 @@
             </div>
           </div>
 
-          <!-- TODAY'S ACTIVITY -->
           <div class="dashboard-card today-activity-card">
             <div class="card-header">
               <h2>Today's Activity</h2>
@@ -340,10 +330,8 @@
 
         </div>
 
-        <!-- TEAM MEMBERS + RECENT ACTIVITY -->
         <div class="mid-grid">
 
-          <!-- TEAM MEMBERS — ranked list -->
           <section class="dashboard-card">
             <div class="card-header">
               <h2>Team Members</h2>
@@ -374,7 +362,6 @@
             </div>
           </section>
 
-          <!-- RECENT ACTIVITY — real event feed, built from notifications -->
           <section class="dashboard-card">
             <div class="card-header">
               <h2>Recent Activity</h2>
@@ -412,7 +399,6 @@
 
         </div>
 
-        <!-- TEAM PROJECTS + UPCOMING DEADLINES -->
         <div class="mid-grid">
 
           <section class="dashboard-card">
@@ -459,7 +445,6 @@
             </div>
           </section>
 
-          <!-- UPCOMING DEADLINES — timeline -->
           <section class="dashboard-card">
             <div class="card-header">
               <h2>Upcoming Deadlines</h2>
@@ -521,7 +506,6 @@ let notificationRefreshInterval = null;
 const workspaces = computed(() => page.props.workspaces || []);
 const currentWorkspace = computed(() => workspaces.value[0] || null);
 
-/* ---------------- Profile avatar fallback initials ---------------- */
 const profileInitials = computed(() => {
   const first = props.member?.first_name?.charAt(0) || "";
   const last = props.member?.last_name?.charAt(0) || "";
@@ -529,7 +513,6 @@ const profileInitials = computed(() => {
   return initials || "U";
 });
 
-/* ---------------- Search match highlighting ---------------- */
 const escapeHtml = (value) => {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -600,7 +583,6 @@ const priorityClass = (priority) => {
   return (priority || "normal").toLowerCase();
 };
 
-/* ---------------- Date helpers (all tasks use due_date, "YYYY-MM-DD" or ISO) ---------------- */
 const startOfDay = (d) => {
   const copy = new Date(d);
   copy.setHours(0, 0, 0, 0);
@@ -618,7 +600,6 @@ const parsedDueDate = (task) => {
   return startOfDay(d);
 };
 
-/* ---------------- Today's Activity ---------------- */
 const dueToday = computed(() => {
   return (props.myTasks || []).filter(task => {
     if (isCompletedTask(task)) return false;
@@ -643,7 +624,6 @@ const upcomingTasks = computed(() => {
   }).length;
 });
 
-/* ---------------- Upcoming Deadlines timeline (soonest first, incomplete only) ---------------- */
 const upcomingDeadlineTasks = computed(() => {
   return (props.myTasks || [])
     .filter(task => !isCompletedTask(task) && parsedDueDate(task))
@@ -651,7 +631,6 @@ const upcomingDeadlineTasks = computed(() => {
     .slice(0, 5);
 });
 
-/* ---------------- Recent Activity dot color, keyed off notification type ---------------- */
 const activityDotClass = (type) => {
   const key = (type || "").toLowerCase();
   if (key.includes("completed")) return "completed";
@@ -759,9 +738,7 @@ const markAllRead = () => {
 };
 </script>
 <style scoped>
-/* ==========================================================================
-   THEME TOKENS
-   ========================================================================== */
+
 .theme-dark {
   --dashboard-bg: #222736;
   --panel-bg: #2a2f42;
@@ -823,9 +800,6 @@ const markAllRead = () => {
   --c-red: #f46a6a;
 }
 
-/* ==========================================================================
-   LAYOUT
-   ========================================================================== */
 .dashboard {
   display: flex;
   height: 100vh;
@@ -850,9 +824,6 @@ const markAllRead = () => {
   padding: 24px 36px 56px;
 }
 
-/* ==========================================================================
-   TOPBAR
-   ========================================================================== */
 .topbar {
   display: flex;
   align-items: center;
@@ -896,9 +867,6 @@ const markAllRead = () => {
   font-weight: 700;
 }
 
-/* ==========================================================================
-   HEADER
-   ========================================================================== */
 .header {
   display: flex;
   justify-content: space-between;
@@ -1004,9 +972,6 @@ const markAllRead = () => {
   border-color: var(--border-deep);
 }
 
-/* ==========================================================================
-   WELCOME BANNER
-   ========================================================================== */
 .welcome-banner {
   background: linear-gradient(120deg, #3b4f9e 0%, #4a5cb0 100%);
   color: #ffffff;
@@ -1034,9 +999,6 @@ const markAllRead = () => {
   font-weight: 400;
 }
 
-/* ==========================================================================
-   STATS GRID — square icon + top accent bar, like the KPI cards referenced
-   ========================================================================== */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -1131,9 +1093,6 @@ const markAllRead = () => {
   line-height: 1.4;
 }
 
-/* ==========================================================================
-   TOP ROW — My Tasks (wide) + Completion Donut + Today's Activity
-   ========================================================================== */
 .top-row-grid {
   display: grid;
   grid-template-columns: 1.6fr 0.7fr 0.9fr;
@@ -1171,7 +1130,6 @@ const markAllRead = () => {
   letter-spacing: -0.1px;
 }
 
-/* --- Completion donut --- */
 .donut-card {
   display: flex;
   flex-direction: column;
@@ -1246,7 +1204,6 @@ const markAllRead = () => {
   margin-top: 2px;
 }
 
-/* --- Today's Activity (gradient card) --- */
 .today-activity-card {
   background: linear-gradient(150deg, #e8834f 0%, #d8556a 100%);
   border: none;
@@ -1323,9 +1280,6 @@ const markAllRead = () => {
   background: #ffffff;
 }
 
-/* ==========================================================================
-   MID GRID — 2-column reusable row
-   ========================================================================== */
 .mid-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1337,7 +1291,6 @@ const markAllRead = () => {
   .mid-grid { grid-template-columns: 1fr; }
 }
 
-/* --- My Tasks: view toggle --- */
 .kanban-card-header {
   display: flex;
   justify-content: space-between;
@@ -1371,7 +1324,6 @@ const markAllRead = () => {
   color: #ffffff;
 }
 
-/* --- My Tasks: Kanban board --- */
 .kanban-board {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1485,7 +1437,6 @@ const markAllRead = () => {
   border-radius: 8px;
 }
 
-/* --- My Tasks List --- */
 .task-list {
   display: flex;
   flex-direction: column;
@@ -1589,7 +1540,6 @@ const markAllRead = () => {
   font-size: 13px;
 }
 
-/* --- Team Projects --- */
 .project-list {
   display: flex;
   flex-direction: column;
@@ -1659,7 +1609,6 @@ const markAllRead = () => {
   font-size: 11.5px;
 }
 
-/* --- Team Members: ranked rep list --- */
 .rep-list {
   display: flex;
   flex-direction: column;
@@ -1757,7 +1706,6 @@ const markAllRead = () => {
   flex-shrink: 0;
 }
 
-/* --- Recent Activity: leads-style task table --- */
 .leads-table {
   display: flex;
   flex-direction: column;
@@ -1839,7 +1787,6 @@ const markAllRead = () => {
   color: var(--accent);
 }
 
-/* --- Upcoming Deadlines: timeline --- */
 .timeline-list {
   display: flex;
   flex-direction: column;
@@ -1906,7 +1853,6 @@ const markAllRead = () => {
   color: var(--text-muted);
 }
 
-/* --- Profile / Notifications --- */
 .profile-container {
   position: relative;
 }
@@ -2131,7 +2077,6 @@ const markAllRead = () => {
   margin: 20px 0;
 }
 
-/* --- Search match highlighting --- */
 .search-highlight {
   background: var(--accent-soft);
   color: var(--accent);

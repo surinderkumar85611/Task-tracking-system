@@ -1,248 +1,320 @@
 <template>
-    <div class="login-page">
-        <div class="left-panel">
-            <div class="brand">
-                <div class="logo">
-                    BTT
-                </div>
-                <h1>Team Management</h1>
-                <p>
-                    Manage admins, team leaders and members
-                    from one secure dashboard.
-                </p>
-                <ul>
-                    <li>✓ Secure authentication</li>
-                    <li>✓ Team management</li>
-                    <li>✓ Team collaboration</li>
-                    <li>✓ Project tracking</li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="right-panel">
-            <div class="login-card">
-                <h2>Welcome Back</h2>
-                <p>
-                    Sign in to continue
-                </p>
-                <div class="form-group">
-                    <label>Email</label>
-                    <input v-model="form.email" type="email" placeholder="Enter email">
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input v-model="form.password" type="password" placeholder="Enter password">
-                </div>
-                <button @click="login" :disabled="loading">
-                    {{ loading ? "Signing In..." : "Sign In" }}
-                </button>
-            </div>
-        </div>
+  <Head title="Super Admin Login" />
+  <div class="auth-page dark">
+    <div class="left-panel">
+      <div class="content">
+        <h1>Baseline Task Tracker</h1>
+        <p>Super Admin console — manage admins, team leaders and projects from one place.</p>
+      </div>
     </div>
+
+    <div class="right-panel">
+      <div class="card">
+        <h2>Welcome Back</h2>
+        <p>Sign in to the Super Admin console</p>
+
+        <form @submit.prevent="login">
+          <div class="field-group">
+            <input
+              type="email"
+              v-model="form.email"
+              placeholder="Email"
+              @blur="validateEmail(); handleBlur('email')"
+              @input="validateEmail"
+            />
+
+            <span v-if="errors.email && touched.email" class="error-text">
+              {{ errors.email }}
+            </span>
+          </div>
+
+          <div class="field-group">
+            <div class="input-wrapper">
+              <input
+                :type="showPassword ? 'text' : 'password'"
+                v-model="form.password"
+                placeholder="Password"
+                @blur="validatePassword(); handleBlur('password')"
+                @input="validatePassword"
+              />
+
+              <span class="toggle-icon" @click="showPassword = !showPassword">
+                👁️
+              </span>
+            </div>
+
+            <span v-if="errors.password && touched.password" class="error-text">
+              {{ errors.password }}
+            </span>
+          </div>
+
+          <button :disabled="loading">
+            {{ loading ? "Signing In..." : "Sign In" }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { reactive } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { reactive, computed, ref } from "vue";
+import { router, Head } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 import axios from "axios";
 
 const toast = useToast();
 
 const form = reactive({
-    email: '',
-    password: '',
-})
+  email: "",
+  password: "",
+});
 
-async function login() {
+const errors = reactive({
+  email: "",
+  password: "",
+});
 
-    if (!form.email.trim()) {
-        toast.error("Please enter your email address.");
+const touched = reactive({
+  email: false,
+  password: false,
+});
+
+const showPassword = ref(false);
+const loading = ref(false);
+
+const hasErrors = computed(() => {
+  return !!errors.email || !!errors.password;
+});
+
+const validateEmail = () => {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!form.email) {
+    errors.email = "Email is required";
+  } else if (!regex.test(form.email)) {
+    errors.email = "Please enter a valid email address";
+  } else {
+    errors.email = "";
+  }
+};
+
+const validatePassword = () => {
+  if (!form.password) {
+    errors.password = "Password is required";
+  } else if (form.password.length < 6) {
+    errors.password = "Password must be at least 6 characters";
+  } else {
+    errors.password = "";
+  }
+};
+
+const handleBlur = (field) => {
+  touched[field] = true;
+};
+
+const login = () => {
+  touched.email = true;
+  touched.password = true;
+
+  validateEmail();
+  validatePassword();
+
+  if (hasErrors.value) return;
+
+  loading.value = true;
+
+  axios
+    .post("/super-admin/login", form)
+    .then(() => {
+      toast.success("Welcome back!", {
+        toastClassName: "custom-toast",
+      });
+      setTimeout(() => {
+        router.visit("/super-admin/dashboard");
+      }, 1200);
+    })
+    .catch((error) => {
+      const backendErrors = error.response?.data?.errors;
+
+      if (backendErrors?.email) {
+        toast.error(backendErrors.email[0], {
+          toastClassName: "custom-toast",
+        });
         return;
-    }
+      }
 
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailPattern.test(form.email)) {
-        toast.error("Please enter a valid email address.");
+      if (backendErrors) {
+        Object.values(backendErrors).forEach((fieldErrors) => {
+          toast.error(Array.isArray(fieldErrors) ? fieldErrors[0] : fieldErrors, {
+            toastClassName: "custom-toast",
+          });
+        });
         return;
-    }
+      }
 
-    if (!form.password.trim()) {
-        toast.error("Please enter your password.");
-        return;
-    }
-
-    try {
-        await axios.post("/super-admin/login", form);
-        toast.success("Welcome back!");
-        setTimeout(() => {
-            router.visit("/super-admin/dashboard");
-        }, 1200);
-    } catch (error) {
-        if (error.response?.data?.errors?.email) {
-            toast.error(error.response.data.errors.email[0]);
-        }
-    }
-}
+      toast.error("Something went wrong. Please try again.", {
+        toastClassName: "custom-toast",
+      });
+    })
+    .finally(() => {
+      loading.value = false;
+    });
+};
 </script>
 
 <style scoped>
-.login-page {
-    min-height: 100vh;
-    display: grid;
-    grid-template-columns: 1.2fr 1fr;
-    background: #0f172a;
-    color: white;
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  font-family: Inter, sans-serif;
 }
 
 .left-panel {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 70px;
-    background:
-        radial-gradient(circle at top left, #2563eb33, transparent 35%),
-        radial-gradient(circle at bottom right, #7c3aed33, transparent 35%);
+  width: 55%;
+  background:
+    linear-gradient(rgba(15, 23, 42, .85), rgba(15, 23, 42, .85)),
+    url('https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=2070');
+  background-size: cover;
+  background-position: center;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 80px;
 }
 
-.brand {
-    max-width: 500px;
+.content h1 {
+  font-size: 64px;
+  margin-bottom: 20px;
+  font-weight: 700;
 }
 
-.logo {
-    width: 70px;
-    height: 70px;
-    border-radius: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    font-weight: bold;
-    background: #2563eb;
-    margin-bottom: 30px;
-    box-shadow: 0 15px 35px rgba(37, 99, 235, .35);
-}
-
-.brand h1 {
-    font-size: 48px;
-    margin-bottom: 20px;
-}
-
-.brand p {
-    color: #94a3b8;
-    line-height: 1.8;
-    margin-bottom: 30px;
-}
-
-.brand ul {
-    list-style: none;
-    padding: 0;
-    color: #cbd5e1;
-    display: grid;
-    gap: 16px;
+.content p {
+  font-size: 18px;
+  opacity: .85;
+  max-width: 460px;
+  line-height: 1.5;
 }
 
 .right-panel {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 40px;
+  width: 45%;
+  background: #020617;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.login-card {
-    width: 420px;
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 20px;
-    padding: 40px;
-    box-shadow:
-        0 25px 50px rgba(0, 0, 0, .3);
-    animation: popup .45s ease;
+.card {
+  width: 420px;
+  background: #0f172a;
+  padding: 40px;
+  border-radius: 20px;
+  color: white;
 }
 
-.login-card h2 {
-    font-size: 34px;
-    margin-bottom: 8px;
+.card h2 {
+  font-size: 32px;
 }
 
-.login-card p {
-    color: #94a3b8;
-    margin-bottom: 35px;
+.card p {
+  color: #94a3b8;
+  margin: 12px 0 30px;
 }
 
-.form-group {
-    margin-bottom: 20px;
+.field-group {
+  margin-bottom: 16px;
 }
 
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: #cbd5e1;
-    font-size: 14px;
+input {
+  width: 100%;
+  height: 52px;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: white;
+  padding: 0 15px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
 }
 
-.form-group input {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 15px;
-    border-radius: 12px;
-    border: 1px solid #334155;
-    background: #0f172a;
-    color: white;
-    transition: .25s;
+input:focus {
+  outline: none;
+  border-color: #2563eb;
 }
 
-.form-group input:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow:
-        0 0 0 4px rgba(37, 99, 235, .2);
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.toggle-icon {
+  position: absolute;
+  right: 15px;
+  cursor: pointer;
+  font-size: 18px;
+  user-select: none;
+}
+
+.error-text {
+  display: block;
+  color: #ff0000 !important;
+  font-size: 12px;
+  margin-top: 5px;
+  margin-left: 4px;
+  margin-bottom: 0;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 button {
+  width: 100%;
+  height: 52px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 15px;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  margin-top: 8px;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(37, 99, 235, .35);
+}
+
+button:disabled {
+  opacity: .7;
+  cursor: not-allowed;
+}
+
+:global(.custom-toast) {
+  background: #1e3a8a !important;
+  color: white !important;
+  border-radius: 12px !important;
+}
+
+@media (max-width: 900px) {
+  .auth-page {
+    flex-direction: column;
+  }
+
+  .left-panel,
+  .right-panel {
     width: 100%;
-    padding: 15px;
-    border: none;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 600;
-    color: white;
-    cursor: pointer;
-    background: linear-gradient(135deg, #2563eb, #3b82f6);
-    transition: .3s;
-}
+  }
 
-button:hover {
-    transform: translateY(-2px);
-    box-shadow:
-        0 15px 30px rgba(37, 99, 235, .35);
-}
+  .left-panel {
+    display: none;
+  }
 
-@keyframes popup {
-    from {
-        opacity: 0;
-        transform: translateY(40px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@media(max-width:900px) {
-    .login-page {
-        grid-template-columns: 1fr;
-    }
-
-    .left-panel {
-        display: none;
-    }
-
-    .login-card {
-        width: 100%;
-        max-width: 420px;
-    }
+  .card {
+    width: 100%;
+    max-width: 420px;
+  }
 }
 </style>

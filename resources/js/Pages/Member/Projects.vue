@@ -67,7 +67,6 @@
                     </div>
                 </header>
 
-                <!-- STATS -->
                 <section class="stats-grid">
 
                     <div class="stat-card projects-card">
@@ -100,7 +99,6 @@
 
                 </section>
 
-                <!-- PROJECT PERFORMANCE (completion rate + monthly load) -->
                 <section class="project-perf-card">
                     <div class="perf-donut-block">
                         <div class="perf-block-header">Overall Completion</div>
@@ -156,7 +154,6 @@
                     </div>
                 </section>
 
-                <!-- PROJECTS -->
                 <div class="projects-list">
 
                     <div v-if="!filteredProjects.length" class="empty-board-state">
@@ -247,7 +244,6 @@
             </div>
         </main>
 
-        <!-- TASK NOTES / CHAT SIDEBAR -->
         <div class="updates-sidebar-overlay" :class="{ open: showUpdatesSidebarPane }" @click="closeUpdatesSidebar">
             <div class="updates-sidebar-panel" @click.stop>
                 <div class="sidebar-panel-header">
@@ -502,9 +498,6 @@ const projectProgress = (project) => {
     return Math.round((projectCompletedCount(project) / total) * 100);
 };
 
-// Derives the status pill straight from task completion, so it can never
-// contradict the progress percentage shown next to it (e.g. a project
-// stuck at "In Progress" while every task underneath is actually done).
 const effectiveProjectStatus = (project) => {
     const total = (project.tasks || []).length;
     if (!total) return project.status || 'Planning';
@@ -517,7 +510,6 @@ const effectiveProjectStatus = (project) => {
     return anyInProgress ? 'In Progress' : 'Planning';
 };
 
-/* ---------------- Project performance: completion donut ---------------- */
 const completionPercent = computed(() => {
     if (!totalTasks.value) return 0;
     return Math.round((completedCount.value / totalTasks.value) * 100);
@@ -546,7 +538,6 @@ const donutSegments = computed(() => {
     });
 });
 
-/* ---------------- Project performance: monthly projects bar chart ---------------- */
 const monthlyProjects = computed(() => {
     const now = new Date();
     const buckets = [];
@@ -574,7 +565,6 @@ const monthlyProjects = computed(() => {
 
 const maxMonthlyProjectCount = computed(() => Math.max(1, ...monthlyProjects.value.map(b => b.count)));
 
-/* ---------------- Header chat/updates dropdown ---------------- */
 const tasksWithNotes = computed(() => {
     const entries = [];
     (props.projects || []).forEach(project => {
@@ -612,7 +602,6 @@ const openFromNotif = (entry) => {
     openUpdatesSidebar(entry.task, entry.project);
 };
 
-/* ---------------- Task notes / chat sidebar ---------------- */
 const showUpdatesSidebarPane = ref(false);
 const activeTaskForUpdates = ref(null);
 const activeProjectForUpdates = ref(null);
@@ -748,9 +737,7 @@ const getReplyPreview = (html) => {
 </script>
 
 <style scoped>
-/* ==========================================================================
-   THEME TOKENS — same palette as Dashboard.vue / Sidebar.vue / Settings.vue
-   ========================================================================== */
+
 .dashboard.theme-dark {
     --dashboard-bg: #222736;
     --panel-bg: #2a2f42;
@@ -801,9 +788,7 @@ const getReplyPreview = (html) => {
     --c-red: #e05555;
 }
 
-/* ==========================================================================
-   LAYOUT
-   ========================================================================== */
+
 .dashboard {
     display: flex;
     height: 100vh;
@@ -913,9 +898,6 @@ const getReplyPreview = (html) => {
     border-color: var(--border-deep);
 }
 
-/* ==========================================================================
-   HEADER CHAT / UPDATES
-   ========================================================================== */
 .notif-wrap {
     position: relative;
 }
@@ -1045,9 +1027,6 @@ const getReplyPreview = (html) => {
     font-size: 13px;
 }
 
-/* ==========================================================================
-   STATS
-   ========================================================================== */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -1137,9 +1116,6 @@ const getReplyPreview = (html) => {
     line-height: 1.4;
 }
 
-/* ==========================================================================
-   PROJECT PERFORMANCE (donut + monthly bar, single combined card)
-   ========================================================================== */
 .project-perf-card {
     display: flex;
     align-items: stretch;
@@ -1300,9 +1276,6 @@ const getReplyPreview = (html) => {
     font-weight: 600;
 }
 
-/* ==========================================================================
-   PROJECT CARDS
-   ========================================================================== */
 .projects-list {
     display: flex;
     flex-direction: column;
@@ -1393,9 +1366,6 @@ const getReplyPreview = (html) => {
     border-bottom: 1px solid var(--border-divider);
 }
 
-/* ==========================================================================
-   STATUS / PRIORITY PILLS
-   ========================================================================== */
 .status-pill {
     font-size: 10.5px;
     font-weight: 700;
@@ -1428,9 +1398,6 @@ const getReplyPreview = (html) => {
 .priority-badge.medium { background: rgba(241, 180, 76, 0.15); color: #b9822e; }
 .priority-badge.low { background: rgba(52, 195, 143, 0.12); color: var(--c-green); }
 
-/* ==========================================================================
-   TASKS TABLE (per project)
-   ========================================================================== */
 .project-tasks-table {
     display: flex;
     flex-direction: column;
@@ -1555,9 +1522,7 @@ const getReplyPreview = (html) => {
     }
 }
 
-/* ==========================================================================
-   TASK NOTES / CHAT SIDEBAR
-   ========================================================================== */
+
 .updates-sidebar-overlay {
     position: fixed;
     inset: 0;
@@ -1934,7 +1899,6 @@ const getReplyPreview = (html) => {
     opacity: 0.9;
 }
 
-/* CKEditor theming inside the panel */
 :deep(.ck-editor__editable_inline) {
     min-height: 140px;
     max-height: 300px;

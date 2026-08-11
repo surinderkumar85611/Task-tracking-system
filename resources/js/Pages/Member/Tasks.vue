@@ -89,7 +89,6 @@
                     </div>
                 </header>
 
-                <!-- STATS -->
                 <section class="stats-grid">
 
                     <div class="stat-card total-card">
@@ -129,7 +128,6 @@
 
                 </section>
 
-                <!-- CHARTS -->
                 <section class="charts-row">
 
                     <div class="dashboard-card donut-card">
@@ -186,7 +184,6 @@
 
                 </section>
 
-                <!-- FILTER TABS -->
                 <div class="filter-tabs">
                     <button :class="{ active: activeFilter === 'all' }" @click="activeFilter = 'all'">
                         All <span class="tab-count">{{ totalTasks }}</span>
@@ -202,7 +199,6 @@
                     </button>
                 </div>
 
-                <!-- TASK TABLE -->
                 <div class="dashboard-card">
                     <div class="tasks-table" v-if="filteredTasks.length">
                         <div class="tasks-table-head">
@@ -263,7 +259,6 @@
             </div>
         </main>
 
-        <!-- NEED HELP / TASK CHAT SIDEBAR -->
         <div class="updates-sidebar-overlay" :class="{ open: showUpdatesSidebarPane }" @click="closeUpdatesSidebar">
             <div class="updates-sidebar-panel" @click.stop>
                 <div class="sidebar-panel-header">
@@ -516,7 +511,6 @@ const completionPercent = computed(() => {
     return Math.round((completedCount.value / totalTasks.value) * 100);
 });
 
-/* ---------------- Donut chart segments ---------------- */
 const donutSegments = computed(() => {
     const total = totalTasks.value || 1;
     const circumference = 2 * Math.PI * 50;
@@ -540,7 +534,6 @@ const donutSegments = computed(() => {
     });
 });
 
-/* ---------------- Monthly assigned bar chart ---------------- */
 const monthlyAssigned = computed(() => {
     const now = new Date();
     const buckets = [];
@@ -567,7 +560,6 @@ const monthlyAssigned = computed(() => {
 
 const maxMonthlyCount = computed(() => Math.max(1, ...monthlyAssigned.value.map(b => b.count)));
 
-/* ---------------- Search + filter ---------------- */
 const searchedTasks = computed(() => {
     if (!search.value) return allTasks.value;
     const term = search.value.toLowerCase();
@@ -588,7 +580,6 @@ const filteredTasks = computed(() => {
     });
 });
 
-/* ---------------- Notifications / chat discovery ---------------- */
 const tasksWithUnread = computed(() =>
     allTasks.value.filter(t => t.notes && t.notes.length > 0 && !t.is_read)
 );
@@ -620,7 +611,6 @@ const openFromNotif = (task) => {
     openUpdatesSidebar(task);
 };
 
-/* ---------------- Status update (dropdown in Actions column) ---------------- */
 const syncTask = (task, extra = {}) => {
     const payload = {
         id: task.id,
@@ -653,20 +643,12 @@ const onStatusChange = (task, newStatus) => {
     }
 };
 
-/* ---------------- Chat / updates sidebar ---------------- */
 const showUpdatesSidebarPane = ref(false);
 const activeTaskForUpdates = ref(null);
 const updatesDraftText = ref("");
 const messagesContainer = ref(null);
 const replyingTo = ref(null);
 
-/**
- * Marks a task's chat as read the instant it's opened.
- * Optimistic: flips the flag immediately so the "1" badge on the
- * bell and on the row's chat entry both disappear right away
- * (they're driven by computed properties watching task.is_read).
- * Rolls back if the server save fails, so the badge doesn't lie.
- */
 const markTaskAsRead = (task) => {
     if (task.is_read) return;
 
@@ -686,7 +668,7 @@ const markTaskAsRead = (task) => {
     }, {
         preserveScroll: true,
         onError: () => {
-            task.is_read = false; // rollback so badge reappears if save failed
+            task.is_read = false; 
             toast.error("Couldn't mark task as read.");
         },
     });
@@ -793,9 +775,7 @@ const getReplyPreview = (html) => {
 </script>
 
 <style scoped>
-/* ==========================================================================
-   THEME TOKENS
-   ========================================================================== */
+
 .dashboard.theme-dark {
     --dashboard-bg: #222736;
     --panel-bg: #2a2f42;
@@ -846,9 +826,6 @@ const getReplyPreview = (html) => {
     --c-red: #e05555;
 }
 
-/* ==========================================================================
-   LAYOUT
-   ========================================================================== */
 .dashboard {
     display: flex;
     height: 100vh;
@@ -958,9 +935,7 @@ const getReplyPreview = (html) => {
     border-color: var(--border-deep);
 }
 
-/* ==========================================================================
-   NOTIFICATIONS / CHAT BELL
-   ========================================================================== */
+
 .notif-wrap {
     position: relative;
 }
@@ -1140,10 +1115,6 @@ const getReplyPreview = (html) => {
     color: var(--text-muted);
     font-size: 13px;
 }
-
-/* ==========================================================================
-   STATS
-   ========================================================================== */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -1274,9 +1245,6 @@ const getReplyPreview = (html) => {
     line-height: 1.4;
 }
 
-/* ==========================================================================
-   CHARTS
-   ========================================================================== */
 .charts-row {
     display: grid;
     grid-template-columns: 1fr 1.4fr;
@@ -1434,9 +1402,6 @@ const getReplyPreview = (html) => {
     font-weight: 600;
 }
 
-/* ==========================================================================
-   FILTER TABS
-   ========================================================================== */
 .filter-tabs {
     display: flex;
     gap: 8px;
@@ -1486,9 +1451,6 @@ const getReplyPreview = (html) => {
     color: var(--text-muted);
 }
 
-/* ==========================================================================
-   TASK TABLE
-   ========================================================================== */
 .tasks-table {
     display: flex;
     flex-direction: column;
@@ -1712,9 +1674,6 @@ const getReplyPreview = (html) => {
     }
 }
 
-/* ==========================================================================
-   NEED HELP / CHAT SIDEBAR
-   ========================================================================== */
 .updates-sidebar-overlay {
     position: fixed;
     inset: 0;
@@ -2121,7 +2080,6 @@ const getReplyPreview = (html) => {
     margin: 0.5em 0 !important;
 }
 
-/* Same headings, but for already-sent messages rendered via v-html */
 .chat-bubble-body h1 {
     font-size: 1.6em;
     font-weight: 700;

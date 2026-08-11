@@ -18,6 +18,11 @@ class Member extends Model
         'assigned_to',
     ];
 
+    public function workspace()
+    {
+        return $this->belongsTo(Workspace::class);
+    }
+
     public function teamLeader()
     {
         return $this->belongsTo(Member::class, 'assigned_to');
