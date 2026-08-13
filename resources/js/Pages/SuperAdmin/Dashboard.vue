@@ -52,7 +52,7 @@
           </div>
 
           <!-- WORKSPACES DROPDOWN -->
-          <div class="workspace-dropdown-container" v-click-outside="closeWorkspaceDropdown">
+          <div class="workspace-dropdown-container" ref="workspaceRef">
             <button class="workspace-label" @click.stop="showWorkspaceDropdown = !showWorkspaceDropdown">
               <span class="workspace-dot"></span>
               {{ stats.workspaces }} Workspaces
@@ -75,7 +75,7 @@
           </button>
 
           <!-- NOTIFICATIONS -->
-          <div class="notification-bell-container" v-click-outside="handleClickOutside">
+          <div class="notification-bell-container" ref="bellRef">
             <button class="icon-btn" @click.stop="showBellDropdown = !showBellDropdown" aria-label="Notifications">
               🔔
               <span v-if="overdueProjects.length" class="bell-alert-green-dot">{{ overdueProjects.length }}</span>
@@ -107,7 +107,7 @@
           </div>
 
           <!-- PROFILE -->
-          <div class="profile-container">
+          <div class="profile-container" ref="profileRef">
             <div class="avatar avatar-fallback" @click.stop="showProfileMenu = !showProfileMenu">SA</div>
 
             <div v-if="showProfileMenu" class="profile-dropdown">
@@ -586,7 +586,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { router } from "@inertiajs/vue3";
 import { Head } from "@inertiajs/vue3";
 
@@ -703,8 +703,6 @@ const workspaceNames = computed(() => {
   localProjects.value.forEach(p => { if (p.workspace_name) names.add(p.workspace_name); });
   return Array.from(names).sort();
 });
-
-const closeWorkspaceDropdown = () => { showWorkspaceDropdown.value = false; };
 
 /* ---------------- Progress helpers ---------------- */
 const progressClass = (progress) => {
@@ -968,13 +966,28 @@ function createAdmin() {
   });
 }
 
-/* ---------------- Misc ---------------- */
-const handleClickOutside = (event) => {
-  const bell = document.querySelector(".notification-bell-container");
-  const profile = document.querySelector(".profile-container");
-  if (bell && !bell.contains(event.target)) showBellDropdown.value = false;
-  if (profile && !profile.contains(event.target)) showProfileMenu.value = false;
+/* ---------------- Click-outside handling ----------------
+   Plain document listener + template refs — no external directive
+   plugin required. Toggle buttons use @click.stop so the click that
+   opens a dropdown never reaches this listener and immediately
+   closes it again. */
+const bellRef = ref(null);
+const profileRef = ref(null);
+const workspaceRef = ref(null);
+
+const handleDocumentClick = (event) => {
+  if (bellRef.value && !bellRef.value.contains(event.target)) showBellDropdown.value = false;
+  if (profileRef.value && !profileRef.value.contains(event.target)) showProfileMenu.value = false;
+  if (workspaceRef.value && !workspaceRef.value.contains(event.target)) showWorkspaceDropdown.value = false;
 };
+
+onMounted(() => {
+  document.addEventListener("click", handleDocumentClick);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", handleDocumentClick);
+});
 
 function logout() {
   router.post("/super-admin/logout");

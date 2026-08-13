@@ -32,6 +32,7 @@ use App\Http\Controllers\Member\DashboardController as MemberDashboardController
 use App\Http\Controllers\Member\TaskController as MemberTaskController;
 use App\Http\Controllers\Member\ProjectController as MemberProjectController;
 use App\Http\Controllers\Member\SettingsController as MemberSettingsController;
+use App\Http\Controllers\SuperAdminController;
 
 Route::prefix('super-admin')->name('super-admin.')->group(function () {
 
@@ -338,3 +339,24 @@ Route::middleware(['auth', 'no-cache'])
         Route::get('/settings', [MemberSettingsController::class, 'index'])
             ->name('settings');
     });
+
+Route::prefix('super-admin')->middleware(['auth', 'super_admin'])->group(function () {
+    // ...your existing routes (dashboard, login, logout, admin, teams/{team}/members/{member})...
+
+    Route::get('/teams', [SuperAdminController::class, 'teams']);
+    Route::delete('/teams/{team}', [SuperAdminController::class, 'destroyTeam']);
+    Route::delete('/admin/{user}', [SuperAdminController::class, 'destroyAdmin']);
+
+    Route::get('/projects', [SuperAdminController::class, 'projects']);
+    Route::patch('/projects/{project}', [SuperAdminController::class, 'updateProjectProgress']); // fixes the 404
+
+    Route::get('/workspaces', [SuperAdminController::class, 'workspaces']);
+    Route::post('/workspaces', [SuperAdminController::class, 'storeWorkspace']);
+    Route::put('/workspaces/{workspace}', [SuperAdminController::class, 'updateWorkspace']);
+    Route::delete('/workspaces/{workspace}', [SuperAdminController::class, 'destroyWorkspace']);
+
+    Route::get('/settings', [SuperAdminController::class, 'settings']);
+    Route::get('/profile', [SuperAdminController::class, 'getProfile']);
+    Route::post('/profile', [SuperAdminController::class, 'updateProfile']);
+    Route::post('/change-password', [SuperAdminController::class, 'changePassword']);
+});
