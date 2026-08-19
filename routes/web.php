@@ -295,7 +295,7 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
-Route::put('/user/notification-preferences', [\App\Http\Controllers\UserController::class, 'updateNotificationPreferences']);
+Route::put('/user/notification-preferences', [UserController::class, 'updateNotificationPreferences']);
 
 Route::post(
     '/tasks/{id}/reply',
