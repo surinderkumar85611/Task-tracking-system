@@ -377,7 +377,7 @@
 
                 <span class="rep-status">
                   <span class="status-dot-online"></span>
-                  {{ team.completion_rate }}%
+                  {{ team.members_count ?? 0 }} member{{ (team.members_count ?? 0) === 1 ? '' : 's' }}
                 </span>
               </div>
 
@@ -396,7 +396,7 @@
                 <span>By</span>
               </div>
 
-              <div v-for="activity in (recentActivity || [])" :key="activity.id" class="leads-row">
+              <div v-for="activity in recentActivity" :key="activity.id" class="leads-row">
                 <div class="lead-identity">
                   <span class="lead-dot" :class="activityDotClass(activity.type)"></span>
                   <span class="lead-title" :title="activity.message">{{ activity.message }}</span>
@@ -407,7 +407,7 @@
                 <span class="status-pill">{{ activity.actor_name }}</span>
               </div>
 
-              <div v-if="!(recentActivity || []).length" class="empty-state-inline">No recent activity yet.</div>
+              <div v-if="!recentActivity.length" class="empty-state-inline">No recent activity yet.</div>
             </div>
           </section>
 
@@ -521,7 +521,7 @@
         <div class="team-modal-stats">
           <div><strong>{{ selectedTeam.completion_rate }}%</strong><span>Completion</span></div>
           <div><strong>{{ selectedTeam.projects_count }}</strong><span>Projects</span></div>
-          <div><strong>{{ selectedTeam.members_count }}</strong><span>Members</span></div>
+          <div><strong>{{ (selectedTeam.members || []).length }}</strong><span>Members</span></div>
         </div>
 
         <h4 class="modal-subhead">Team Members</h4>
@@ -542,6 +542,7 @@
           </select>
           <button class="save-btn small" :disabled="!memberToAdd" @click="addMember">Add</button>
         </div>
+        <div v-if="!candidateMembers.length" class="empty-state-inline">No other members available to add.</div>
 
         <h4 class="modal-subhead">Team Projects</h4>
         <div class="modal-project-list">
@@ -624,6 +625,60 @@ watch(
   }
 );
 
+/* ---------------- Local, mutable copy of teams (with members) ----------------
+   Same rationale as localProjects: adding/removing a team member needs to
+   update the member count on the "Team Leaders" list and the modal's member
+   list instantly, without waiting on a full round trip. We keep a deep-ish
+   local copy (each team's `members` array is cloned too) and resync it
+   whenever Inertia refreshes the `teams` prop. */
+const localTeams = ref((props.teams || []).map(t => ({ ...t, members: (t.members || []).map(m => ({ ...m })) })));
+
+watch(
+  () => props.teams,
+  (val) => {
+    localTeams.value = (val || []).map(t => ({ ...t, members: (t.members || []).map(m => ({ ...m })) }));
+  }
+);
+
+/* ---------------- Local, mutable copy of all members ----------------
+   Lets us optimistically flip a member's `assigned_to` the instant they're
+   added to / removed from a team, so the "Add Member" dropdown (which
+   excludes members already on the team) updates immediately. */
+const localMembers = ref((props.allMembers || []).map(m => ({ ...m })));
+
+watch(
+  () => props.allMembers,
+  (val) => {
+    localMembers.value = (val || []).map(m => ({ ...m }));
+  }
+);
+
+/* ---------------- Recent activity (local, optimistic) ----------------
+   IMPORTANT FIX: the template below reads a bare `recentActivity`
+   identifier (not `props.recentActivity`). Since `defineProps` was never
+   destructured, that identifier previously didn't exist anywhere in this
+   component's scope — so the "Recent Activity" panel always rendered its
+   empty state, no matter what the backend sent. Declaring it here both
+   fixes that bug and gives us a place to push optimistic entries (e.g.
+   "Moved X from Team A to Team B") the instant a member is added/removed,
+   ahead of the server's own activity-log entry arriving on reload. */
+const recentActivity = ref((props.recentActivity || []).map(a => ({ ...a })));
+
+watch(
+  () => props.recentActivity,
+  (val) => {
+    recentActivity.value = (val || []).map(a => ({ ...a }));
+  }
+);
+
+let tempActivityId = -1;
+const pushLocalActivity = ({ type, message, project_name = null, actor_name = "Super Admin" }) => {
+  recentActivity.value = [
+    { id: tempActivityId--, type, message, project_name, actor_name },
+    ...recentActivity.value,
+  ];
+};
+
 /* ---------------- Search highlighting ---------------- */
 const escapeHtml = (value) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -669,14 +724,17 @@ const teamLeaderStats = computed(() => {
    come from the backend's `teams` prop (built from Member::where('role','TL')
    in SuperAdminController@index), never derived from `admins` here.
    `teamLeaderStats` is kept as a client-side cross-check/fallback for
-   `projects_count`/`completed_count` in case the backend entry omits them. */
+   `projects_count`/`completed_count` in case the backend entry omits them.
+   `members_count` is derived straight from each team's local `members`
+   array so it stays in sync the instant someone is added/removed. */
 const teamLeaders = computed(() => {
-  return (props.teams || []).map(t => {
+  return localTeams.value.map(t => {
     const stats = teamLeaderStats.value[t.id] ?? teamLeaderStats.value[t.name] ?? {};
     return {
       ...t,
       projects_count: t.projects_count ?? stats.assigned ?? 0,
       completed_count: t.completed_count ?? stats.completed ?? 0,
+      members_count: (t.members || []).length,
     };
   });
 });
@@ -699,7 +757,7 @@ const filteredAdmins = computed(() => {
    dedicated `workspaces` prop from the backend. */
 const workspaceNames = computed(() => {
   const names = new Set();
-  (props.teams || []).forEach(t => { if (t.workspace_name) names.add(t.workspace_name); });
+  localTeams.value.forEach(t => { if (t.workspace_name) names.add(t.workspace_name); });
   localProjects.value.forEach(p => { if (p.workspace_name) names.add(p.workspace_name); });
   return Array.from(names).sort();
 });
@@ -925,31 +983,100 @@ const monthlyProjects = computed(() => {
 const maxMonthlyProjectCount = computed(() => Math.max(1, ...monthlyProjects.value.map(b => b.count)));
 
 /* ---------------- Team modal ---------------- */
-const selectedTeam = computed(() => (props.teams || []).find(t => t.id === selectedTeamId.value) || null);
+const selectedTeam = computed(() => localTeams.value.find(t => t.id === selectedTeamId.value) || null);
 
+/* Any member not already on this team can be added — no longer restricted
+   to the same workspace, per request ("he can add any member to any team
+   leader team"). Still excludes other team leaders (role "TL") from being
+   dropped into someone else's team. */
 const candidateMembers = computed(() => {
   if (!selectedTeam.value) return [];
-  return (props.allMembers || []).filter(m =>
-    m.workspace_id === selectedTeam.value.workspace_id &&
-    m.role !== "TL" &&
-    m.assigned_to !== selectedTeam.value.id
-  );
+  const currentMemberIds = new Set((selectedTeam.value.members || []).map(m => m.id));
+  return localMembers.value.filter(m => m.role !== "TL" && !currentMemberIds.has(m.id));
 });
 
 const openTeam = (id) => { selectedTeamId.value = id; memberToAdd.value = ""; };
 const closeTeam = () => { selectedTeamId.value = null; memberToAdd.value = ""; };
 
+/* Adding a member optimistically:
+   1. Moves them out of whatever team they were previously on (if any).
+   2. Moves them into the selected team's local `members` array.
+   3. Logs a Recent Activity entry ("Moved X from A to B" / "Added X to B").
+   4. Persists to the server, then reloads just the affected props so the
+      optimistic state gets reconciled with whatever the backend actually
+      stored (also self-heals if the request failed). */
 const addMember = () => {
   if (!selectedTeam.value || !memberToAdd.value) return;
-  router.post(`/super-admin/teams/${selectedTeam.value.id}/members/${memberToAdd.value}`, {}, {
+
+  const team = selectedTeam.value;
+  const member = localMembers.value.find(m => m.id === memberToAdd.value);
+  if (!member) return;
+
+  const previousTeam = localTeams.value.find(t => (t.members || []).some(m => m.id === member.id));
+  const targetTeam = localTeams.value.find(t => t.id === team.id);
+
+  if (previousTeam && targetTeam && previousTeam.id !== targetTeam.id) {
+    previousTeam.members = (previousTeam.members || []).filter(m => m.id !== member.id);
+  }
+  if (targetTeam) {
+    targetTeam.members = [...(targetTeam.members || []), { ...member, assigned_to: team.id }];
+  }
+  const memberRef = localMembers.value.find(m => m.id === member.id);
+  if (memberRef) memberRef.assigned_to = team.id;
+
+  pushLocalActivity({
+    type: "leader",
+    message: previousTeam && previousTeam.id !== team.id
+      ? `Moved ${member.name} from ${previousTeam.name} to ${team.name}`
+      : `Added ${member.name} to ${team.name}`,
+  });
+
+  const addedMemberId = memberToAdd.value;
+  memberToAdd.value = "";
+
+  router.post(`/super-admin/teams/${team.id}/members/${addedMemberId}`, {}, {
     preserveScroll: true,
-    onSuccess: () => { memberToAdd.value = ""; },
+    onSuccess: () => {
+      // Reconcile optimistic state with the server's actual data (and pick
+      // up the server-side activity-log entry, if the backend writes one).
+      router.reload({ only: ["teams", "allMembers", "recentActivity"] });
+    },
+    onError: () => {
+      // Request failed — reloading these props restores the true state and
+      // undoes the optimistic move.
+      router.reload({ only: ["teams", "allMembers", "recentActivity"] });
+    },
   });
 };
 
 const removeMember = (memberId) => {
   if (!selectedTeam.value) return;
-  router.delete(`/super-admin/teams/${selectedTeam.value.id}/members/${memberId}`, { preserveScroll: true });
+  const team = selectedTeam.value;
+  const member = (team.members || []).find(m => m.id === memberId);
+
+  const targetTeam = localTeams.value.find(t => t.id === team.id);
+  if (targetTeam) {
+    targetTeam.members = (targetTeam.members || []).filter(m => m.id !== memberId);
+  }
+  const memberRef = localMembers.value.find(m => m.id === memberId);
+  if (memberRef) memberRef.assigned_to = null;
+
+  if (member) {
+    pushLocalActivity({
+      type: "leader",
+      message: `Removed ${member.name} from ${team.name}`,
+    });
+  }
+
+  router.delete(`/super-admin/teams/${team.id}/members/${memberId}`, {
+    preserveScroll: true,
+    onSuccess: () => {
+      router.reload({ only: ["teams", "allMembers", "recentActivity"] });
+    },
+    onError: () => {
+      router.reload({ only: ["teams", "allMembers", "recentActivity"] });
+    },
+  });
 };
 
 /* ---------------- Create admin ---------------- */
@@ -1029,6 +1156,16 @@ function logout() {
   --shadow-stats-hover: rgba(3, 4, 10, 0.55);
   --accent: #1fd1ab;
   --accent-soft: rgba(31, 209, 171, 0.16);
+
+  /* Sidebar tokens (dark theme) */
+  --sidebar-bg: #10121a;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-divider: rgba(255, 255, 255, 0.06);
+  --sidebar-text: #8a8fa5;
+  --sidebar-text-hover: #e7e9f2;
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.04);
+  --sidebar-logo-title: #f4f5f9;
+  --sidebar-logo-sub: #6d7288;
 }
 
 .theme-light {
@@ -1052,6 +1189,17 @@ function logout() {
   --shadow-stats-hover: rgba(24, 28, 55, 0.1);
   --accent: #0b8a75;
   --accent-soft: rgba(11, 138, 117, 0.1);
+
+  /* Sidebar tokens (light theme) — the rail now follows the toggle
+     instead of always staying dark. */
+  --sidebar-bg: #ffffff;
+  --sidebar-border: rgba(30, 35, 70, 0.08);
+  --sidebar-divider: rgba(30, 35, 70, 0.08);
+  --sidebar-text: #5b607a;
+  --sidebar-text-hover: #1c2033;
+  --sidebar-hover-bg: rgba(30, 35, 70, 0.05);
+  --sidebar-logo-title: #12141f;
+  --sidebar-logo-sub: #767c93;
 }
 
 .dashboard {
@@ -1091,21 +1239,21 @@ function logout() {
 .content-wrapper { max-width: 1640px; margin: 0 auto; width: 100%; padding: 28px 40px 60px; }
 
 /* ===================== SIDEBAR ===================== */
-/* The rail is always dark ink, independent of light/dark theme toggle —
-   a fixed "control strip" that anchors the interface, like a cockpit
-   panel that doesn't change with cabin lighting. */
+/* The rail now follows the theme toggle via --sidebar-* tokens (defined
+   per-theme above) instead of being hardcoded to a fixed dark color. */
 .sidebar {
   width: 252px;
-  background: #10121a;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 24px 16px;
   flex-shrink: 0;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
-.logo { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; padding: 4px 8px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.logo { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; padding: 4px 8px 20px; border-bottom: 1px solid var(--sidebar-divider); }
 .logo-icon {
   width: 38px; height: 38px; border-radius: 9px;
   background: linear-gradient(150deg, #2be3bb, var(--accent));
@@ -1113,17 +1261,17 @@ function logout() {
   font-family: 'Lexend', sans-serif;
   font-size: 16px; font-weight: 700; color: #06110e; flex-shrink: 0;
 }
-.logo h2 { font-size: 14.5px; font-weight: 600; color: #f4f5f9; margin-bottom: 1px; letter-spacing: -0.1px; }
-.logo span { color: #6d7288; font-size: 11px; font-family: 'Inter', sans-serif; letter-spacing: 0.2px; }
+.logo h2 { font-size: 14.5px; font-weight: 600; color: var(--sidebar-logo-title); margin-bottom: 1px; letter-spacing: -0.1px; }
+.logo span { color: var(--sidebar-logo-sub); font-size: 11px; font-family: 'Inter', sans-serif; letter-spacing: 0.2px; }
 
 .menu { display: flex; flex-direction: column; gap: 2px; }
 .menu a {
-  text-decoration: none; color: #8a8fa5; display: flex; align-items: center; gap: 12px;
+  text-decoration: none; color: var(--sidebar-text); display: flex; align-items: center; gap: 12px;
   padding: 10px 12px; border-radius: 8px; font-weight: 500; font-size: 13px; transition: .15s;
   position: relative;
 }
-.menu a:hover { background: rgba(255, 255, 255, 0.04); color: #e7e9f2; }
-.menu a.active { background: rgba(23, 178, 149, 0.14); color: #f4f5f9; }
+.menu a:hover { background: var(--sidebar-hover-bg); color: var(--sidebar-text-hover); }
+.menu a.active { background: var(--accent-soft); color: var(--sidebar-text-hover); }
 .menu a.active::before {
   content: ""; position: absolute; left: -16px; top: 50%; transform: translateY(-50%);
   width: 3px; height: 18px; border-radius: 0 3px 3px 0; background: var(--accent);

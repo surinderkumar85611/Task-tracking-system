@@ -348,8 +348,7 @@ Route::prefix('super-admin')->middleware(['auth', 'super_admin'])->group(functio
     Route::delete('/admin/{user}', [SuperAdminController::class, 'destroyAdmin']);
 
     Route::get('/projects', [SuperAdminController::class, 'projects']);
-    Route::patch('/projects/{project}', [SuperAdminController::class, 'updateProjectProgress']); // fixes the 404
-
+    Route::patch('/projects/{project}', [SuperAdminController::class, 'updateProjectProgress']); 
     Route::get('/workspaces', [SuperAdminController::class, 'workspaces']);
     Route::post('/workspaces', [SuperAdminController::class, 'storeWorkspace']);
     Route::put('/workspaces/{workspace}', [SuperAdminController::class, 'updateWorkspace']);
