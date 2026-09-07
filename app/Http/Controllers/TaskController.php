@@ -1,6 +1,5 @@
 <?php
 
-namespace App\Support\Facades\Schema; // Keeping your top structural setup intact
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Schema;
@@ -195,6 +194,17 @@ class TaskController extends Controller
     public function update(Request $request, $id)
     {
         $task = Task::findOrFail($id);
+
+        if ($request->has('review') && $request->review !== $task->review) {
+            $request->validate([
+                'review' => 'nullable|string',
+            ]);
+
+            $task->update([
+                'review' => $request->review,
+            ]);
+            return back();
+        }
 
         $request->validate([
             'project_id' => 'required',
