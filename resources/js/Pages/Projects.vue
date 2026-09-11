@@ -137,7 +137,9 @@
                         </div>
                     </div>
 
-                    <div class="monday-table-wrapper">
+                    <div class="monday-table-wrapper"
+                        :class="{ 'project-deadline-locked': isProjectDeadlinePassed(project) }"
+                        @click.capture="guardProjectDeadline(project, $event)">
                         <table class="monday-editable-table">
                             <thead>
                                 <tr>
@@ -152,7 +154,7 @@
                                     <th class="col-action">Action</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody :disabled="isProjectDeadlinePassed(project)">
                                 <tr v-for="task in project.tasks" :key="task.id"
                                     :class="{ 'completed-task-row': task.status === 'Completed' }">
                                     <td class="cell-task">
@@ -323,10 +325,19 @@
                                     </td>
                                 </tr>
 
-                                <tr class="append-fast-row">
+                                <tr class="append-fast-row"
+                                    :class="{ 'deadline-locked-row': isProjectDeadlinePassed(project) }">
                                     <td colspan="9">
                                         <div class="add-row-placeholder" @click="appendNewEmptyTask(project)">
-                                            <span class="plus-sign">＋</span> Add a new task to this project...
+                                            <span class="plus-sign">
+                                                {{ isProjectDeadlinePassed(project) ? '🔒' : '＋' }}
+                                            </span>
+
+                                            {{
+                                                isProjectDeadlinePassed(project)
+                                                    ? 'Project deadline reached — update deadline to continue'
+                                                    : 'Add a new task to this project...'
+                                            }}
                                         </div>
                                     </td>
                                 </tr>
@@ -1108,7 +1119,37 @@ const getProjectScopeMembers = (project) => {
     return assets;
 };
 
+const isProjectDeadlinePassed = (project) => {
+    if (!project?.deadline) {
+        return false;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const deadline = new Date(`${project.deadline}T00:00:00`);
+    deadline.setHours(0, 0, 0, 0);
+
+    return today > deadline;
+};
+
+const guardProjectDeadline = (project, event) => {
+    if (!isProjectDeadlinePassed(project)) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    toast.error("Please update the project deadline to continue.");
+};
+
 const appendNewEmptyTask = (project) => {
+
+    if (isProjectDeadlinePassed(project)) {
+        toast.error("Please update the project deadline to continue.");
+        return;
+    }
+
     const rawPayload = {
         workspace_id: project.workspace_id,
         project_id: project.id,
@@ -2027,7 +2068,6 @@ tbody tr {
     color: var(--text);
     outline: none;
     cursor: pointer;
-    -webkit-appearance: none;
 }
 
 .monday-select-cell option {
