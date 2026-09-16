@@ -79,7 +79,7 @@
 import { ref, computed } from "vue";
 import { router } from "@inertiajs/vue3";
 import { Head } from "@inertiajs/vue3";
-import SuperAdminSidebar from "./SuperAdminSidebar.vue";
+import SuperAdminSidebar from "./Sidebar.vue";
 
 const props = defineProps({
   workspaces: { type: Array, default: () => [] },

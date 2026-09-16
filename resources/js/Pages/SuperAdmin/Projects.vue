@@ -106,7 +106,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import { Head } from "@inertiajs/vue3";
-import SuperAdminSidebar from "./SuperAdminSidebar.vue";
+import SuperAdminSidebar from "./Sidebar.vue";
 
 const props = defineProps({
   allProjects: { type: Array, default: () => [] },

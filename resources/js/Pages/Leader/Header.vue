@@ -1,127 +1,123 @@
 <template>
-  <header class="header">
+    <header class="header">
 
-    <!-- LEFT SIDE -->
-    <div class="header-left">
-      <slot name="left">
-        <h1>{{ title }}</h1>
-        <p v-if="subtitle">{{ subtitle }}</p>
-      </slot>
-    </div>
-
-    <!-- RIGHT SIDE -->
-    <div class="header-right">
-
-      <!-- WORKSPACE (optional) -->
-      <div v-if="workspace" class="workspace-label">
-        🏢 {{ workspace }}
-      </div>
-
-      <!-- SEARCH (optional) -->
-      <input
-        v-if="showSearch"
-        v-model="searchModel"
-        type="text"
-        :placeholder="searchPlaceholder"
-        class="search-box"
-      />
-
-      <!-- NOTIFICATIONS (optional) -->
-      <div v-if="showNotifications" class="notification-bell-container">
-
-        <button class="icon-btn" @click="toggleNotifications">
-          🔔
-          <span v-if="unreadCount > 0" class="bell-dot">
-            {{ unreadCount }}
-          </span>
-        </button>
-
-        <div v-if="openNotifications" class="notification-dropdown-panel">
-          <slot name="notifications">
-            <p>No notifications</p>
-          </slot>
+        <!-- LEFT SIDE -->
+        <div class="header-left">
+            <slot name="left">
+                <h1>{{ title }}</h1>
+                <p v-if="subtitle">{{ subtitle }}</p>
+            </slot>
         </div>
 
-      </div>
+        <!-- RIGHT SIDE -->
+        <div class="header-right">
 
-      <!-- THEME -->
-      <button class="theme-btn" @click="theme.toggleTheme">
-        {{ theme.isDark ? "☀️" : "🌙" }}
-      </button>
+            <!-- WORKSPACE (optional) -->
+            <div v-if="workspace" class="workspace-label">
+                🏢 {{ workspace }}
+            </div>
 
-      <!-- PROFILE -->
-      <div class="profile-container" ref="profileRef">
+            <!-- SEARCH (optional) -->
+            <input v-if="showSearch" :value="searchModel" @input="emit('update:searchModel', $event.target.value)"
+                type="text" :placeholder="searchPlaceholder" class="search-box" />
 
-        <img
-          src="https://i.pravatar.cc/100"
-          class="avatar"
-          @click.stop="showProfile = !showProfile"
-        />
+            <!-- NOTIFICATIONS (optional) -->
+            <div v-if="showNotifications" class="notification-bell-container">
 
-        <div v-if="showProfile" class="profile-dropdown">
-          <button @click="logout">Logout</button>
+                <button class="icon-btn" @click="toggleNotifications">
+                    🔔
+                    <span v-if="unreadCount > 0" class="bell-dot">
+                        {{ unreadCount }}
+                    </span>
+                </button>
+
+                <div v-if="openNotifications" class="notification-dropdown-panel">
+                    <slot name="notifications">
+                        <p>No notifications</p>
+                    </slot>
+                </div>
+
+            </div>
+
+            <!-- THEME -->
+            <button class="theme-btn" @click="theme.toggleTheme">
+                {{ theme.isDark ? "☀️" : "🌙" }}
+            </button>
+
+            <!-- PROFILE -->
+            <div class="profile-container" ref="profileRef">
+
+                <img src="https://i.pravatar.cc/100" class="avatar" @click.stop="showProfile = !showProfile" />
+
+                <div v-if="showProfile" class="profile-dropdown">
+                    <button @click="logout">Logout</button>
+                </div>
+
+            </div>
+
         </div>
 
-      </div>
-
-    </div>
-
-  </header>
+    </header>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { router } from "@inertiajs/vue3";
 import { useThemeStore } from "@/stores/theme";
 
 const theme = useThemeStore();
 
 const props = defineProps({
-  title: String,
-  subtitle: String,
+    title: String,
+    subtitle: String,
 
-  workspace: String,
+    workspace: String,
 
-  showSearch: Boolean,
-  searchModel: String,
-  searchPlaceholder: {
-    type: String,
-    default: "Search..."
-  },
+    showSearch: Boolean,
+    searchModel: String,
+    searchPlaceholder: {
+        type: String,
+        default: "Search..."
+    },
 
-  showNotifications: Boolean,
-  unreadCount: {
-    type: Number,
-    default: 0
-  }
+    showNotifications: Boolean,
+    unreadCount: {
+        type: Number,
+        default: 0
+    }
 });
 
 const emit = defineEmits([
-  "update:searchModel"
+    "update:searchModel"
 ]);
+
+const searchValue = computed({
+    get: () => props.searchModel ?? "",
+    set: (value) => emit("update:searchModel", value)
+});
 
 const showProfile = ref(false);
 const openNotifications = ref(false);
 const profileRef = ref(null);
 
 const toggleNotifications = () => {
-  openNotifications.value = !openNotifications.value;
+    openNotifications.value = !openNotifications.value;
 };
 
 const logout = () => {
-  router.post("/logout", {}, {
-    replace: true,
-    onSuccess: () => {
-      window.location.href = "/login";
-    }
-  });
+    router.post("/logout", {}, {
+        replace: true,
+        onSuccess: () => {
+            window.location.href = "/login";
+        }
+    });
 };
 
 const handleClickOutside = (e) => {
-  if (profileRef.value && !profileRef.value.contains(e.target)) {
-    showProfile.value = false;
-  }
-  openNotifications.value = false;
+    if (profileRef.value && !profileRef.value.contains(e.target)) {
+        showProfile.value = false;
+    }
+    openNotifications.value = false;
 };
 
 onMounted(() => document.addEventListener("click", handleClickOutside));

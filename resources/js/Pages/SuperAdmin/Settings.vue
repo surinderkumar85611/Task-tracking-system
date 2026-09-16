@@ -200,7 +200,7 @@ import axios from "axios";
 import { useToast } from "vue-toastification";
 import QrcodeVue from 'qrcode.vue';
 import { Head } from '@inertiajs/vue3';
-import SuperAdminSidebar from "./SuperAdminSidebar.vue";
+import SuperAdminSidebar from "./Sidebar.vue";
 
 const toast = useToast();
 const isDark = ref(true);
