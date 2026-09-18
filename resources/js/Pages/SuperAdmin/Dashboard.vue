@@ -4,7 +4,6 @@
 
     <div class="dashboard" :class="isDark ? 'theme-dark' : 'theme-light'">
 
-        <!-- SIDEBAR -->
         <aside class="sidebar">
             <div>
                 <div class="logo">
@@ -30,7 +29,6 @@
 
         <main class="main-content">
 
-            <!-- TOPBAR -->
             <div class="topbar">
                 <div class="topbar-greeting">
                     <h2>
@@ -54,7 +52,6 @@
                             class="search-box" />
                     </div>
 
-                    <!-- WORKSPACES DROPDOWN -->
                     <div class="workspace-dropdown-container" ref="workspaceRef">
                         <button class="workspace-label" @click.stop="showWorkspaceDropdown = !showWorkspaceDropdown">
                             <span class="workspace-dot"></span>
@@ -79,7 +76,6 @@
                         {{ isDark ? '☀️' : '🌙' }}
                     </button>
 
-                    <!-- NOTIFICATIONS -->
                     <div class="notification-bell-container" ref="bellRef">
                         <button class="icon-btn" @click.stop="showBellDropdown = !showBellDropdown"
                             aria-label="Notifications">
@@ -114,7 +110,6 @@
                         </div>
                     </div>
 
-                    <!-- PROFILE -->
                     <div class="profile-container" ref="profileRef">
                         <div class="avatar avatar-fallback" @click.stop="showProfileMenu = !showProfileMenu">SA</div>
 
@@ -128,7 +123,6 @@
 
             <div class="content-wrapper">
 
-                <!-- STATS -->
                 <section class="stats-grid">
 
                     <div class="stat-card assigned-tasks-card">
@@ -145,35 +139,6 @@
                         <small class="stat-subtitle">{{ stats.teamLeaders }} team leaders</small>
                     </div>
 
-                    <!-- <span class="rep-status">
-                        <span class="status-dot-online"></span>
-                        {{ team.members_count ?? 0 }} member{{ (team.members_count ?? 0) === 1 ? '' : 's' }}
-                    </span> -->
-                    </section>
-
-            </div>
-
-            <div v-if="!filteredTeams.length" class="empty-state-inline">No team leaders found.</div>
-        </main>
-
-        <!-- RECENT ACTIVITY -->
-        <section class="dashboard-card">
-            <div class="card-header">
-                <h2>Recent Activity</h2>
-            </div>
-
-            <div class="leads-table">
-                <div class="leads-table-head">
-                    <span>Activity</span>
-                    <span>Project</span>
-                    <span>By</span>
-                </div>
-
-                <div v-for="activity in recentActivity" :key="activity.id" class="leads-row">
-                    <div class="lead-identity">
-                        <span class="lead-dot" :class="activityDotClass(activity.type)"></span>
-                        <span class="lead-title" :title="activity.message">{{ activity.message }}</span>
-                    </div>
                     <div class="stat-card completed-tasks-card">
                         <div class="stat-icon-badge">✅</div>
                         <span class="stat-label">Completed Projects</span>
@@ -194,404 +159,361 @@
                         <h2 class="stat-value">{{ completionRateComputed }}%</h2>
                         <small class="stat-subtitle">Overall project completion</small>
                     </div>
-                </div>
-            </div>
-        </section>
 
-        <!-- PROJECTS BOARD + COMPLETION DONUT + TODAY'S OVERVIEW -->
-        <div class="top-row-grid">
+                </section>
 
-            <div class="dashboard-card main-panel">
-                <div class="card-header kanban-card-header">
-                    <h2>All Projects</h2>
-                    <div class="view-toggle">
-                        <button :class="{ active: projectView === 'board' }" @click="projectView = 'board'">🗂️
-                            Board</button>
-                        <button :class="{ active: projectView === 'list' }" @click="projectView = 'list'">📋
-                            List</button>
-                    </div>
-                </div>
+                <div class="top-row-grid">
 
-                <!-- BOARD VIEW -->
-                <div class="kanban-board" v-if="projectView === 'board'">
-                    <div v-for="column in kanbanColumns" :key="column.key" class="kanban-column">
-                        <div class="kanban-column-header">
-                            <span class="kanban-column-dot" :class="column.key"></span>
-                            <h3>{{ column.label }}</h3>
-                            <span class="kanban-count">{{ column.projects.length }}</span>
+                    <div class="dashboard-card main-panel">
+                        <div class="card-header kanban-card-header">
+                            <h2>All Projects</h2>
+                            <div class="view-toggle">
+                                <button :class="{ active: projectView === 'board' }" @click="projectView = 'board'">🗂️
+                                    Board</button>
+                                <button :class="{ active: projectView === 'list' }" @click="projectView = 'list'">📋
+                                    List</button>
+                            </div>
                         </div>
 
-                        <div class="kanban-column-body" :class="{ 'is-drop-target': dragOverColumn === column.key }"
-                            @dragover.prevent="onDragOver(column.key)" @dragleave="onDragLeave(column.key)"
-                            @drop="onDrop(column.key)">
-                            <div v-for="project in column.projects" :key="project.id" class="kanban-task-card"
-                                :class="[column.key, { 'is-dragging': draggedProjectId === project.id }]"
-                                draggable="true" @dragstart="onDragStart(project)" @dragend="onDragEnd">
-                                <div class="kanban-task-top">
-                                    <h4 v-html="highlightMatch(project.name)"></h4>
-                                    <span class="priority-badge">{{ project.progress }}%</span>
+                        <div class="kanban-board" v-if="projectView === 'board'">
+                            <div v-for="column in kanbanColumns" :key="column.key" class="kanban-column">
+                                <div class="kanban-column-header">
+                                    <span class="kanban-column-dot" :class="column.key"></span>
+                                    <h3>{{ column.label }}</h3>
+                                    <span class="kanban-count">{{ column.projects.length }}</span>
                                 </div>
 
-                                <p class="task-row-project" v-if="project.team_leader_name">
-                                    👤 <span v-html="highlightMatch(project.team_leader_name)"></span>
-                                </p>
+                                <div class="kanban-column-body"
+                                    :class="{ 'is-drop-target': dragOverColumn === column.key }"
+                                    @dragover.prevent="onDragOver(column.key)" @dragleave="onDragLeave(column.key)"
+                                    @drop="onDrop(column.key)">
+                                    <div v-for="project in column.projects" :key="project.id" class="kanban-task-card"
+                                        :class="[column.key, { 'is-dragging': draggedProjectId === project.id }]"
+                                        draggable="true" @dragstart="onDragStart(project)" @dragend="onDragEnd">
+                                        <div class="kanban-task-top">
+                                            <h4 v-html="highlightMatch(project.name)"></h4>
+                                            <span class="priority-badge">{{ project.progress }}%</span>
+                                        </div>
 
-                                <small class="due-date" v-if="project.deadline">Due: {{ project.deadline
-                                    }}</small>
+                                        <p class="task-row-project" v-if="project.team_leader_name">
+                                            👤 <span v-html="highlightMatch(project.team_leader_name)"></span>
+                                        </p>
+
+                                        <small class="due-date" v-if="project.deadline">Due: {{ project.deadline
+                                        }}</small>
+                                    </div>
+
+                                    <div v-if="!column.projects.length" class="kanban-empty"
+                                        :class="{ 'is-drop-target': dragOverColumn === column.key }">
+                                        {{ dragOverColumn === column.key ? '⬇️ Drop to move here' : '📭 Nothing here — drag a project over' }}
+                                    </div>
+                                </div>
                             </div>
+                        </div>
 
-                            <div v-if="!column.projects.length" class="kanban-empty"
-                                :class="{ 'is-drop-target': dragOverColumn === column.key }">
-                                {{ dragOverColumn === column.key ? '⬇️ Drop to move here' : '📭 Nothing here — drag a project over' }}
+                        <div class="task-list" v-else-if="filteredProjects.length">
+                            <div v-for="project in filteredProjects" :key="project.id" class="task-row-card">
+                                <div class="task-status-dot" :class="progressClass(project.progress)"></div>
+
+                                <div class="task-row-main">
+                                    <div class="task-row-top">
+                                        <h3 v-html="highlightMatch(project.name)"></h3>
+                                        <span class="priority-badge">{{ project.progress }}%</span>
+                                    </div>
+
+                                    <p class="task-row-project" v-if="project.team_leader_name">
+                                        👤 <span v-html="highlightMatch(project.team_leader_name)"></span>
+                                    </p>
+
+                                    <div class="task-row-bottom">
+                                        <span class="status-pill" :class="progressClass(project.progress)">
+                                            {{ progressLabel(project.progress) }}
+                                        </span>
+                                        <small class="due-date" v-if="project.deadline">Due: {{ project.deadline
+                                        }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else class="empty-state-inline">🎉 No projects match your search.</div>
+                    </div>
+
+                    <div class="dashboard-card donut-card">
+                        <div class="card-header">
+                            <h2>Completion Rate</h2>
+                        </div>
+
+                        <div class="donut-wrap">
+                            <svg viewBox="0 0 120 120" class="donut-svg">
+                                <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border-deep)"
+                                    stroke-width="12" />
+                                <circle cx="60" cy="60" r="50" fill="none" stroke="var(--c-green)" stroke-width="12"
+                                    stroke-linecap="round" :stroke-dasharray="2 * Math.PI * 50"
+                                    :stroke-dashoffset="(2 * Math.PI * 50) * (1 - completionRateComputed / 100)"
+                                    transform="rotate(-90 60 60)" />
+                            </svg>
+                            <div class="donut-center">
+                                <strong>{{ completionRateComputed }}%</strong>
+                                <span>Completed</span>
+                            </div>
+                        </div>
+
+                        <div class="donut-footer">
+                            <div class="donut-stat">
+                                <strong>{{ completedProjectsCount }}</strong>
+                                <span>Done</span>
+                            </div>
+                            <div class="donut-stat">
+                                <strong>{{ inProgressCount }}</strong>
+                                <span>Active</span>
+                            </div>
+                            <div class="donut-stat">
+                                <strong>{{ pendingProjectsCount }}</strong>
+                                <span>Pending</span>
+                            </div>
+                        </div>
+
+                        <div class="donut-breakdown">
+                            <div v-for="col in allKanbanColumns" :key="col.key" class="donut-breakdown-row">
+                                <span class="kanban-column-dot" :class="col.key"></span>
+                                <span class="donut-breakdown-label">{{ col.label }}</span>
+                                <strong>{{ col.projects.length }}</strong>
                             </div>
                         </div>
                     </div>
+
+                    <div class="dashboard-card today-activity-card">
+                        <div class="card-header">
+                            <h2>Today's Overview</h2>
+                        </div>
+
+                        <ul class="activity-stat-list">
+                            <li>
+                                <span class="ai-icon">📅</span>
+                                <span class="ai-label">Due Today</span>
+                                <span class="ai-value">{{ dueToday }}</span>
+                            </li>
+                            <li>
+                                <span class="ai-icon">🔥</span>
+                                <span class="ai-label">Overdue</span>
+                                <span class="ai-value">{{ overdueProjects.length }}</span>
+                            </li>
+                            <li>
+                                <span class="ai-icon">⏰</span>
+                                <span class="ai-label">Upcoming</span>
+                                <span class="ai-value">{{ upcomingCount }}</span>
+                            </li>
+                            <li>
+                                <span class="ai-icon">📈</span>
+                                <span class="ai-label">Progress</span>
+                                <span class="ai-value">{{ completionRateComputed }}%</span>
+                            </li>
+                        </ul>
+
+                        <div class="daily-goal">
+                            <div class="daily-goal-head">
+                                <span>Org-wide Progress</span>
+                                <strong>{{ completionRateComputed }}%</strong>
+                            </div>
+                            <div class="daily-goal-bar">
+                                <div class="daily-goal-fill" :style="{ width: completionRateComputed + '%' }"></div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
-                <!-- LIST VIEW -->
-                <div class="task-list" v-else-if="filteredProjects.length">
-                    <div v-for="project in filteredProjects" :key="project.id" class="task-row-card">
-                        <div class="task-status-dot" :class="progressClass(project.progress)"></div>
+                <section class="dashboard-card monthly-projects-card">
+                    <div class="card-header">
+                        <h2>Projects Assigned Per Month</h2>
+                    </div>
 
-                        <div class="task-row-main">
-                            <div class="task-row-top">
-                                <h3 v-html="highlightMatch(project.name)"></h3>
-                                <span class="priority-badge">{{ project.progress }}%</span>
+                    <div class="bar-chart">
+                        <div v-for="bucket in monthlyProjects" :key="bucket.label + bucket.year" class="bar-col">
+                            <span class="bar-value">{{ bucket.count }}</span>
+                            <div class="bar-track">
+                                <div class="bar-fill" :class="{ zero: bucket.count === 0 }"
+                                    :style="{ height: (bucket.count / maxMonthlyProjectCount) * 100 + '%' }"></div>
                             </div>
+                            <span class="bar-label">{{ bucket.label }}</span>
+                        </div>
+                    </div>
+                </section>
 
-                            <p class="task-row-project" v-if="project.team_leader_name">
-                                👤 <span v-html="highlightMatch(project.team_leader_name)"></span>
-                            </p>
+                <div class="mid-grid">
 
-                            <div class="task-row-bottom">
-                                <span class="status-pill" :class="progressClass(project.progress)">
-                                    {{ progressLabel(project.progress) }}
+                    <section class="dashboard-card">
+                        <div class="card-header">
+                            <h2>Team Leaders</h2>
+                        </div>
+
+                        <div class="rep-list">
+                            <div v-for="(team, index) in filteredTeams" :key="team.id" class="rep-row"
+                                @click="openTeam(team.id)">
+                                <span class="rep-rank">{{ index + 1 }}</span>
+
+                                <div class="rep-avatar">{{ team.name.charAt(0).toUpperCase() }}</div>
+
+                                <div class="rep-info">
+                                    <strong>{{ team.name }}</strong>
+                                    <span>
+                                        {{ team.workspace_name }} ·
+                                        {{ team.projects_count ?? 0 }} project{{ (team.projects_count ?? 0) === 1 ? '' :
+                                            's' }} ·
+                                        {{ team.completed_count ?? 0 }} completed
+                                    </span>
+                                </div>
+
+                                <span class="rep-status">
+                                    <span class="status-dot-online"></span>
+                                    {{ team.completion_rate }}%
                                 </span>
-                                <small class="due-date" v-if="project.deadline">Due: {{ project.deadline
-                                    }}</small>
+                            </div>
+
+                            <div v-if="!filteredTeams.length" class="empty-state-inline">No team leaders found.</div>
+                        </div>
+                    </section>
+
+                    <section class="dashboard-card">
+                        <div class="card-header">
+                            <h2>Recent Activity</h2>
+                        </div>
+
+                        <div class="leads-table">
+                            <div class="leads-table-head">
+                                <span>Activity</span>
+                                <span>Project</span>
+                                <span>By</span>
+                            </div>
+
+                            <div v-for="activity in recentActivity" :key="activity.id" class="leads-row">
+                                <div class="lead-identity">
+                                    <span class="lead-dot" :class="activityDotClass(activity.type)"></span>
+                                    <span class="lead-title" :title="activity.message">{{ activity.message }}</span>
+                                </div>
+
+                                <span class="lead-project">{{ activity.project_name || '—' }}</span>
+
+                                <span class="status-pill">{{ activity.actor_name }}</span>
+                            </div>
+
+                            <div v-if="!recentActivity.length" class="empty-state-inline">No recent activity
+                                yet.</div>
+                        </div>
+                    </section>
+
+                </div>
+
+                <div class="mid-grid">
+
+                    <section class="dashboard-card">
+                        <div class="card-header">
+                            <h2>Team Projects</h2>
+                        </div>
+
+                        <div class="team-projects-table" v-if="filteredProjects.length">
+                            <div class="team-projects-head">
+                                <span>Project</span>
+                                <span>Due Date</span>
+                                <span>Team Leader</span>
+                                <span>Progress</span>
+                            </div>
+
+                            <div v-for="project in filteredProjects" :key="project.id" class="team-projects-row">
+                                <div class="tp-name">
+                                    <span class="lead-dot" :class="progressClass(project.progress)"></span>
+                                    <span v-html="highlightMatch(project.name)"></span>
+                                </div>
+
+                                <span class="tp-date">{{ project.deadline || 'No deadline' }}</span>
+
+                                <div class="tp-leader">
+                                    <div class="rep-avatar small">{{ (project.team_leader_name ||
+                                        '—').charAt(0).toUpperCase() }}</div>
+                                    <span v-html="highlightMatch(project.team_leader_name || '—')"></span>
+                                </div>
+
+                                <div class="tp-progress">
+                                    <div class="mini-progress">
+                                        <div class="mini-progress-fill"
+                                            :style="{ width: (project.progress || 0) + '%' }"></div>
+                                    </div>
+                                    <span>{{ project.progress || 0 }}%</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <div v-else class="empty-state-inline">🎉 No projects match your search.</div>
-            </div>
+                        <div v-else class="empty-state-inline">No projects found.</div>
+                    </section>
 
-            <div v-if="!recentActivity.length" class="empty-state-inline">No recent activity yet.</div>
-        </div>
-
-        <!-- COMPLETION DONUT -->
-        <div class="dashboard-card donut-card">
-            <div class="card-header">
-                <h2>Completion Rate</h2>
-            </div>
-
-            <div class="donut-wrap">
-                <svg viewBox="0 0 120 120" class="donut-svg">
-                    <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border-deep)" stroke-width="12" />
-                    <circle cx="60" cy="60" r="50" fill="none" stroke="var(--c-green)" stroke-width="12"
-                        stroke-linecap="round" :stroke-dasharray="2 * Math.PI * 50"
-                        :stroke-dashoffset="(2 * Math.PI * 50) * (1 - completionRateComputed / 100)"
-                        transform="rotate(-90 60 60)" />
-                </svg>
-                <div class="donut-center">
-                    <strong>{{ completionRateComputed }}%</strong>
-                    <span>Completed</span>
-                </div>
-            </div>
-
-            <div class="donut-footer">
-                <div class="donut-stat">
-                    <strong>{{ completedProjectsCount }}</strong>
-                    <span>Done</span>
-                </div>
-                <div class="donut-stat">
-                    <strong>{{ inProgressCount }}</strong>
-                    <span>Active</span>
-                </div>
-                <div class="donut-stat">
-                    <strong>{{ pendingProjectsCount }}</strong>
-                    <span>Pending</span>
-                </div>
-            </div>
-
-            <div class="donut-breakdown">
-                <div v-for="col in allKanbanColumns" :key="col.key" class="donut-breakdown-row">
-                    <span class="kanban-column-dot" :class="col.key"></span>
-                    <span class="donut-breakdown-label">{{ col.label }}</span>
-                    <strong>{{ col.projects.length }}</strong>
-                </div>
-            </div>
-        </div>
-
-        <!-- TODAY'S OVERVIEW -->
-        <div class="dashboard-card today-activity-card">
-            <div class="card-header">
-                <h2>Today's Overview</h2>
-            </div>
-
-            <ul class="activity-stat-list">
-                <li>
-                    <span class="ai-icon">📅</span>
-                    <span class="ai-label">Due Today</span>
-                    <span class="ai-value">{{ dueToday }}</span>
-                </li>
-                <li>
-                    <span class="ai-icon">🔥</span>
-                    <span class="ai-label">Overdue</span>
-                    <span class="ai-value">{{ overdueProjects.length }}</span>
-                </li>
-                <li>
-                    <span class="ai-icon">⏰</span>
-                    <span class="ai-label">Upcoming</span>
-                    <span class="ai-value">{{ upcomingCount }}</span>
-                </li>
-                <li>
-                    <span class="ai-icon">📈</span>
-                    <span class="ai-label">Progress</span>
-                    <span class="ai-value">{{ completionRateComputed }}%</span>
-                </li>
-            </ul>
-
-            <div class="daily-goal">
-                <div class="daily-goal-head">
-                    <span>Org-wide Progress</span>
-                    <strong>{{ completionRateComputed }}%</strong>
-                </div>
-                <div class="daily-goal-bar">
-                    <div class="daily-goal-fill" :style="{ width: completionRateComputed + '%' }"></div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- PROJECTS ASSIGNED PER MONTH -->
-    <section class="dashboard-card monthly-projects-card">
-        <div class="card-header">
-            <h2>Projects Assigned Per Month</h2>
-        </div>
-
-        <div class="bar-chart">
-            <div v-for="bucket in monthlyProjects" :key="bucket.label + bucket.year" class="bar-col">
-                <span class="bar-value">{{ bucket.count }}</span>
-                <div class="bar-track">
-                    <div class="bar-fill" :class="{ zero: bucket.count === 0 }"
-                        :style="{ height: (bucket.count / maxMonthlyProjectCount) * 100 + '%' }"></div>
-                </div>
-                <span class="bar-label">{{ bucket.label }}</span>
-            </div>
-        </div>
-    </section>
-
-    <!-- TEAM LEADERS + RECENT ACTIVITY -->
-    <div class="mid-grid">
-
-        <!-- TEAM LEADERS — ranked list, click to open team detail -->
-        <section class="dashboard-card">
-            <div class="card-header">
-                <h2>Team Leaders</h2>
-            </div>
-
-            <div class="rep-list">
-                <div v-for="(team, index) in filteredTeams" :key="team.id" class="rep-row" @click="openTeam(team.id)">
-                    <span class="rep-rank">{{ index + 1 }}</span>
-
-                    <div class="rep-avatar">{{ team.name.charAt(0).toUpperCase() }}</div>
-
-                    <div class="rep-info">
-                        <strong>{{ team.name }}</strong>
-                        <span>
-                            {{ team.workspace_name }} ·
-                            {{ team.projects_count ?? 0 }} project{{ (team.projects_count ?? 0) === 1 ? '' :
-                                's' }} ·
-                            {{ team.completed_count ?? 0 }} completed
-                        </span>
-                    </div>
-
-                    <span class="rep-status">
-                        <span class="status-dot-online"></span>
-                        {{ team.completion_rate }}%
-                    </span>
-                </div>
-
-                <div v-if="!filteredTeams.length" class="empty-state-inline">No team leaders found.</div>
-            </div>
-        </section>
-
-        <!-- RECENT ACTIVITY -->
-        <section class="dashboard-card">
-            <div class="card-header">
-                <h2>Recent Activity</h2>
-            </div>
-
-            <div class="leads-table">
-                <div class="leads-table-head">
-                    <span>Activity</span>
-                    <span>Project</span>
-                    <span>By</span>
-                </div>
-
-                <div v-for="activity in (recentActivity || [])" :key="activity.id" class="leads-row">
-                    <div class="lead-identity">
-                        <span class="lead-dot" :class="activityDotClass(activity.type)"></span>
-                        <span class="lead-title" :title="activity.message">{{ activity.message }}</span>
-                    </div>
-
-                    <span class="lead-project">{{ activity.project_name || '—' }}</span>
-
-                    <span class="status-pill">{{ activity.actor_name }}</span>
-                </div>
-
-                <div v-if="!(recentActivity || []).length" class="empty-state-inline">No recent activity
-                    yet.</div>
-            </div>
-        </section>
-
-    </div>
-
-    <!-- TEAM PROJECTS + UPCOMING DEADLINES -->
-    <div class="mid-grid">
-
-        <section class="dashboard-card">
-            <div class="card-header">
-                <h2>Team Projects</h2>
-            </div>
-
-            <div class="team-projects-table" v-if="filteredProjects.length">
-                <div class="team-projects-head">
-                    <span>Project</span>
-                    <span>Due Date</span>
-                    <span>Team Leader</span>
-                    <span>Progress</span>
-                </div>
-
-                <div v-for="project in filteredProjects" :key="project.id" class="team-projects-row">
-                    <div class="tp-name">
-                        <span class="lead-dot" :class="progressClass(project.progress)"></span>
-                        <span v-html="highlightMatch(project.name)"></span>
-                    </div>
-
-                    <span class="tp-date">{{ project.deadline || 'No deadline' }}</span>
-
-                    <div class="tp-leader">
-                        <div class="rep-avatar small">{{ (project.team_leader_name ||
-                            '—').charAt(0).toUpperCase() }}</div>
-                        <span v-html="highlightMatch(project.team_leader_name || '—')"></span>
-                    </div>
-
-                    <div class="tp-progress">
-                        <div class="mini-progress">
-                            <div class="mini-progress-fill" :style="{ width: (project.progress || 0) + '%' }"></div>
+                    <section class="dashboard-card">
+                        <div class="card-header">
+                            <h2>Upcoming Deadlines</h2>
                         </div>
-                        <span>{{ project.progress || 0 }}%</span>
-                    </div>
-                </div>
-            </div>
 
-            <div v-else class="empty-state-inline">No projects found.</div>
-        </section>
+                        <div class="timeline-list">
+                            <div v-for="project in upcomingDeadlineProjects" :key="project.id" class="timeline-item">
+                                <span class="timeline-dot" :class="progressClass(project.progress)"></span>
 
-        <!-- UPCOMING DEADLINES -->
-        <section class="dashboard-card">
-            <div class="card-header">
-                <h2>Upcoming Deadlines</h2>
-            </div>
-
-            <div class="timeline-list">
-                <div v-for="project in upcomingDeadlineProjects" :key="project.id" class="timeline-item">
-                    <span class="timeline-dot" :class="progressClass(project.progress)"></span>
-
-                    <div class="timeline-content">
-                        <div class="timeline-top">
-                            <span class="timeline-date">{{ project.deadline || 'No deadline' }}</span>
-                            <span class="timeline-pill" :class="dueUrgencyClass(project)">{{
-                                dueLabel(project) }}</span>
-                        </div>
-                        <strong>{{ project.name }}</strong>
-                        <small v-if="project.team_leader_name">👤 {{ project.team_leader_name }}</small>
-                        <div class="timeline-progress">
-                            <div class="timeline-progress-fill" :style="{ width: (project.progress || 0) + '%' }"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div v-if="!upcomingDeadlineProjects.length" class="empty-state-inline">No upcoming
-                    deadlines.</div>
-            </div>
-        </section>
-
-    </div>
-
-    <!-- ADMINISTRATORS -->
-    <section class="dashboard-card">
-        <div class="card-header kanban-card-header">
-            <h2>Administrators</h2>
-            <button class="view-toggle-btn" @click="showCreateModal = true">+ Create User</button>
-        </div>
-
-        <div class="admin-table-wrap">
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>User</th>
-                        <th>Email</th>
-                        <th>Joined</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="admin in filteredAdmins" :key="admin.id">
-                        <td>
-                            <div class="admin-user-cell">
-                                <div class="rep-avatar small">{{ admin.name.charAt(0) }}</div>
-                                <strong>{{ admin.name }}</strong>
+                                <div class="timeline-content">
+                                    <div class="timeline-top">
+                                        <span class="timeline-date">{{ project.deadline || 'No deadline' }}</span>
+                                        <span class="timeline-pill" :class="dueUrgencyClass(project)">{{
+                                            dueLabel(project) }}</span>
+                                    </div>
+                                    <strong>{{ project.name }}</strong>
+                                    <small v-if="project.team_leader_name">👤 {{ project.team_leader_name }}</small>
+                                    <div class="timeline-progress">
+                                        <div class="timeline-progress-fill"
+                                            :style="{ width: (project.progress || 0) + '%' }"></div>
+                                    </div>
+                                </div>
                             </div>
-                        </td>
-                        <td>{{ admin.email }}</td>
-                        <td>{{ new Date(admin.created_at).toLocaleDateString() }}</td>
-                    </tr>
-                </tbody>
-            </table>
-            <div v-if="!filteredAdmins.length" class="empty-state-inline">No administrators match your
-                search.</div>
-        </div>
-    </section>
 
+                            <div v-if="!upcomingDeadlineProjects.length" class="empty-state-inline">No upcoming
+                                deadlines.</div>
+                        </div>
+                    </section>
 
-    <!-- TEAM DETAIL MODAL -->
-    <div v-if="selectedTeam" class="modal-overlay" @click.self="closeTeam">
-        <div class="modal team-modal">
-            <div class="modal-header">
-                <div>
-                    <h2>{{ selectedTeam.name }}</h2>
-                    <p>{{ selectedTeam.workspace_name }} · Team Leader</p>
                 </div>
-                <button class="close-btn" @click="closeTeam">✕</button>
+
+                <section class="dashboard-card">
+                    <div class="card-header kanban-card-header">
+                        <h2>Administrators</h2>
+                        <button class="view-toggle-btn" @click="showCreateModal = true">+ Create User</button>
+                    </div>
+
+                    <div class="admin-table-wrap">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Joined</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="admin in filteredAdmins" :key="admin.id">
+                                    <td>
+                                        <div class="admin-user-cell">
+                                            <div class="rep-avatar small">{{ admin.name.charAt(0) }}</div>
+                                            <strong>{{ admin.name }}</strong>
+                                        </div>
+                                    </td>
+                                    <td>{{ admin.email }}</td>
+                                    <td>{{ new Date(admin.created_at).toLocaleDateString() }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div v-if="!filteredAdmins.length" class="empty-state-inline">No administrators match your
+                            search.</div>
+                    </div>
+                </section>
+
             </div>
+        </main>
 
-            <div class="team-modal-stats">
-                <div><strong>{{ selectedTeam.completion_rate }}%</strong><span>Completion</span></div>
-                <div><strong>{{ selectedTeam.projects_count }}</strong><span>Projects</span></div>
-                <div><strong>{{ selectedTeam.members_count }}</strong><span>Members</span></div>
-            </div>
-
-            <h4 class="modal-subhead">Team Members</h4>
-            <div class="modal-member-list">
-                <div v-for="m in selectedTeam.members" :key="m.id" class="modal-member-row">
-                    <div class="rep-avatar small">{{ m.name.charAt(0) }}</div>
-                    <div class="modal-member-info"><strong>{{ m.name }}</strong><span>{{ m.department || m.role
-                    }}</span></div>
-                    <button class="remove-btn" @click="removeMember(m.id)">Remove</button>
-                </div>
-                <td>{{ admin.email }}</td>
-                <td>{{ new Date(admin.created_at).toLocaleDateString() }}</td>
-
-                <div v-if="!filteredAdmins.length" class="empty-state-inline">No administrators match your search.</div>
-            </div>
-
-        </div>
-
-        <!-- TEAM DETAIL MODAL -->
         <div v-if="selectedTeam" class="modal-overlay" @click.self="closeTeam">
             <div class="modal team-modal">
                 <div class="modal-header">
@@ -607,65 +529,74 @@
                     <div><strong>{{ selectedTeam.projects_count }}</strong><span>Projects</span></div>
                     <div><strong>{{ (selectedTeam.members || []).length }}</strong><span>Members</span></div>
                 </div>
-                <div v-if="!selectedTeam.members.length" class="empty-state-inline">No members in this team yet.
-                </div>
-            </div>
 
-            <h4 class="modal-subhead">Add Member</h4>
-            <div class="add-member-row">
-                <select v-model="memberToAdd">
-                    <option value="" disabled>Select a member to add</option>
-                    <option v-for="m in candidateMembers" :key="m.id" :value="m.id">{{ m.name }} ({{ m.email }})
-                    </option>
-                </select>
-                <button class="save-btn small" :disabled="!memberToAdd" @click="addMember">Add</button>
-            </div>
-
-            <h4 class="modal-subhead">Team Projects</h4>
-            <div class="modal-project-list">
-                <div v-for="p in selectedTeam.projects" :key="p.id" class="modal-project-row">
-                    <span class="lead-dot" :class="progressClass(p.progress)"></span>
-                    <span class="modal-project-name">{{ p.name }}</span>
-                    <span class="status-pill" :class="progressClass(p.progress)">{{ p.progress }}%</span>
+                <h4 class="modal-subhead">Team Members</h4>
+                <div class="modal-member-list">
+                    <div v-for="m in selectedTeam.members" :key="m.id" class="modal-member-row">
+                        <div class="rep-avatar small">{{ m.name.charAt(0) }}</div>
+                        <div class="modal-member-info"><strong>{{ m.name }}</strong><span>{{ m.department || m.role
+                        }}</span></div>
+                        <button class="remove-btn" @click="removeMember(m.id)">Remove</button>
+                    </div>
+                    <div v-if="!selectedTeam.members.length" class="empty-state-inline">No members in this team yet.
+                    </div>
                 </div>
-                <div v-if="!selectedTeam.projects.length" class="empty-state-inline">No projects assigned to this
-                    team.</div>
+
+                <h4 class="modal-subhead">Add Member</h4>
+                <div class="add-member-row">
+                    <select v-model="memberToAdd">
+                        <option value="" disabled>Select a member to add</option>
+                        <option v-for="m in candidateMembers" :key="m.id" :value="m.id">{{ m.name }} ({{ m.email }})
+                        </option>
+                    </select>
+                    <button class="save-btn small" :disabled="!memberToAdd" @click="addMember">Add</button>
+                </div>
+                <div v-if="!candidateMembers.length" class="empty-state-inline">No other members available to add.</div>
+
+                <h4 class="modal-subhead">Team Projects</h4>
+                <div class="modal-project-list">
+                    <div v-for="p in selectedTeam.projects" :key="p.id" class="modal-project-row">
+                        <span class="lead-dot" :class="progressClass(p.progress)"></span>
+                        <span class="modal-project-name">{{ p.name }}</span>
+                        <span class="status-pill" :class="progressClass(p.progress)">{{ p.progress }}%</span>
+                    </div>
+                    <div v-if="!selectedTeam.projects.length" class="empty-state-inline">No projects assigned to this
+                        team.</div>
+                </div>
             </div>
         </div>
-    </div>
-    <div v-if="!candidateMembers.length" class="empty-state-inline">No other members available to add.</div>
 
-    <!-- CREATE ADMIN MODAL -->
-    <div v-if="showCreateModal" class="modal-overlay" @click.self="showCreateModal = false">
-        <div class="modal">
-            <div class="modal-header">
-                <div>
-                    <h2>Create User</h2>
-                    <p>Create Administrator or Team Leader</p>
+        <div v-if="showCreateModal" class="modal-overlay" @click.self="showCreateModal = false">
+            <div class="modal">
+                <div class="modal-header">
+                    <div>
+                        <h2>Create User</h2>
+                        <p>Create Administrator or Team Leader</p>
+                    </div>
+                    <button class="close-btn" @click="showCreateModal = false">✕</button>
                 </div>
-                <button class="close-btn" @click="showCreateModal = false">✕</button>
-            </div>
 
-            <div class="form-group">
-                <label>Role</label>
-                <select v-model="form.role">
-                    <option value="ADMIN">Administrator</option>
-                    <option value="TL">Team Leader</option>
-                </select>
-            </div>
-            <div class="form-group"><label>Name</label><input v-model="form.name" placeholder="John Doe"></div>
-            <div class="form-group"><label>Email</label><input v-model="form.email" type="email"></div>
-            <div class="form-group"><label>Password</label><input v-model="form.password" type="password"></div>
-            <div class="form-group"><label>Confirm Password</label><input v-model="form.password_confirmation"
-                    type="password"></div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select v-model="form.role">
+                        <option value="ADMIN">Administrator</option>
+                        <option value="TL">Team Leader</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Name</label><input v-model="form.name" placeholder="John Doe"></div>
+                <div class="form-group"><label>Email</label><input v-model="form.email" type="email"></div>
+                <div class="form-group"><label>Password</label><input v-model="form.password" type="password"></div>
+                <div class="form-group"><label>Confirm Password</label><input v-model="form.password_confirmation"
+                        type="password"></div>
 
-            <div class="modal-actions">
-                <button class="cancel-btn" @click="showCreateModal = false">Cancel</button>
-                <button class="save-btn" @click="createAdmin">Create User</button>
+                <div class="modal-actions">
+                    <button class="cancel-btn" @click="showCreateModal = false">Cancel</button>
+                    <button class="save-btn" @click="createAdmin">Create User</button>
+                </div>
             </div>
         </div>
-    </div>
 
+    </div>
 </template>
 
 <script setup>
@@ -691,6 +622,8 @@ const showCreateModal = ref(false);
 const projectView = ref("board");
 const selectedTeamId = ref(null);
 const memberToAdd = ref("");
+
+
 const localProjects = ref((props.allProjects || []).map(p => ({ ...p })));
 
 watch(
@@ -699,6 +632,8 @@ watch(
         localProjects.value = (val || []).map(p => ({ ...p }));
     }
 );
+
+
 const localTeams = ref((props.teams || []).map(t => ({ ...t, members: (t.members || []).map(m => ({ ...m })) })));
 
 watch(
@@ -708,6 +643,7 @@ watch(
     }
 );
 
+
 const localMembers = ref((props.allMembers || []).map(m => ({ ...m })));
 
 watch(
@@ -716,6 +652,7 @@ watch(
         localMembers.value = (val || []).map(m => ({ ...m }));
     }
 );
+
 const recentActivity = ref((props.recentActivity || []).map(a => ({ ...a })));
 
 watch(
@@ -733,7 +670,6 @@ const pushLocalActivity = ({ type, message, project_name = null, actor_name = "S
     ];
 };
 
-/* ---------------- Search highlighting ---------------- */
 const escapeHtml = (value) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -745,7 +681,6 @@ const highlightMatch = (text) => {
     return safeText.replace(regex, '<mark class="search-highlight">$1</mark>');
 };
 
-/* ---------------- Filters ---------------- */
 const filteredProjects = computed(() => {
     if (!search.value) return localProjects.value;
     const term = search.value.toLowerCase();
@@ -755,6 +690,7 @@ const filteredProjects = computed(() => {
         p.workspace_name?.toLowerCase().includes(term)
     );
 });
+
 
 const teamLeaderStats = computed(() => {
     const map = {};
@@ -768,6 +704,7 @@ const teamLeaderStats = computed(() => {
     return map;
 });
 
+
 const teamLeaders = computed(() => {
     return localTeams.value.map(t => {
         const stats = teamLeaderStats.value[t.id] ?? teamLeaderStats.value[t.name] ?? {};
@@ -776,14 +713,6 @@ const teamLeaders = computed(() => {
             projects_count: t.projects_count ?? stats.assigned ?? 0,
             completed_count: t.completed_count ?? stats.completed ?? 0,
             members_count: (t.members || []).length,
-        };
-    });
-    return (props.teams || []).map(t => {
-        const stats = teamLeaderStats.value[t.id] ?? teamLeaderStats.value[t.name] ?? {};
-        return {
-            ...t,
-            projects_count: t.projects_count ?? stats.assigned ?? 0,
-            completed_count: t.completed_count ?? stats.completed ?? 0,
         };
     });
 });
@@ -800,6 +729,7 @@ const filteredAdmins = computed(() => {
     return (props.admins || []).filter(a => a.name?.toLowerCase().includes(term) || a.email?.toLowerCase().includes(term));
 });
 
+
 const workspaceNames = computed(() => {
     const names = new Set();
     localTeams.value.forEach(t => { if (t.workspace_name) names.add(t.workspace_name); });
@@ -807,7 +737,6 @@ const workspaceNames = computed(() => {
     return Array.from(names).sort();
 });
 
-/* ---------------- Progress helpers ---------------- */
 const progressClass = (progress) => {
     if (progress >= 100) return "completed";
     if (progress > 0) return "in-progress";
@@ -846,6 +775,7 @@ const allKanbanColumns = computed(() => {
 
 const inProgressCount = computed(() => allKanbanColumns.value.find(c => c.key === "in-progress")?.projects.length || 0);
 
+
 const completedProjectsCount = computed(() => allKanbanColumns.value.find(c => c.key === "completed")?.projects.length || 0);
 const pendingProjectsCount = computed(() => allKanbanColumns.value.find(c => c.key === "todo")?.projects.length || 0);
 const completionRateComputed = computed(() => {
@@ -853,6 +783,7 @@ const completionRateComputed = computed(() => {
     if (!total) return 0;
     return Math.round((completedProjectsCount.value / total) * 100);
 });
+
 
 const draggedProject = ref(null);
 const draggedProjectId = ref(null);
@@ -882,7 +813,6 @@ const onDrop = (columnKey) => {
     const project = draggedProject.value;
     if (!project) return;
 
-    // Dropped back into its own column — nothing to do.
     if (progressClass(project.progress) === columnKey) {
         draggedProject.value = null;
         draggedProjectId.value = null;
@@ -902,7 +832,6 @@ const onDrop = (columnKey) => {
         preserveScroll: true,
         preserveState: true,
         onError: () => {
-            // Revert on failure so the board reflects the real server state.
             if (target) target.progress = previousProgress;
         },
     });
@@ -911,7 +840,6 @@ const onDrop = (columnKey) => {
     draggedProjectId.value = null;
 };
 
-/* ---------------- Deadlines ---------------- */
 const startOfDay = (d) => { const c = new Date(d); c.setHours(0, 0, 0, 0); return c; };
 const today = computed(() => startOfDay(new Date()));
 
@@ -977,6 +905,8 @@ const activityDotClass = (type) => {
     if (type === "leader") return "completed";
     return "todo";
 };
+
+
 const monthlyProjects = computed(() => {
     const now = new Date();
     const buckets = [];
@@ -1005,23 +935,17 @@ const monthlyProjects = computed(() => {
 
 const maxMonthlyProjectCount = computed(() => Math.max(1, ...monthlyProjects.value.map(b => b.count)));
 
-/* ---------------- Team modal ---------------- */
 const selectedTeam = computed(() => localTeams.value.find(t => t.id === selectedTeamId.value) || null);
 
 const candidateMembers = computed(() => {
     if (!selectedTeam.value) return [];
     const currentMemberIds = new Set((selectedTeam.value.members || []).map(m => m.id));
     return localMembers.value.filter(m => m.role !== "TL" && !currentMemberIds.has(m.id));
-    if (!selectedTeam.value) return [];
-    return (props.allMembers || []).filter(m =>
-        m.workspace_id === selectedTeam.value.workspace_id &&
-        m.role !== "TL" &&
-        m.assigned_to !== selectedTeam.value.id
-    );
 });
 
 const openTeam = (id) => { selectedTeamId.value = id; memberToAdd.value = ""; };
 const closeTeam = () => { selectedTeamId.value = null; memberToAdd.value = ""; };
+
 
 const addMember = () => {
     if (!selectedTeam.value || !memberToAdd.value) return;
@@ -1062,12 +986,37 @@ const addMember = () => {
         },
     });
 };
+
 const removeMember = (memberId) => {
     if (!selectedTeam.value) return;
-    router.delete(`/super-admin/teams/${selectedTeam.value.id}/members/${memberId}`, { preserveScroll: true });
+    const team = selectedTeam.value;
+    const member = (team.members || []).find(m => m.id === memberId);
+
+    const targetTeam = localTeams.value.find(t => t.id === team.id);
+    if (targetTeam) {
+        targetTeam.members = (targetTeam.members || []).filter(m => m.id !== memberId);
+    }
+    const memberRef = localMembers.value.find(m => m.id === memberId);
+    if (memberRef) memberRef.assigned_to = null;
+
+    if (member) {
+        pushLocalActivity({
+            type: "leader",
+            message: `Removed ${member.name} from ${team.name}`,
+        });
+    }
+
+    router.delete(`/super-admin/teams/${team.id}/members/${memberId}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            router.reload({ only: ["teams", "allMembers", "recentActivity"] });
+        },
+        onError: () => {
+            router.reload({ only: ["teams", "allMembers", "recentActivity"] });
+        },
+    });
 };
 
-/* ---------------- Create admin ---------------- */
 const form = ref({ role: "ADMIN", name: "", email: "", password: "", password_confirmation: "" });
 
 function resetForm() {
@@ -1080,6 +1029,8 @@ function createAdmin() {
         onSuccess: () => { showCreateModal.value = false; resetForm(); },
     });
 }
+
+
 const bellRef = ref(null);
 const profileRef = ref(null);
 const workspaceRef = ref(null);
@@ -1104,11 +1055,9 @@ function logout() {
 </script>
 
 <style scoped>
+
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
 
-/* ==========================================================================
-   THEME TOKENS
-   ========================================================================== */
 .theme-dark {
     --dashboard-bg: #10121c;
     --panel-bg: #171a26;
@@ -1131,7 +1080,6 @@ function logout() {
     --accent: #1fd1ab;
     --accent-soft: rgba(31, 209, 171, 0.16);
 
-    /* Sidebar tokens (dark theme) */
     --sidebar-bg: #10121a;
     --sidebar-border: rgba(255, 255, 255, 0.06);
     --sidebar-divider: rgba(255, 255, 255, 0.06);
@@ -1164,8 +1112,6 @@ function logout() {
     --accent: #0b8a75;
     --accent-soft: rgba(11, 138, 117, 0.1);
 
-    /* Sidebar tokens (light theme) — the rail now follows the toggle
-     instead of always staying dark. */
     --sidebar-bg: #ffffff;
     --sidebar-border: rgba(30, 35, 70, 0.08);
     --sidebar-divider: rgba(30, 35, 70, 0.08);
@@ -1174,49 +1120,6 @@ function logout() {
     --sidebar-hover-bg: rgba(30, 35, 70, 0.05);
     --sidebar-logo-title: #12141f;
     --sidebar-logo-sub: #767c93;
-    --dashboard-bg: #10121c;
-    --panel-bg: #171a26;
-    --card-inner-bg: #1d2130;
-    --card-inner-hover: #262b3d;
-    --stat-card-bg: #171a26;
-    --input-element-bg: #212536;
-    --dropdown-panel-bg: #1a1d2a;
-    --border-subtle: rgba(148, 163, 210, 0.09);
-    --border-deep: rgba(148, 163, 210, 0.16);
-    --border-divider: rgba(148, 163, 210, 0.08);
-    --text-main: #d9dbe7;
-    --text-header: #f6f7fb;
-    --text-muted: #7d83a0;
-    --text-card-sub: #b1b5cc;
-    --due-date-color: #6c7290;
-    --shadow-cards: rgba(3, 4, 10, 0.45);
-    --shadow-stats: rgba(3, 4, 10, 0.35);
-    --shadow-stats-hover: rgba(3, 4, 10, 0.55);
-    --accent: #1fd1ab;
-    --accent-soft: rgba(31, 209, 171, 0.16);
-}
-
-.theme-light {
-    --dashboard-bg: #eef1f7;
-    --panel-bg: #ffffff;
-    --card-inner-bg: #f5f7fb;
-    --card-inner-hover: #eaedf5;
-    --stat-card-bg: #ffffff;
-    --input-element-bg: #f0f2f8;
-    --dropdown-panel-bg: #ffffff;
-    --border-subtle: rgba(30, 35, 70, 0.08);
-    --border-deep: rgba(30, 35, 70, 0.14);
-    --border-divider: rgba(30, 35, 70, 0.07);
-    --text-main: #2d3142;
-    --text-header: #12141f;
-    --text-muted: #767c93;
-    --text-card-sub: #454a5f;
-    --due-date-color: #9298ad;
-    --shadow-cards: rgba(24, 28, 55, 0.06);
-    --shadow-stats: rgba(24, 28, 55, 0.05);
-    --shadow-stats-hover: rgba(24, 28, 55, 0.1);
-    --accent: #0b8a75;
-    --accent-soft: rgba(11, 138, 117, 0.1);
 }
 
 .dashboard {
@@ -1228,15 +1131,11 @@ function logout() {
     --c-red: #d6484f;
 }
 
-/* ===================== BASE / LAYOUT ===================== */
 * {
     box-sizing: border-box;
 }
 
 .dashboard {
-    /* Break out of any parent container/max-width (common in shared app
-     layouts) so the dashboard always spans the full viewport instead of
-     sitting centered with dead gutters on both sides. */
     width: 100vw;
     margin-left: calc(50% - 50vw);
     margin-right: calc(50% - 50vw);
@@ -1271,9 +1170,6 @@ function logout() {
     padding: 28px 40px 60px;
 }
 
-/* ===================== SIDEBAR ===================== */
-/* The rail now follows the theme toggle via --sidebar-* tokens (defined
-   per-theme above) instead of being hardcoded to a fixed dark color. */
 .sidebar {
     width: 252px;
     background: var(--sidebar-bg);
@@ -1295,25 +1191,6 @@ function logout() {
     border-bottom: 1px solid var(--sidebar-divider);
 }
 
-/* {width: 252px;
-background: #10121a;
-border-right: 1px solid rgba(255, 255, 255, 0.06);
-display: flex;
-flex-direction: column;
-justify-content: space-between;
-padding: 24px 16px;
-flex-shrink: 0;
-} */
-
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 30px;
-    padding: 4px 8px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
 .logo-icon {
     width: 38px;
     height: 38px;
@@ -1332,27 +1209,6 @@ flex-shrink: 0;
 .logo h2 {
     font-size: 14.5px;
     font-weight: 600;
-    color: #f4f5f9;
-    margin-bottom: 1px;
-    letter-spacing: -0.1px;
-}
-
-.logo span {
-    color: #6d7288;
-    font-size: 11px;
-    font-family: 'Inter', sans-serif;
-    letter-spacing: 0.2px;
-}
-
-.menu {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.logo h2 {
-    font-size: 14.5px;
-    font-weight: 600;
     color: var(--sidebar-logo-title);
     margin-bottom: 1px;
     letter-spacing: -0.1px;
@@ -1363,6 +1219,12 @@ flex-shrink: 0;
     font-size: 11px;
     font-family: 'Inter', sans-serif;
     letter-spacing: 0.2px;
+}
+
+.menu {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .menu a {
@@ -1387,29 +1249,6 @@ flex-shrink: 0;
 .menu a.active {
     background: var(--accent-soft);
     color: var(--sidebar-text-hover);
-}
-
-/* text-decoration: none;
-color: #8a8fa5;
-display: flex;
-align-items: center;
-gap: 12px;
-padding: 10px 12px;
-border-radius: 8px;
-font-weight: 500;
-font-size: 13px;
-transition: .15s;
-position: relative; */
-
-
-.menu a:hover {
-    background: rgba(255, 255, 255, 0.04);
-    color: #e7e9f2;
-}
-
-.menu a.active {
-    background: rgba(23, 178, 149, 0.14);
-    color: #f4f5f9;
 }
 
 .menu a.active::before {
@@ -1442,7 +1281,6 @@ position: relative; */
     border-color: rgba(214, 72, 79, .4);
 }
 
-/* ===================== TOPBAR ===================== */
 .topbar {
     display: flex;
     align-items: center;
@@ -1634,7 +1472,6 @@ position: relative; */
     border-color: var(--border-deep);
 }
 
-/* ===================== STATS GRID ===================== */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -1789,7 +1626,6 @@ position: relative; */
     line-height: 1.4;
 }
 
-/* ===================== TOP ROW ===================== */
 .top-row-grid {
     display: grid;
     grid-template-columns: 1.6fr 0.7fr 0.9fr;
@@ -2032,7 +1868,6 @@ position: relative; */
     background: #3f93e0;
 }
 
-/* ===================== PROJECTS ASSIGNED PER MONTH ===================== */
 .monthly-projects-card {
     margin-bottom: 18px;
 }
@@ -2097,7 +1932,6 @@ position: relative; */
     white-space: nowrap;
 }
 
-/* ===================== MID GRID ===================== */
 .mid-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -2434,7 +2268,6 @@ position: relative; */
     width: 100%;
 }
 
-/* ===================== TEAM PROJECTS TABLE ===================== */
 .team-projects-table {
     display: flex;
     flex-direction: column;
@@ -2886,7 +2719,6 @@ position: relative; */
     background: var(--accent);
 }
 
-/* ===================== ADMIN TABLE ===================== */
 .admin-table-wrap {
     overflow-x: auto;
 }
@@ -2942,7 +2774,6 @@ position: relative; */
     white-space: nowrap;
 }
 
-/* ===================== PROFILE / NOTIFICATIONS ===================== */
 .profile-container {
     position: relative;
 }
@@ -3120,7 +2951,6 @@ position: relative; */
     border: 2px solid var(--panel-bg);
 }
 
-/* ===================== MODALS ===================== */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -3378,7 +3208,6 @@ position: relative; */
     opacity: .9;
 }
 
-/* ===================== SEARCH HIGHLIGHT ===================== */
 .search-highlight {
     background: var(--accent-soft);
     color: var(--accent);
@@ -3387,7 +3216,6 @@ position: relative; */
     font-weight: 700;
 }
 
-/* ===================== MINI PROGRESS (shared) ===================== */
 .mini-progress {
     height: 5px;
     background: var(--border-deep);
@@ -3402,7 +3230,6 @@ position: relative; */
     border-radius: 6px;
 }
 
-/* ===================== FOCUS STATES (a11y) ===================== */
 .dashboard a:focus-visible,
 .dashboard button:focus-visible,
 .dashboard input:focus-visible,
