@@ -13,10 +13,19 @@ class MemberController extends Controller
 {
     private function authorizeMember(Member $member): void
     {
-        if ($member->workspace_id != session('workspace_id')) {
-            abort(403, 'Unauthorized access.');
+        $workspaceId = session('workspace_id');
+
+        if ($member->workspace_id === null) {
+            return;
         }
+
+        if ((int) $member->workspace_id === (int) $workspaceId) {
+            return;
+        }
+
+        abort(403, 'Unauthorized access.');
     }
+
 
     public function store(Request $request)
     {
