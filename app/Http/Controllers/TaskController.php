@@ -9,9 +9,24 @@ use Carbon\Carbon;
 use App\Services\NotificationService;
 use App\Models\Member;
 use App\Models\User;
+use App\Models\Project;
 
 class TaskController extends Controller
 {
+    // True when the project deadline has passed and the current user is not an admin
+    private function isProjectLockedForUser($project): bool
+    {
+        if (!$project || !$project->deadline) {
+            return false;
+        }
+
+        if (auth()->user()?->role === 'admin') {
+            return false;
+        }
+
+        return now()->startOfDay()->gt(Carbon::parse($project->deadline)->startOfDay());
+    }
+
     public function getTaskFields()
     {
         $columns = Schema::getColumnListing('tasks');
@@ -98,6 +113,13 @@ class TaskController extends Controller
             'review' => 'nullable|string',
             'workspace_id' => 'required',
         ]);
+
+        // Block creating tasks once the project deadline has passed (non-admin)
+        if ($this->isProjectLockedForUser(Project::find($request->project_id))) {
+            return back()->withErrors([
+                'deadline' => 'Project deadline reached. Contact your manager to extend it.',
+            ]);
+        }
 
         $task = Task::create([
             'workspace_id' => $request->workspace_id,
@@ -204,6 +226,44 @@ class TaskController extends Controller
                 'review' => $request->review,
             ]);
             return back();
+        }
+
+        // Block edits to name / status / priority / due date / members / duration
+        // once the project deadline has passed (non-admin). Notes, is_read and
+        // unchanged values still pass through.
+        if ($this->isProjectLockedForUser($task->project)) {
+
+            $titleChanged = $request->has('title')
+                && $request->title !== $task->title;
+
+            $statusChanged = $request->has('status')
+                && $request->status !== $task->status;
+
+            $priorityChanged = $request->has('priority')
+                && $request->priority !== $task->priority;
+
+            $durationChanged = $request->has('allocated_duration')
+                && (string) $request->allocated_duration !== (string) $task->allocated_duration;
+
+            $dueDateChanged = false;
+            if ($request->filled('deadline')) {
+                $newDue = Carbon::parse($request->deadline)->toDateString();
+                $oldDue = $task->due_date ? Carbon::parse($task->due_date)->toDateString() : null;
+                $dueDateChanged = $newDue !== $oldDue;
+            }
+
+            $membersChanged = false;
+            if ($request->has('member_id')) {
+                $newMembers = collect((array) $request->member_id)->map(fn($m) => (int) $m)->sort()->values()->all();
+                $oldMembers = collect((array) $task->member_id)->map(fn($m) => (int) $m)->sort()->values()->all();
+                $membersChanged = $newMembers !== $oldMembers;
+            }
+
+            if ($titleChanged || $statusChanged || $priorityChanged || $durationChanged || $dueDateChanged || $membersChanged) {
+                return back()->withErrors([
+                    'deadline' => 'Project deadline reached. Contact your manager to extend it.',
+                ]);
+            }
         }
 
         $request->validate([
@@ -347,6 +407,14 @@ class TaskController extends Controller
     public function destroy($id)
     {
         $task = Task::with('project')->findOrFail($id);
+
+        // Block deleting tasks once the project deadline has passed (non-admin)
+        if ($this->isProjectLockedForUser($task->project)) {
+            return back()->withErrors([
+                'deadline' => 'Project deadline reached. Contact your manager to extend it.',
+            ]);
+        }
+
         $task->delete();
 
         return back();

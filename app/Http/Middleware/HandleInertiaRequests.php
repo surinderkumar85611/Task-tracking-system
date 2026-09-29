@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use App\Models\Workspace;
+use App\Models\Notification;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -56,6 +57,24 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn() => session('error'),
                 'invite_link' => fn() => session('invite_link'),
             ],
+
+            // Unread extension request notifications for the logged-in user
+            'extensionNotifications' => fn() =>
+            auth()->check()
+                ? Notification::where('user_id', auth()->id())
+                ->where('is_read', false)
+                ->whereIn('type', ['extension_requested', 'extension_approved', 'extension_rejected'])
+                ->latest()
+                ->take(20)
+                ->get()
+                ->map(fn($n) => [
+                    'id'         => $n->id,
+                    'type'       => str_replace('extension_', '', $n->type),
+                    'message'    => $n->message,
+                    'project_id' => $n->data['project_id'] ?? null,
+                ])
+                ->values()
+                : [],
         ]);
     }
 }

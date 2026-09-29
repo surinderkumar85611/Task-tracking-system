@@ -25,8 +25,8 @@
                         <button class="icon-btn"
                             @click="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
                             🔔
-                            <span v-if="notificationStore.activeUrgentTasks.length > 0" class="bell-alert-badge-dot">
-                                {{ notificationStore.activeUrgentTasks.length }}
+                            <span v-if="bellCount > 0" class="bell-alert-badge-dot">
+                                {{ bellCount }}
                             </span>
                         </button>
 
@@ -47,7 +47,17 @@
                                     </div>
                                 </div>
 
-                                <div v-if="notificationStore.activeUrgentTasks.length === 0"
+                                <div v-for="n in extensionNotifications" :key="n.id" class="notification-alert-item"
+                                    style="cursor: pointer;" @click="markNotificationRead(n)">
+                                    <div class="alert-item-indicator">
+                                        {{ n.type === 'approved' ? '✅' : n.type === 'rejected' ? '❌' : '📩' }}
+                                    </div>
+                                    <div class="alert-item-details">
+                                        <p class="alert-task-title">{{ n.message }}</p>
+                                    </div>
+                                </div>
+
+                                <div v-if="notificationStore.activeUrgentTasks.length === 0 && extensionNotifications.length === 0"
                                     class="notification-empty-state">
                                     🎉 No urgent deadlines right now. Everything is under control!
                                 </div>
@@ -126,6 +136,17 @@
                             <h2 :style="{ borderLeft: `6px solid ${getGroupColor(project.status)}` }">
                                 {{ project.name }}
                             </h2>
+                            <button class="extension-bell-btn"
+                                :class="{ pending: project.pending_extension_request, 'has-result': projectResultNotifications(project).length }"
+                                :title="projectResultNotifications(project).length ? 'New response to your extension request' : (project.pending_extension_request ? 'Extension request pending' : 'Request deadline extension')"
+                                @click="openExtensionModal(project)">
+                                🔔
+                                <span v-if="projectResultNotifications(project).length" class="ext-badge"
+                                    :class="projectResultNotifications(project)[0].type === 'approved' ? 'ok' : 'no'">
+                                    {{ projectResultNotifications(project).length }}
+                                </span>
+                                <span v-else-if="project.pending_extension_request" class="ext-dot"></span>
+                            </button>
                             <span class="group-status-tag">{{ project.status }}</span>
                             <p class="group-desc-inline">— {{ project.description || 'No description added' }}</p>
                         </div>
@@ -158,7 +179,8 @@
                                     :class="{ 'completed-task-row': task.status === 'Completed' }">
                                     <td class="cell-task">
                                         <input type="text" v-model="task.title" placeholder="Type task description..."
-                                            @change="syncTaskRow(task)" class="monday-input-cell" />
+                                            @change="syncTaskRow(task)" class="monday-input-cell"
+                                            :disabled="isProjectDeadlinePassed(project)" />
                                     </td>
                                     <td class="cell-updates" style="text-align: center; vertical-align: middle;">
                                         <button class="monday-update-icon-btn"
@@ -255,7 +277,8 @@
                                     </td>
                                     <td class="cell-status" :class="getStatusLabelClass(task.status)">
                                         <select v-model="task.status" @change="syncTaskRow(task)"
-                                            class="monday-status-dropdown">
+                                            class="monday-status-dropdown"
+                                            :disabled="isProjectDeadlinePassed(project)">
                                             <option value="Todo">Todo</option>
                                             <option value="In Progress">In Progress</option>
                                             <option value="Completed">Completed</option>
@@ -263,7 +286,8 @@
                                     </td>
                                     <td class="cell-priority" :class="getPriorityLabelClass(task.priority)">
                                         <select v-model="task.priority" @change="syncTaskRow(task)"
-                                            class="monday-priority-dropdown">
+                                            class="monday-priority-dropdown"
+                                            :disabled="isProjectDeadlinePassed(project)">
                                             <option value="Low">Low</option>
                                             <option value="Medium">Medium</option>
                                             <option value="High">High</option>
@@ -271,7 +295,8 @@
                                     </td>
                                     <td class="cell-duration">
                                         <select v-model="task.allocated_duration"
-                                            @change="handleTimerDurationChange(task)" class="table-duration-dropdown">
+                                            @change="handleTimerDurationChange(task)" class="table-duration-dropdown"
+                                            :disabled="isProjectDeadlinePassed(project)">
                                             <option :value="null">None</option>
                                             <option :value="15">15 Mins</option>
                                             <option :value="30">30 Mins</option>
@@ -304,11 +329,12 @@
 
                                     <td class="cell-due">
                                         <input type="date" v-model="task.due_date" @change="syncTaskRow(task)"
-                                            class="monday-date-cell" />
+                                            class="monday-date-cell" :disabled="isProjectDeadlinePassed(project)" />
                                     </td>
                                     <td class="cell-action">
                                         <button v-if="task.status !== 'Completed'"
-                                            @click="removeTaskRow(task.id, project)">
+                                            @click="removeTaskRow(task.id, project)"
+                                            :disabled="isProjectDeadlinePassed(project)">
                                             🗑
                                         </button>
 
@@ -591,6 +617,57 @@
                     <div class="sidebar-panel-footer">
                         <button class="btn-flat-cancel" @click="closeUpdatesSidebar">Close</button>
                         <button class="monday-btn-primary" @click="saveTaskNotesUpdate">Update Status Box</button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="showExtensionModal" class="modal-overlay" @click.self="closeExtensionModal">
+                <div class="monday-modal">
+                    <div class="modal-head">
+                        <h2>Request Deadline Extension</h2>
+                        <button class="close-modal-x" @click="closeExtensionModal">✕</button>
+                    </div>
+
+                    <div class="modal-body-form" v-if="extensionProject">
+                        <div v-if="modalResults.length" class="monday-field-group full-row">
+                            <label>Admin response</label>
+                            <div v-for="n in modalResults" :key="n.id" class="ext-result-item" :class="n.type">
+                                {{ n.type === 'approved' ? '✅' : '❌' }} {{ n.message }}
+                            </div>
+                        </div>
+
+                        <div class="monday-field-group full-row">
+                            <label>Project</label>
+                            <input :value="extensionProject.name" disabled />
+                        </div>
+
+                        <div class="monday-field-group">
+                            <label>Current Deadline</label>
+                            <input :value="extensionProject.deadline" disabled />
+                        </div>
+
+                        <div class="monday-field-group">
+                            <label>Requested New Deadline</label>
+                            <input type="date" v-model="extensionForm.requested_deadline" :min="todayStr"
+                                :disabled="!!extensionProject.pending_extension_request" />
+                        </div>
+
+                        <div class="monday-field-group full-row">
+                            <label>Reason</label>
+                            <textarea v-model="extensionForm.reason" placeholder="Why do you need more time?"
+                                :disabled="!!extensionProject.pending_extension_request"></textarea>
+                        </div>
+
+                        <p v-if="extensionProject.pending_extension_request" class="group-desc-inline full-row-note">
+                            ⏳ A request for {{ String(extensionProject.pending_extension_request.requested_deadline).slice(0, 10) }} is
+                            awaiting admin review.
+                        </p>
+                    </div>
+
+                    <div class="monday-modal-footer">
+                        <button class="btn-flat-cancel" @click="closeExtensionModal">Close</button>
+                        <button class="monday-btn-primary" @click="submitExtensionRequest"
+                            :disabled="!!extensionProject?.pending_extension_request">Send Request</button>
                     </div>
                 </div>
             </div>
@@ -1038,6 +1115,16 @@ const isProjectDeadlinePassed = (project) => {
     return today > deadline;
 };
 
+// Returns true when the project that owns this task has passed its deadline
+const isTaskLocked = (task) => {
+    const project = projectsData.value.find(p => p.id === task.project_id);
+    return isProjectDeadlinePassed(project);
+};
+
+const notifyDeadlineLocked = () => {
+    toast.error("Project deadline reached. Contact your manager to extend it.");
+};
+
 const guardProjectDeadline = (project, event) => {
     if (!isProjectDeadlinePassed(project)) {
         return;
@@ -1077,6 +1164,13 @@ const appendNewEmptyTask = (project) => {
 };
 
 const syncTaskRow = (task) => {
+    // Block any edit once the project deadline has passed and revert local changes
+    if (isTaskLocked(task)) {
+        notifyDeadlineLocked();
+        router.reload({ only: ['projects'], preserveScroll: true });
+        return;
+    }
+
     if (!task.title || task.title.trim() === '') {
         task.title = "Untitled Task";
     }
@@ -1100,6 +1194,11 @@ const syncTaskRow = (task) => {
 };
 
 const removeTaskRow = (taskId, project) => {
+    if (isProjectDeadlinePassed(project)) {
+        notifyDeadlineLocked();
+        return;
+    }
+
     router.delete(`/task/${taskId}`, {
         preserveScroll: true,
         onSuccess: () => {
@@ -1540,6 +1639,104 @@ const getMemberFullName = (project, memberId) => {
     return found ? `${found.first_name} ${found.last_name || ''}` : "Team Member";
 };
 
+// ---------------------------------------------------------------------------
+// Deadline extension request (leader -> admin) + notifications
+// ---------------------------------------------------------------------------
+const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+})();
+
+const showExtensionModal = ref(false);
+const extensionProjectId = ref(null);
+const extensionProject = computed(
+    () => projectsData.value.find(p => p.id === extensionProjectId.value) || null
+);
+const extensionForm = reactive({ requested_deadline: "", reason: "" });
+
+// admin responses (approved / rejected) currently shown inside the modal
+const modalResults = ref([]);
+
+const openExtensionModal = (project) => {
+    extensionProjectId.value = project.id;
+    extensionForm.requested_deadline = "";
+    extensionForm.reason = "";
+
+    // show the admin's response in the modal, then mark those notifications as read
+    const results = projectResultNotifications(project);
+    modalResults.value = [...results];
+    markNotificationsRead(results);
+
+    showExtensionModal.value = true;
+};
+
+const closeExtensionModal = () => {
+    showExtensionModal.value = false;
+    extensionProjectId.value = null;
+    modalResults.value = [];
+};
+
+const submitExtensionRequest = () => {
+    if (!extensionForm.requested_deadline) {
+        toast.error("Please choose the new deadline.");
+        return;
+    }
+
+    router.post(`/project/${extensionProjectId.value}/extension-request`, { ...extensionForm }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast.success("Extension request sent to admin.");
+            closeExtensionModal();
+        },
+        onError: () => { toast.error("Could not send the request."); }
+    });
+};
+
+// ids clicked in this session, hidden immediately while the server request finishes
+const locallyReadNotificationIds = ref([]);
+
+const extensionNotifications = computed(
+    () => (page.props.extensionNotifications || [])
+        .filter(n => !locallyReadNotificationIds.value.includes(n.id))
+);
+
+const bellCount = computed(
+    () => notificationStore.activeUrgentTasks.length + extensionNotifications.value.length
+);
+
+// approved / rejected notifications that belong to one project (used by the project bell)
+const projectResultNotifications = (project) =>
+    extensionNotifications.value.filter(
+        n => n.project_id === project.id && (n.type === 'approved' || n.type === 'rejected')
+    );
+
+// mark several notifications as read, one request after another
+const markNotificationsRead = (list) => {
+    const [first, ...rest] = list;
+    if (!first) return;
+
+    locallyReadNotificationIds.value.push(first.id);
+
+    router.post(`/extension-notifications/${first.id}/read`, {}, {
+        preserveScroll: true,
+        onFinish: () => markNotificationsRead(rest),
+    });
+};
+
+const markNotificationRead = (n) => {
+    // hide right away so the badge count drops instantly
+    locallyReadNotificationIds.value.push(n.id);
+
+    router.post(`/extension-notifications/${n.id}/read`, {}, {
+        preserveScroll: true,
+        onError: () => {
+            // bring it back if the server could not mark it as read
+            locallyReadNotificationIds.value = locallyReadNotificationIds.value.filter(id => id !== n.id);
+            toast.error("Could not mark the notification as read.");
+        }
+    });
+};
+
 const logout = () => {
     router.post("/logout", {}, {
         replace: true,
@@ -1629,6 +1826,11 @@ const logout = () => {
 
 .monday-btn-primary:hover {
     background: #0060c5;
+}
+
+.monday-btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 .monday-btn-secondary {
@@ -1743,6 +1945,16 @@ const logout = () => {
 .monday-table-wrapper {
     overflow-x: auto;
     width: 100%;
+}
+
+/* Deadline lock: controls ignore the mouse so the click lands on the cell and
+   the capture handler on the wrapper can show the "deadline reached" toast */
+.project-deadline-locked input,
+.project-deadline-locked select,
+.project-deadline-locked button {
+    pointer-events: none;
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .monday-editable-table {
@@ -2866,6 +3078,86 @@ tbody tr {
     justify-content: flex-end;
     gap: 12px;
     margin-top: 20px;
+}
+
+/* Extension request bell (next to project name) */
+.extension-bell-btn {
+    position: relative;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.extension-bell-btn:hover {
+    background: var(--hover);
+}
+
+.extension-bell-btn.pending {
+    border-color: #fbbf24;
+}
+
+.ext-dot {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 9px;
+    height: 9px;
+    background: #fbbf24;
+    border-radius: 50%;
+}
+
+.full-row-note {
+    grid-column: span 2;
+}
+
+.ext-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 17px;
+    text-align: center;
+    border-radius: 50%;
+    background: #ef4444;
+}
+
+.ext-badge.ok {
+    background: #00c875;
+}
+
+.ext-badge.no {
+    background: #ef4444;
+}
+
+.extension-bell-btn.has-result {
+    border-color: #00c875;
+}
+
+.ext-result-item {
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    margin-bottom: 6px;
+}
+
+.ext-result-item.approved {
+    border-left: 4px solid #00c875;
+}
+
+.ext-result-item.rejected {
+    border-left: 4px solid #ef4444;
 }
 
 :deep(.ck-editor__editable_inline) {
