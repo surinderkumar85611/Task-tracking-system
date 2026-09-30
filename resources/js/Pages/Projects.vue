@@ -25,9 +25,8 @@
                         <button class="icon-btn"
                             @click="notificationStore.showBellDropdown = !notificationStore.showBellDropdown">
                             🔔
-                            <span v-if="(notifications || []).filter(n => !n.is_read).length > 0"
-                                class="bell-alert-badge-dot">
-                                {{notifications.filter(n => !n.is_read)}}
+                            <span v-if="bellCount > 0" class="bell-alert-badge-dot">
+                                {{ bellCount }}
                             </span>
                         </button>
 
@@ -48,7 +47,15 @@
                                     </div>
                                 </div>
 
-                                <div v-if="notificationStore.activeUrgentTasks.length === 0"
+                                <div v-for="n in extensionNotifications" :key="n.id" class="notification-alert-item"
+                                    style="cursor: pointer;" @click="openFromNotification(n)">
+                                    <div class="alert-item-indicator">📩</div>
+                                    <div class="alert-item-details">
+                                        <p class="alert-task-title">{{ n.message }}</p>
+                                    </div>
+                                </div>
+
+                                <div v-if="notificationStore.activeUrgentTasks.length === 0 && extensionNotifications.length === 0"
                                     class="notification-empty-state">
                                     🎉 No urgent deadlines right now. Everything is under control!
                                 </div>
@@ -118,6 +125,12 @@
                             <h2 :style="{ borderLeft: `6px solid ${getGroupColor(project.status)}` }">
                                 {{ project.name }}
                             </h2>
+                            <button class="extension-bell-btn"
+                                :class="{ pending: project.pending_extension_request }"
+                                :title="project.pending_extension_request ? 'Review extension request' : 'No pending extension request'"
+                                @click="openExtensionReview(project.id)">
+                                🔔<span v-if="project.pending_extension_request" class="ext-badge">1</span>
+                            </button>
                             <span class="group-status-tag">{{ project.status }}</span>
                             <p class="group-desc-inline">— {{ project.description || 'No description added' }}</p>
                         </div>
@@ -630,6 +643,70 @@
 
                     </div>
 
+                </div>
+            </div>
+
+            <div v-if="showExtensionReview" class="modal-overlay" @click.self="closeExtensionReview">
+                <div class="monday-modal">
+                    <div class="modal-head">
+                        <h2>Deadline Extension Request</h2>
+                        <button class="close-modal-x" @click="closeExtensionReview">✕</button>
+                    </div>
+
+                    <div class="modal-body-form" v-if="reviewProject">
+                        <template v-if="pendingRequest">
+                            <div class="monday-field-group full-row">
+                                <label>Project</label>
+                                <input :value="reviewProject.name" disabled />
+                            </div>
+
+                            <div class="monday-field-group">
+                                <label>Requested By</label>
+                                <input :value="requesterName(pendingRequest)" disabled />
+                            </div>
+
+                            <div class="monday-field-group">
+                                <label>Current Deadline</label>
+                                <input :value="formatDateOnly(reviewProject.deadline)" disabled />
+                            </div>
+
+                            <div class="monday-field-group full-row">
+                                <label>Requested New Deadline</label>
+                                <input :value="formatDateOnly(pendingRequest.requested_deadline)" disabled />
+                            </div>
+
+                            <div class="monday-field-group full-row">
+                                <label>Reason</label>
+                                <textarea :value="pendingRequest.reason || 'No reason provided'" disabled></textarea>
+                            </div>
+
+                            <div v-if="rejectMode" class="monday-field-group full-row">
+                                <label>Reason for rejection</label>
+                                <select v-model="rejectionReason">
+                                    <option value="" disabled>Select a reason</option>
+                                    <option v-for="r in rejectionReasons" :key="r" :value="r">{{ r }}</option>
+                                </select>
+                            </div>
+                        </template>
+
+                        <p v-else class="group-desc-inline full-row-note">
+                            No pending extension request for this project.
+                        </p>
+                    </div>
+
+                    <div class="monday-modal-footer" v-if="pendingRequest && !rejectMode">
+                        <button class="monday-btn-danger" @click="startReject">✕ Reject</button>
+                        <button class="monday-btn-primary" @click="decideExtension('approve')">✓ Approve</button>
+                    </div>
+                    <div class="monday-modal-footer" v-else-if="pendingRequest && rejectMode">
+                        <button class="btn-flat-cancel" @click="cancelReject">Back</button>
+                        <button class="monday-btn-danger" :disabled="!rejectionReason"
+                            :style="{ opacity: rejectionReason ? 1 : 0.4, cursor: rejectionReason ? 'pointer' : 'not-allowed' }"
+                            @click="decideExtension('reject')">Confirm Reject</button>
+                    </div>
+                    <div class="monday-modal-footer" v-else>
+                        <button class="btn-flat-cancel" @click="closeExtensionReview">Close</button>
+                    </div>
                 </div>
             </div>
 
@@ -1752,6 +1829,122 @@ const importTasks = () => {
 watch(() => showEditModal?.value, (newVal) => {
 
 });
+
+// ---------------------------------------------------------------------------
+// Deadline extension requests (leader -> admin) + notifications
+// ---------------------------------------------------------------------------
+
+// ids clicked in this session, hidden immediately while the server request finishes
+const locallyReadNotificationIds = ref([]);
+
+const extensionNotifications = computed(
+    () => (page.props.extensionNotifications || [])
+        .filter(n => !locallyReadNotificationIds.value.includes(n.id))
+);
+
+const bellCount = computed(
+    () => notificationStore.activeUrgentTasks.length + extensionNotifications.value.length
+);
+
+const markNotificationRead = (n) => {
+    // hide right away so the badge count drops instantly
+    locallyReadNotificationIds.value.push(n.id);
+
+    router.post(`/extension-notifications/${n.id}/read`, {}, {
+        preserveScroll: true,
+        onError: () => {
+            // bring it back if the server could not mark it as read
+            locallyReadNotificationIds.value = locallyReadNotificationIds.value.filter(id => id !== n.id);
+            toast.error("Could not mark the notification as read.");
+        }
+    });
+};
+
+const formatDateOnly = (value) => (value ? String(value).slice(0, 10) : '');
+
+const requesterName = (req) => {
+    const u = req?.requester;
+    if (!u) return 'Team Leader';
+    const full = [u.first_name, u.last_name].filter(Boolean).join(' ');
+    return full || u.name || 'Team Leader';
+};
+
+const rejectionReasons = [
+    "Taking too much time",
+    "Progress not up to the mark",
+    "Reason provided is not sufficient",
+    "Deadline cannot be changed due to other commitments",
+];
+const rejectMode = ref(false);
+const rejectionReason = ref("");
+
+const startReject = () => {
+    rejectMode.value = true;
+    rejectionReason.value = "";
+};
+
+const cancelReject = () => {
+    rejectMode.value = false;
+    rejectionReason.value = "";
+};
+
+const showExtensionReview = ref(false);
+const reviewProjectId = ref(null);
+const reviewProject = computed(
+    () => projectsData.value.find(p => p.id === reviewProjectId.value) || null
+);
+const pendingRequest = computed(() => reviewProject.value?.pending_extension_request || null);
+
+const openExtensionReview = (projectId) => {
+    reviewProjectId.value = projectId;
+    cancelReject();
+    showExtensionReview.value = true;
+};
+
+const closeExtensionReview = () => {
+    showExtensionReview.value = false;
+    reviewProjectId.value = null;
+    cancelReject();
+};
+
+// Clicking a notification in the header bell: mark it read and open that project's request
+const openFromNotification = (n) => {
+    markNotificationRead(n);
+    notificationStore.showBellDropdown = false;
+
+    const exists = projectsData.value.some(p => p.id === n.project_id);
+    if (!exists) {
+        toast.error("This project is not available in the current workspace.");
+        return;
+    }
+
+    openExtensionReview(n.project_id);
+};
+
+const decideExtension = (action) => {
+    const req = pendingRequest.value;
+    if (!req) return;
+
+    if (action === 'reject' && !rejectionReason.value) {
+        toast.error("Please select a reason for rejection.");
+        return;
+    }
+
+    const payload = action === 'reject' ? { rejection_reason: rejectionReason.value } : {};
+
+    router.post(`/extension-request/${req.id}/${action}`, payload, {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast.success(
+                action === 'approve'
+                    ? "Extension approved. Project deadline updated."
+                    : "Extension request rejected."
+            );
+            closeExtensionReview();
+        },
+        onError: () => { toast.error("Could not update the request."); }
+    });
+};
 
 const logout = () => {
     router.post("/logout", {}, {
@@ -3427,6 +3620,45 @@ tbody tr {
 .export-btn svg {
     width: 16px;
     height: 16px;
+}
+
+/* Extension request bell (next to project name) */
+.extension-bell-btn {
+    position: relative;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.extension-bell-btn:hover {
+    background: var(--hover);
+}
+
+.extension-bell-btn.pending {
+    border-color: #fbbf24;
+}
+
+.ext-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    background: #ef4444;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 17px;
+    text-align: center;
+    border-radius: 50%;
+}
+
+.full-row-note {
+    grid-column: span 2;
 }
 </style>
 

@@ -24,7 +24,8 @@ class LProjectController extends Controller
         $projects = Project::with([
             'tasks',
             'teamLeader',
-            'teamLeader.teamMembers' // Load all members under the leader
+            'teamLeader.teamMembers', // Load all members under the leader
+            'pendingExtensionRequest.requester', // Pending deadline extension request (if any)
         ])
         ->where('team_leader_id', $leader->id)
         ->when(session('workspace_id'), function ($query) {

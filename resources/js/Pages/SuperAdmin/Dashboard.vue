@@ -77,11 +77,10 @@
                     </button>
 
                     <div class="notification-bell-container" ref="bellRef">
-                        <button class="icon-btn" @click.stop="showBellDropdown = !showBellDropdown"
-                            aria-label="Notifications">
+                        <!-- FIX 3: badge shows only UNSEEN overdue projects and clears when the bell is opened -->
+                        <button class="icon-btn" @click.stop="toggleBell" aria-label="Notifications">
                             🔔
-                            <span v-if="overdueProjects.length" class="bell-alert-green-dot">{{ overdueProjects.length
-                            }}</span>
+                            <span v-if="unseenOverdueCount" class="bell-alert-green-dot">{{ unseenOverdueCount }}</span>
                         </button>
 
                         <div v-if="showBellDropdown" class="notification-dropdown-panel">
@@ -186,7 +185,7 @@
                                 <div class="kanban-column-body"
                                     :class="{ 'is-drop-target': dragOverColumn === column.key }"
                                     @dragover.prevent="onDragOver(column.key)" @dragleave="onDragLeave(column.key)"
-                                    @drop="onDrop(column.key)">
+                                    @drop.prevent="onDrop(column.key)">
                                     <div v-for="project in column.projects" :key="project.id" class="kanban-task-card"
                                         :class="[column.key, { 'is-dragging': draggedProjectId === project.id }]"
                                         draggable="true" @dragstart="onDragStart(project)" @dragend="onDragEnd">
@@ -481,7 +480,7 @@
                 <section class="dashboard-card">
                     <div class="card-header kanban-card-header">
                         <h2>Administrators</h2>
-                        <button class="view-toggle-btn" @click="showCreateModal = true">+ Create User</button>
+                        <button class="view-toggle-btn" @click="openCreateModal">+ Create User</button>
                     </div>
 
                     <div class="admin-table-wrap">
@@ -566,14 +565,15 @@
             </div>
         </div>
 
-        <div v-if="showCreateModal" class="modal-overlay" @click.self="showCreateModal = false">
+        <!-- FIX 2: create-user modal now shows validation errors and a saving state -->
+        <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
             <div class="modal">
                 <div class="modal-header">
                     <div>
                         <h2>Create User</h2>
                         <p>Create Administrator or Team Leader</p>
                     </div>
-                    <button class="close-btn" @click="showCreateModal = false">✕</button>
+                    <button class="close-btn" @click="closeCreateModal">✕</button>
                 </div>
 
                 <div class="form-group">
@@ -582,16 +582,33 @@
                         <option value="ADMIN">Administrator</option>
                         <option value="TL">Team Leader</option>
                     </select>
+                    <span v-if="formErrors.role" class="form-error">{{ formErrors.role }}</span>
                 </div>
-                <div class="form-group"><label>Name</label><input v-model="form.name" placeholder="John Doe"></div>
-                <div class="form-group"><label>Email</label><input v-model="form.email" type="email"></div>
-                <div class="form-group"><label>Password</label><input v-model="form.password" type="password"></div>
-                <div class="form-group"><label>Confirm Password</label><input v-model="form.password_confirmation"
-                        type="password"></div>
+                <div class="form-group">
+                    <label>Name</label>
+                    <input v-model="form.name" placeholder="John Doe">
+                    <span v-if="formErrors.name" class="form-error">{{ formErrors.name }}</span>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input v-model="form.email" type="email">
+                    <span v-if="formErrors.email" class="form-error">{{ formErrors.email }}</span>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input v-model="form.password" type="password">
+                    <span v-if="formErrors.password" class="form-error">{{ formErrors.password }}</span>
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input v-model="form.password_confirmation" type="password">
+                </div>
 
                 <div class="modal-actions">
-                    <button class="cancel-btn" @click="showCreateModal = false">Cancel</button>
-                    <button class="save-btn" @click="createAdmin">Create User</button>
+                    <button class="cancel-btn" @click="closeCreateModal">Cancel</button>
+                    <button class="save-btn" :disabled="creatingUser" @click="createAdmin">
+                        {{ creatingUser ? "Creating..." : "Create User" }}
+                    </button>
                 </div>
             </div>
         </div>
@@ -603,6 +620,9 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { router } from "@inertiajs/vue3";
 import { Head } from "@inertiajs/vue3";
+import { useToast } from "vue-toastification";
+
+const toast = useToast();
 
 const props = defineProps({
     stats: { type: Object, required: true },
@@ -808,36 +828,54 @@ const onDragEnd = () => {
     dragOverColumn.value = null;
 };
 
+// FIX 1: the card moves immediately, the change is saved to the DB, and it is
+// rolled back (with a message) only if the save actually fails.
 const onDrop = (columnKey) => {
     dragOverColumn.value = null;
     const project = draggedProject.value;
+    draggedProject.value = null;
+    draggedProjectId.value = null;
     if (!project) return;
 
-    if (progressClass(project.progress) === columnKey) {
-        draggedProject.value = null;
-        draggedProjectId.value = null;
-        return;
-    }
+    if (progressClass(project.progress) === columnKey) return;
 
-    const previousProgress = project.progress;
+    const target = localProjects.value.find(p => p.id === project.id);
+    if (!target) return;
+
+    const previousProgress = target.progress;
     let newProgress;
     if (columnKey === "todo") newProgress = 0;
     else if (columnKey === "completed") newProgress = 100;
-    else newProgress = (project.progress > 0 && project.progress < 100) ? project.progress : 50;
+    else newProgress = (previousProgress > 0 && previousProgress < 100) ? previousProgress : 50;
 
-    const target = localProjects.value.find(p => p.id === project.id);
-    if (target) target.progress = newProgress;
+    // optimistic move
+    target.progress = newProgress;
+
+    let saved = false;
 
     router.patch(`/super-admin/projects/${project.id}`, { progress: newProgress }, {
         preserveScroll: true,
         preserveState: true,
-        onError: () => {
-            if (target) target.progress = previousProgress;
+        onSuccess: () => {
+            saved = true;
+        },
+        onError: (errs) => {
+            const first = errs && Object.values(errs)[0];
+            toast.error(Array.isArray(first) ? first[0] : (first || "Could not update the project."), {
+                toastClassName: "custom-toast",
+            });
+        },
+        onFinish: () => {
+            // Covers every failure (404, 419, 500, redirect to login, validation): put the card back.
+            if (!saved) {
+                const t = localProjects.value.find(p => p.id === project.id);
+                if (t) t.progress = previousProgress;
+                toast.error("Project could not be moved. Please try again.", {
+                    toastClassName: "custom-toast",
+                });
+            }
         },
     });
-
-    draggedProject.value = null;
-    draggedProjectId.value = null;
 };
 
 const startOfDay = (d) => { const c = new Date(d); c.setHours(0, 0, 0, 0); return c; };
@@ -904,6 +942,37 @@ const activityDotClass = (type) => {
     if (type === "project") return "in-progress";
     if (type === "leader") return "completed";
     return "todo";
+};
+
+
+// FIX 3: notification badge counts only overdue projects that have not been seen yet.
+const SEEN_KEY = "sa_seen_overdue_projects";
+
+const readSeen = () => {
+    try {
+        return JSON.parse(localStorage.getItem(SEEN_KEY) || "[]");
+    } catch {
+        return [];
+    }
+};
+
+const seenOverdueIds = ref(readSeen());
+
+const unseenOverdueCount = computed(
+    () => overdueProjects.value.filter(p => !seenOverdueIds.value.includes(p.id)).length
+);
+
+const toggleBell = () => {
+    showBellDropdown.value = !showBellDropdown.value;
+
+    if (showBellDropdown.value) {
+        seenOverdueIds.value = overdueProjects.value.map(p => p.id);
+        try {
+            localStorage.setItem(SEEN_KEY, JSON.stringify(seenOverdueIds.value));
+        } catch {
+            /* storage unavailable, badge just resets for this session */
+        }
+    }
 };
 
 
@@ -1017,16 +1086,48 @@ const removeMember = (memberId) => {
     });
 };
 
+// FIX 2: create user with visible validation errors, saving state and toasts.
 const form = ref({ role: "ADMIN", name: "", email: "", password: "", password_confirmation: "" });
+const formErrors = ref({});
+const creatingUser = ref(false);
 
 function resetForm() {
     form.value = { role: "ADMIN", name: "", email: "", password: "", password_confirmation: "" };
+    formErrors.value = {};
+}
+
+function openCreateModal() {
+    resetForm();
+    showCreateModal.value = true;
+}
+
+function closeCreateModal() {
+    showCreateModal.value = false;
+    resetForm();
 }
 
 function createAdmin() {
+    if (creatingUser.value) return;
+
+    creatingUser.value = true;
+    formErrors.value = {};
+
     router.post("/super-admin/admin", form.value, {
         preserveScroll: true,
-        onSuccess: () => { showCreateModal.value = false; resetForm(); },
+        onSuccess: () => {
+            toast.success("User created successfully.", { toastClassName: "custom-toast" });
+            closeCreateModal();
+        },
+        onError: (errs) => {
+            const flat = {};
+            Object.keys(errs || {}).forEach((key) => {
+                flat[key] = Array.isArray(errs[key]) ? errs[key][0] : errs[key];
+            });
+            formErrors.value = flat;
+        },
+        onFinish: () => {
+            creatingUser.value = false;
+        },
     });
 }
 
@@ -3237,4 +3338,16 @@ function logout() {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
+.form-error {
+    display: block;
+    color: var(--c-red);
+    font-size: 12px;
+    margin-top: 5px;
+    font-weight: 600;
+}
+
+.form-group .form-error {
+    margin-left: 2px;
+}
+
 </style>

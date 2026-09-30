@@ -33,7 +33,7 @@ use App\Http\Controllers\Member\TaskController as MemberTaskController;
 use App\Http\Controllers\Member\ProjectController as MemberProjectController;
 use App\Http\Controllers\Member\SettingsController as MemberSettingsController;
 use App\Http\Controllers\SuperAdminController;
-
+use App\Http\Controllers\ExtensionRequestController;
 Route::prefix('super-admin')->name('super-admin.')->group(function () {
 
     Route::group([], function () {
@@ -359,4 +359,10 @@ Route::prefix('super-admin')->middleware(['auth', 'super_admin'])->group(functio
     Route::get('/profile', [SuperAdminController::class, 'getProfile']);
     Route::post('/profile', [SuperAdminController::class, 'updateProfile']);
     Route::post('/change-password', [SuperAdminController::class, 'changePassword']);
+});
+Route::middleware(['auth', 'no-cache'])->group(function () {
+    Route::post('/project/{project}/extension-request', [ExtensionRequestController::class, 'store']);
+    Route::post('/extension-request/{extensionRequest}/approve', [ExtensionRequestController::class, 'approve']);
+    Route::post('/extension-request/{extensionRequest}/reject', [ExtensionRequestController::class, 'reject']);
+    Route::post('/extension-notifications/{id}/read', [ExtensionRequestController::class, 'markRead']);
 });
