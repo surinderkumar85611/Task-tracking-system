@@ -18,6 +18,12 @@ class Member extends Model
         'assigned_to',
     ];
 
+    protected $casts = [
+        'level' => 'integer',
+        'workspace_id' => 'integer',
+        'assigned_to' => 'integer',
+    ];
+
     public function workspace()
     {
         return $this->belongsTo(Workspace::class);
