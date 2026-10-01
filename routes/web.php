@@ -34,6 +34,7 @@ use App\Http\Controllers\Member\ProjectController as MemberProjectController;
 use App\Http\Controllers\Member\SettingsController as MemberSettingsController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\ExtensionRequestController;
+
 Route::prefix('super-admin')->name('super-admin.')->group(function () {
 
     Route::group([], function () {
@@ -228,6 +229,7 @@ Route::middleware('auth')->prefix('member')->group(function () {
     Route::put('/{member}/assign-workspace', [MemberController::class, 'assignWorkspace']);
     Route::put('/{member}/independent', [MemberController::class, 'makeIndependent'])->name('members.make-independent');
     Route::delete('/{member}', [MemberController::class, 'destroy']);
+    Route::put('/{member}/promote', [MemberController::class, 'promote']);
 });
 
 Route::post('/invite/generate', [InvitationController::class, 'generate']);
@@ -348,7 +350,7 @@ Route::prefix('super-admin')->middleware(['auth', 'super_admin'])->group(functio
 
     Route::get('/projects', [SuperAdminController::class, 'projects']);
 
-    Route::patch('/projects/{project}', [SuperAdminController::class, 'updateProjectProgress']); 
+    Route::patch('/projects/{project}', [SuperAdminController::class, 'updateProjectProgress']);
 
     Route::get('/workspaces', [SuperAdminController::class, 'workspaces']);
     Route::post('/workspaces', [SuperAdminController::class, 'storeWorkspace']);
