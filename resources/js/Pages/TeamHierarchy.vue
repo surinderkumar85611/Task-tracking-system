@@ -1,20 +1,19 @@
 <template>
-
     <div class="hierarchy-directory-wrapper">
-
         <TeamNode v-for="leader in leaders" :key="leader.id" :member="leader"
             @drag-member="$emit('drag-member', $event)" @drop-member="$emit('drop-member', $event)"
-            @drop-leader="$emit('drop-leader', $event)" @remove-member="$emit('remove-member', $event)" />
+            @drop-leader="$emit('drop-leader', $event)" @remove-member="$emit('remove-member', $event)"
+            @edit-member="$emit('edit-member', $event)" />
 
-        <div class="assign-tl-zone" @dragover.prevent @drop="$emit('assign-workspace')">
+        <div class="assign-tl-zone" @dragover.prevent @drop="$emit('assign-workspace', $event)">
             ➕ Drop Team Leader Here
         </div>
-
     </div>
-
 </template>
 
+
 <script setup>
+
 import TeamNode from './TeamNode.vue';
 
 defineProps({
@@ -22,11 +21,13 @@ defineProps({
     currentWorkspace: Number
 });
 
-const emit = defineEmits([
+defineEmits([
     'drag-member',
     'drop-member',
     'drop-leader',
     'assign-workspace',
-    'remove-member'
+    'remove-member',
+    'edit-member'
 ]);
+
 </script>
