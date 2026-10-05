@@ -26,7 +26,6 @@ class MemberController extends Controller
         abort(403, 'Unauthorized access.');
     }
 
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -69,8 +68,8 @@ class MemberController extends Controller
 
             'level' => [
                 'nullable',
-                'required_if:role,TL',
-                'in:1,2,3'
+                'integer',
+                'in:0,1,2,3',
             ],
         ]);
 
@@ -83,10 +82,77 @@ class MemberController extends Controller
             'phone' => $validated['phone'],
             'department' => $validated['department'],
             'role' => $validated['role'],
-            'level' => $validated['level']
+            // 'level' => $validated['level']
+            'level' => $validated['role'] === 'Member' ? 0 : (int) $validated['level'],
         ]);
 
         return back()->with('success', 'Member created successfully');
+    }
+
+    public function promote(Request $request, Member $member)
+    {
+        $this->authorizeMember($member);
+
+        $validated = $request->validate([
+            'role' => [
+                'required',
+                'in:TL'
+            ],
+
+            'level' => [
+                'required',
+                'integer',
+                'in:1,2,3'
+            ],
+        ]);
+
+        // Member -> TL1
+        if ($member->role === 'Member') {
+
+            if ((int) $validated['level'] !== 1) {
+                return back()->withErrors([
+                    'level' => 'A Team Member can only be promoted to TL1.'
+                ]);
+            }
+        }
+
+        // TL1 -> TL2
+        if ($member->role === 'TL' && (int) $member->level === 1) {
+
+            if ((int) $validated['level'] !== 2) {
+                return back()->withErrors([
+                    'level' => 'TL1 can only be promoted to TL2.'
+                ]);
+            }
+        }
+
+        // TL2 -> TL3
+        if ($member->role === 'TL' && (int) $member->level === 2) {
+
+            if ((int) $validated['level'] !== 3) {
+                return back()->withErrors([
+                    'level' => 'TL2 can only be promoted to TL3.'
+                ]);
+            }
+        }
+
+        // TL3 cannot be promoted
+        if ($member->role === 'TL' && (int) $member->level === 3) {
+
+            return back()->withErrors([
+                'level' => 'This Team Leader is already at TL3.'
+            ]);
+        }
+
+        $member->update([
+            'role' => 'TL',
+            'level' => (int) $validated['level'],
+        ]);
+
+        return back()->with(
+            'success',
+            'Member promoted successfully.'
+        );
     }
 
     public function index()

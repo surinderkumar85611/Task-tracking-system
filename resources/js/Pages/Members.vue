@@ -236,7 +236,7 @@
                 <div class="orphan-grid">
 
                     <div v-for="member in emptyMembers" :key="member.id" class="orphan-card" draggable="true"
-                        @dragstart="dragMember(member)">
+                        @dragstart="dragMember(member, $event)">
                         <div class="orphan-avatar">
                             {{ getInitials(member.first_name, member.last_name) }}
                         </div>
@@ -272,7 +272,9 @@
                     <div class="hierarchy-directory-wrapper">
                         <TeamHierarchy :leaders="teamLeaders" :currentWorkspace="currentWorkspace"
                             @drag-member="dragMember" @drop-member="dropMember" @drop-leader="dropLeader"
-                            @assign-workspace="dropTeamLeaderToWorkspace" @remove-member="removeMember" />
+                            @assign-workspace="dropTeamLeaderToWorkspace" @remove-member="removeMember"
+                            @edit-member="openEditModal" />
+
                     </div>
                 </div>
 
@@ -288,7 +290,7 @@
                     <div class="unassigned-pool-box">
                         <template v-if="unassignedMembers.length">
                             <div class="member-sub-pill-row grab-cursor" v-for="member in unassignedMembers"
-                                :key="member.id" draggable="true" @dragstart="dragMember(member)">
+                                :key="member.id" draggable="true" @dragstart="dragMember(member, $event)">
                                 <div class="avatar-circle-initials badge-cyan-bg" @click.stop="openEditModal(member)"
                                     style="cursor:pointer">
                                     {{ getInitials(member.first_name, member.last_name) }}
@@ -309,118 +311,218 @@
             </section>
 
             <Transition name="modal-fade">
+
                 <div v-if="showEditModal" class="modal-backdrop-blur-overlay" @click.self="showEditModal = false">
+
                     <div class="professional-modal-window">
 
+                        <!-- HEADER -->
+
                         <div class="modal-custom-header">
-                            <h3>Edit Member</h3>
+
+                            <div>
+
+                                <h3>
+                                    Edit Member
+                                </h3>
+
+                                <p v-if="selectedMember" class="modal-subtitle">
+                                    {{ selectedMember.first_name }}
+                                    {{ selectedMember.last_name }}
+                                </p>
+
+                            </div>
 
                             <button class="modal-close-cross-btn" @click="showEditModal = false">
                                 ✕
                             </button>
+
                         </div>
+
+
+                        <!-- BODY -->
 
                         <div class="modal-custom-body">
 
-                            <div class="input-group-wrapper">
-                                <label>First Name</label>
-                                <input v-model="editMember.first_name" type="text" />
-                            </div>
+                            <!-- FIRST NAME -->
 
                             <div class="input-group-wrapper">
-                                <label>Last Name</label>
-                                <input v-model="editMember.last_name" type="text" />
-                            </div>
 
-                            <div class="input-group-wrapper">
-                                <label>Email</label>
-                                <input v-model="editMember.email" type="email" />
-                            </div>
+                                <label>
+                                    First Name
+                                </label>
 
-                            <div class="input-group-wrapper">
-                                <label>Phone</label>
-                                <input v-model="editMember.phone" type="text" />
-                            </div>
-
-                            <div class="input-group-wrapper">
-                                <label>Department</label>
-                                <input v-model="editMember.department" type="text" />
-                            </div>
-
-                            <button class="action-primary-btn" @click="updateMember">
-                                Save Changes
-                            </button>
-
-                        </div>
-
-                    </div>
-                </div>
-            </Transition>
-            <Transition name="modal-fade">
-                <div v-if="showEditModal" class="modal-backdrop-blur-overlay" @click.self="showEditModal = false">
-                    <div class="professional-modal-window">
-
-                        <div class="modal-custom-header">
-                            <h3>Edit Member</h3>
-                            <button class="modal-close-cross-btn" @click="showEditModal = false">
-                                ✕
-                            </button>
-                        </div>
-
-                        <div class="modal-custom-body">
-
-                            <div class="input-group-wrapper">
-                                <label>First Name</label>
                                 <input v-model="editForm.first_name" type="text" />
+
                                 <small v-if="editErrors.first_name" class="error-text">
                                     {{ editErrors.first_name }}
                                 </small>
+
                             </div>
 
+
+                            <!-- LAST NAME -->
+
                             <div class="input-group-wrapper">
-                                <label>Last Name</label>
+
+                                <label>
+                                    Last Name
+                                </label>
+
                                 <input v-model="editForm.last_name" type="text" />
+
                                 <small v-if="editErrors.last_name" class="error-text">
                                     {{ editErrors.last_name }}
                                 </small>
+
                             </div>
 
+
+                            <!-- EMAIL -->
+
                             <div class="input-group-wrapper">
-                                <label>Email Address</label>
+
+                                <label>
+                                    Email Address
+                                </label>
+
                                 <div class="readonly-field">
                                     {{ selectedMember?.email }}
                                 </div>
+
                             </div>
 
+
+                            <!-- PHONE -->
+
                             <div class="input-group-wrapper">
-                                <label>Phone Number</label>
-                                <input v-model="editForm.phone" type="text" maxlength="10"
-                                    @input="editForm.phone = editForm.phone.replace(/\D/g, '').slice(0, 10)" />
+
+                                <label>
+                                    Phone Number
+                                </label>
+
+                                <input v-model="editForm.phone" type="text" maxlength="10" @input="
+                                    editForm.phone =
+                                    editForm.phone
+                                        .replace(/\D/g, '')
+                                        .slice(0, 10)
+                                    " />
 
                                 <small v-if="editErrors.phone" class="error-text">
                                     {{ editErrors.phone }}
                                 </small>
+
                             </div>
 
+
+                            <!-- DEPARTMENT -->
+
                             <div class="input-group-wrapper">
-                                <label>Department</label>
+
+                                <label>
+                                    Department
+                                </label>
+
                                 <input v-model="editForm.department" type="text" />
 
                                 <small v-if="editErrors.department" class="error-text">
                                     {{ editErrors.department }}
                                 </small>
+
                             </div>
 
+
+                            <!-- CURRENT ROLE -->
+
                             <div class="input-group-wrapper">
-                                <label>Role</label>
-                                <div class="readonly-field">
-                                    {{
-                                        selectedMember?.role === 'TL'
-                                            ? 'Team Leader'
-                                            : 'Team Member'
-                                    }}
+
+                                <label>
+                                    Current Position
+                                </label>
+
+                                <div class="current-role-display">
+
+                                    <span v-if="editForm.role === 'Member'" class="role-display-member">
+                                        Team Member
+                                    </span>
+
+                                    <span v-else class="role-display-tl">
+                                        Team Leader TL{{ editForm.level }}
+                                    </span>
+
                                 </div>
+
                             </div>
+
+
+                            <!-- PROMOTION -->
+
+                            <div v-if="canPromote" class="promotion-box">
+
+                                <div class="promotion-box-header">
+
+                                    <div class="promotion-icon">
+                                        ⬆
+                                    </div>
+
+                                    <div>
+
+                                        <strong>
+                                            Promotion Available
+                                        </strong>
+
+                                        <span>
+                                            Admin / Project Manager action
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="promotion-current">
+
+                                    <span>
+                                        Current
+                                    </span>
+
+                                    <strong>
+                                        {{
+                                            selectedMember?.role === 'Member'
+                                                ? 'Team Member'
+                                                : `TL${selectedMember?.level}`
+                                        }}
+                                    </strong>
+
+                                    <span class="promotion-arrow">
+                                        →
+                                    </span>
+
+                                    <strong class="next-level">
+                                        {{ nextPromotion.label.replace('Promote to ', '') }}
+                                    </strong>
+
+                                </div>
+
+
+                                <button type="button" class="promotion-btn" @click="promoteMember">
+                                    {{ nextPromotion.label }}
+                                </button>
+
+                            </div>
+
+
+                            <!-- TL3 MESSAGE -->
+
+                            <div v-else-if="
+                                selectedMember?.role === 'TL' &&
+                                Number(selectedMember?.level) === 3
+                            " class="max-level-message">
+                                🏆 This Team Leader is already at TL3.
+                            </div>
+
+
+                            <!-- SAVE -->
 
                             <button class="action-primary-btn" @click="updateMember">
                                 Save Changes
@@ -429,7 +531,9 @@
                         </div>
 
                     </div>
+
                 </div>
+
             </Transition>
 
             <div v-if="showDeleteModal" class="modal-overlay">
@@ -486,26 +590,14 @@ const showProfileMenu = ref(false);
 const showEditModal = ref(false);
 const selectedMember = ref(null);
 const draggedItem = ref(null);
+const showPromotionModal = ref(false);
+const promotionMember = ref(null);
 
-const editMember = reactive({
-    id: null,
-    first_name: "",
-    last_name: "",
-
-    phone: "",
-    department: "",
+const promotionForm = reactive({
+    level: ""
 });
 
-const openEditMember = (member) => {
-    editMember.id = member.id;
-    editMember.first_name = member.first_name;
-    editMember.last_name = member.last_name;
-
-    editMember.phone = member.phone || "";
-    editMember.department = member.department || "";
-
-    showEditModal.value = true;
-};
+const promotionError = ref("");
 
 const inviteForm = reactive({
     email: "",
@@ -564,7 +656,7 @@ const editForm = reactive({
     phone: "",
     department: "",
     role: "",
-    level: ""
+    level: 0
 });
 const editErrors = reactive({
     first_name: "",
@@ -617,44 +709,140 @@ const unassignedMembers = computed(() =>
     )
 );
 
-const emptyLeaders = computed(() =>
-    props.members.filter(
-        member =>
-            !member.workspace_id &&
-            member.role === 'TL'
-    )
-);
-
-const emptyTeamMembers = computed(() =>
-    props.members.filter(
-        member =>
-            !member.workspace_id &&
-            member.role === 'TM'
-    )
-);
-
 const getInitials = (firstName, lastName) => {
     return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase();
 };
 const originalMemberData = ref({});
 const openEditModal = (member) => {
+
     selectedMember.value = member;
 
-    editForm.first_name = member.first_name;
-    editForm.last_name = member.last_name;
-    editForm.email = member.email;
+    editForm.first_name = member.first_name || "";
+    editForm.last_name = member.last_name || "";
+    editForm.email = member.email || "";
     editForm.phone = member.phone || "";
     editForm.department = member.department || "";
+    editForm.role = member.role || "Member";
+    editForm.level = Number(member.level || 0);
 
     originalMemberData.value = {
-        first_name: member.first_name,
-        last_name: member.last_name,
+        first_name: member.first_name || "",
+        last_name: member.last_name || "",
         phone: member.phone || "",
         department: member.department || "",
     };
 
+    editErrors.first_name = "";
+    editErrors.last_name = "";
+    editErrors.phone = "";
+    editErrors.department = "";
+
     showEditModal.value = true;
 };
+
+const canPromote = computed(() => {
+    if (!selectedMember.value) {
+        return false;
+    }
+
+    const member = selectedMember.value;
+
+    if (member.role === 'Member' && Number(member.level) === 0) {
+        return true;
+    }
+
+    if (member.role === 'TL' && Number(member.level) === 1) {
+        return true;
+    }
+
+    if (member.role === 'TL' && Number(member.level) === 2) {
+        return true;
+    }
+
+    return false;
+});
+
+const nextPromotion = computed(() => {
+
+    if (!selectedMember.value) {
+        return null;
+    }
+
+    const member = selectedMember.value;
+
+    if (
+        member.role === 'Member' &&
+        Number(member.level) === 0
+    ) {
+        return {
+            role: 'TL',
+            level: 1,
+            label: 'Promote to TL1'
+        };
+    }
+
+    if (
+        member.role === 'TL' &&
+        Number(member.level) === 1
+    ) {
+        return {
+            role: 'TL',
+            level: 2,
+            label: 'Promote to TL2'
+        };
+    }
+
+    if (
+        member.role === 'TL' &&
+        Number(member.level) === 2
+    ) {
+        return {
+            role: 'TL',
+            level: 3,
+            label: 'Promote to TL3'
+        };
+    }
+
+    return null;
+});
+
+const promoteMember = () => {
+    const member = selectedMember.value;
+
+    if (!member || !nextPromotion.value) {
+        return;
+    }
+
+    const level = Number(nextPromotion.value.level);
+
+    router.put(
+        `/member/${member.id}/promote`,
+        {
+            role: 'TL',
+            level
+        },
+        {
+            preserveScroll: true,
+
+            onSuccess: () => {
+                toast.success(
+                    `${member.first_name} ${member.last_name} promoted to TL${level}`
+                );
+
+                showEditModal.value = false;
+            },
+
+            onError: (errors) => {
+                const message =
+                    Object.values(errors)[0] ||
+                    "Unable to promote member.";
+
+                toast.error(message);
+            }
+        }
+    );
+};
+
 const validateFirstName = () => {
     if (!form.firstName) {
         errors.firstName = "First name is required";
@@ -755,6 +943,7 @@ const createMember = () => {
             form.phone = "";
             form.department = "";
             form.role = "Member";
+            form.level = 0;
 
             Object.keys(touched).forEach(key => {
                 touched[key] = false;
@@ -781,15 +970,11 @@ const generateInvite = () => {
         onSuccess: (page) => {
             toast.success(page.props.flash?.success || "Invite created");
 
-            generatedInviteLink.value =
-                page.props.flash?.invite_link ||
-                page.props.flash?.data?.invite_link ||
-                "";
+            generatedInviteLink.value = page.props.flash?.invite_link || page.props.flash?.data?.invite_link || "";
 
             inviteForm.email = "";
             inviteForm.role = "Member";
             inviteForm.department = "";
-            showInviteModal.value = false;
         },
         onError: (errors) => {
             const firstError = Object.values(errors)[0];
@@ -805,8 +990,17 @@ const copyToClipboard = () => {
     }
 };
 
-const dragMember = (member) => {
+const dragMember = (member, event = null) => {
     draggedItem.value = member;
+    if (event) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData(
+            'type',
+            member.role === 'TL'
+                ? 'leader'
+                : 'member'
+        );
+    }
 };
 
 const dropMember = (leaderId) => {
@@ -834,32 +1028,31 @@ const dropLeader = (leaderId) => {
     draggedItem.value = null;
 };
 
-const dropTeamLeaderToWorkspace = () => {
+const dropTeamLeaderToWorkspace = (event) => {
+    const member = draggedItem.value;
 
-    if (!draggedItem.value) return;
+    if (!member) return;
 
-    if (draggedItem.value.role !== 'TL') {
-        toast.error(
-            'Only Team Leaders can be assigned to a workspace'
-        );
+    if (member.role !== 'TL') {
+        toast.error('Only Team Leaders can be assigned to a workspace');
+        draggedItem.value = null;
         return;
     }
 
     router.put(
-        `/member/${draggedItem.value.id}/assign-workspace`,
+        `/member/${member.id}/assign-workspace`,
         {
             workspace_id: props.currentWorkspace
         },
         {
+            preserveScroll: true,
             onSuccess: () => {
-
-                const index = props.emptyMembers.findIndex(
-                    m => m.id === draggedItem.value.id
-                );
-
-                if (index !== -1) {
-                    props.emptyMembers.splice(index, 1);
-                }
+                toast.success('Team Leader assigned to workspace');
+                draggedItem.value = null;
+            },
+            onError: () => {
+                toast.error('Failed to assign Team Leader');
+                draggedItem.value = null;
             }
         }
     );
@@ -1014,7 +1207,9 @@ const vClickOutside = {
 
 watch(() => form.role, (role) => {
     if (role !== 'TL') {
-        form.level = null;
+        form.level = 0;
+    } else {
+        form.level = 1;
     }
 });
 </script>
@@ -1889,5 +2084,236 @@ watch(() => form.role, (role) => {
 
 .btn-danger:hover {
     background: #b91c1c;
+}
+
+/* =========================================
+   EDIT MEMBER MODAL
+========================================= */
+
+.professional-modal-window {
+    width: min(520px, calc(100vw - 32px));
+    max-width: 520px;
+
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+
+    border-radius: 14px;
+
+    background: #0f172a;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+
+    box-shadow:
+        0 25px 70px rgba(0, 0, 0, 0.55);
+
+    scrollbar-width: thin;
+    scrollbar-color: #475569 transparent;
+}
+
+.professional-modal-window::-webkit-scrollbar {
+    width: 6px;
+}
+
+.professional-modal-window::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.professional-modal-window::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 10px;
+}
+
+
+/* =========================================
+   MODAL BODY
+========================================= */
+
+.modal-custom-body {
+    padding: 22px;
+}
+
+
+/* =========================================
+   PROMOTION BOX
+========================================= */
+
+.promotion-box {
+    margin-top: 14px;
+    padding: 16px;
+
+    border-radius: 12px;
+
+    border: 1px solid rgba(99, 102, 241, 0.35);
+
+    background:
+        linear-gradient(135deg,
+            rgba(99, 102, 241, 0.10),
+            rgba(139, 92, 246, 0.05));
+}
+
+.promotion-box-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.promotion-icon {
+    width: 40px;
+    height: 40px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    color: #a78bfa;
+
+    background: rgba(99, 102, 241, 0.15);
+
+    font-size: 20px;
+}
+
+.promotion-box-header strong {
+    display: block;
+
+    color: #a78bfa;
+
+    font-size: 14px;
+}
+
+.promotion-box-header span {
+    display: block;
+
+    margin-top: 3px;
+
+    font-size: 11px;
+
+    color: #94a3b8;
+}
+
+
+/* =========================================
+   CURRENT -> NEXT LEVEL
+========================================= */
+
+.promotion-current {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    margin: 16px 0;
+
+    padding: 11px 12px;
+
+    border-radius: 8px;
+
+    background: rgba(15, 23, 42, 0.55);
+
+    font-size: 13px;
+}
+
+.promotion-current span {
+    color: #94a3b8;
+}
+
+.promotion-arrow {
+    color: #818cf8 !important;
+
+    font-size: 18px;
+
+    font-weight: 600;
+}
+
+.next-level {
+    color: #c4b5fd;
+
+    font-weight: 700;
+}
+
+
+/* =========================================
+   PROMOTION BUTTON
+========================================= */
+
+.promotion-btn {
+    width: 100%;
+
+    padding: 11px 16px;
+
+    border: none;
+    border-radius: 9px;
+
+    background:
+        linear-gradient(135deg,
+            #6366f1,
+            #8b5cf6);
+
+    color: white;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.promotion-btn:hover {
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 5px 18px rgba(99, 102, 241, 0.3);
+}
+
+.promotion-btn:active {
+    transform: translateY(0);
+}
+
+
+/* =========================================
+   TL3 REACHED
+========================================= */
+
+.max-level-message {
+    margin-top: 14px;
+
+    padding: 12px;
+
+    border-radius: 8px;
+
+    color: #fbbf24;
+
+    background: rgba(245, 158, 11, 0.08);
+
+    border: 1px solid rgba(245, 158, 11, 0.18);
+
+    font-size: 13px;
+}
+
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 600px) {
+
+    .professional-modal-window {
+        width: calc(100vw - 20px);
+
+        max-height: calc(100vh - 20px);
+
+        border-radius: 12px;
+    }
+
+    .modal-custom-body {
+        padding: 16px;
+    }
+
+    .promotion-current {
+        flex-wrap: wrap;
+    }
 }
 </style>
