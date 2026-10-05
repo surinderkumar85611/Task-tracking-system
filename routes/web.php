@@ -14,7 +14,7 @@ use App\Http\Controllers\MemberController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
-use App\Http\Controllers\Leader\LprojectController;
+use App\Http\Controllers\Leader\LProjectController;
 use App\Http\Controllers\Leader\TeamController;
 use App\Http\Controllers\TeamRequestController;
 use App\Http\Controllers\Leader\TwoFactorController;
@@ -33,7 +33,12 @@ use App\Http\Controllers\Member\TaskController as MemberTaskController;
 use App\Http\Controllers\Member\ProjectController as MemberProjectController;
 use App\Http\Controllers\Member\SettingsController as MemberSettingsController;
 use App\Http\Controllers\SuperAdminController;
+use App\Http\Controllers\SuperAdmin\TeamController as SuperAdminTeamController;
+use App\Http\Controllers\SuperAdmin\UserController as SuperAdminUserController;
+use App\Http\Controllers\SuperAdmin\PageController as SuperAdminPageController;
+use App\Http\Controllers\SuperAdmin\SettingsController as SuperAdminSettingsController;
 use App\Http\Controllers\ExtensionRequestController;
+
 Route::prefix('super-admin')->name('super-admin.')->group(function () {
 
     Route::group([], function () {
@@ -203,7 +208,7 @@ Route::middleware(['auth', 'no-cache'])->group(function () {
 
         if (!$member || $member->role !== 'TL') abort(403);
 
-        return app(LprojectController::class)->index();
+        return app(LProjectController::class)->index();
     });
 
     Route::get('/team', function () {
@@ -340,26 +345,38 @@ Route::middleware(['auth', 'no-cache'])
             ->name('settings');
     });
 
-Route::prefix('super-admin')->middleware(['auth', 'super_admin'])->group(function () {
+Route::prefix('super-admin')->middleware(['auth:super_admin'])->group(function () {
 
-    Route::get('/teams', [SuperAdminController::class, 'teams']);
-    Route::delete('/teams/{team}', [SuperAdminController::class, 'destroyTeam']);
-    Route::delete('/admin/{user}', [SuperAdminController::class, 'destroyAdmin']);
+    // pages
+    Route::get('/teams', [SuperAdminPageController::class, 'teams']);
+    Route::get('/projects', [SuperAdminPageController::class, 'projects']);
 
-    Route::get('/projects', [SuperAdminController::class, 'projects']);
+    // remove a team leader
+    Route::delete('/leaders/{leader}', [SuperAdminPageController::class, 'destroyLeader']);
 
-    Route::patch('/projects/{project}', [SuperAdminController::class, 'updateProjectProgress']); 
+    // add / remove team members (parameter must be named {teamLeader} to match the controller)
+    Route::post('/teams/{teamLeader}/members/{member}', [SuperAdminTeamController::class, 'addMember']);
+    Route::delete('/teams/{teamLeader}/members/{member}', [SuperAdminTeamController::class, 'removeMember']);
+
+    // create administrator / team leader
+    Route::post('/admin', [SuperAdminUserController::class, 'store']);
+    Route::delete('/admin/{user}', [SuperAdminPageController::class, 'destroyAdmin']);
+
+    Route::patch('/projects/{project}', [SuperAdminController::class, 'updateProjectProgress']);
 
     Route::get('/workspaces', [SuperAdminController::class, 'workspaces']);
     Route::post('/workspaces', [SuperAdminController::class, 'storeWorkspace']);
     Route::put('/workspaces/{workspace}', [SuperAdminController::class, 'updateWorkspace']);
     Route::delete('/workspaces/{workspace}', [SuperAdminController::class, 'destroyWorkspace']);
 
-    Route::get('/settings', [SuperAdminController::class, 'settings']);
-    Route::get('/profile', [SuperAdminController::class, 'getProfile']);
-    Route::post('/profile', [SuperAdminController::class, 'updateProfile']);
-    Route::post('/change-password', [SuperAdminController::class, 'changePassword']);
+    // settings: profile + two factor authentication
+    Route::get('/settings', [SuperAdminSettingsController::class, 'index']);
+    Route::put('/profile', [SuperAdminSettingsController::class, 'updateProfile']);
+    Route::get('/2fa/generate', [SuperAdminSettingsController::class, 'generateSecret']);
+    Route::post('/2fa/enable', [SuperAdminSettingsController::class, 'enable']);
+    Route::post('/2fa/disable', [SuperAdminSettingsController::class, 'disable']);
 });
+
 Route::middleware(['auth', 'no-cache'])->group(function () {
     Route::post('/project/{project}/extension-request', [ExtensionRequestController::class, 'store']);
     Route::post('/extension-request/{extensionRequest}/approve', [ExtensionRequestController::class, 'approve']);

@@ -15,12 +15,12 @@
                 </div>
 
                 <nav class="menu">
-                    <a href="#" class="active">📊 Dashboard</a>
-                    <a href="#">👤 Administrators</a>
-                    <a href="#">🏢 Workspaces</a>
-                    <a href="#">📁 Projects</a>
-                    <a href="#">👥 Teams</a>
-                    <a href="#">⚙️ Settings</a>
+                    <Link href="/super-admin/dashboard" class="active">📊 Dashboard</Link>
+                    <Link href="/super-admin/dashboard">👤 Administrators</Link>
+                    <Link href="/super-admin/workspaces">🏢 Workspaces</Link>
+                    <Link href="/super-admin/projects">📁 Projects</Link>
+                    <Link href="/super-admin/teams">👥 Teams</Link>
+                    <Link href="/super-admin/settings">⚙️ Settings</Link>
                 </nav>
             </div>
 
@@ -618,7 +618,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
-import { router } from "@inertiajs/vue3";
+import { router, Link } from "@inertiajs/vue3";
 import { Head } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 
