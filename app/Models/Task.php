@@ -43,9 +43,7 @@ protected $casts = [
         return Member::whereIn('id', $this->member_id)->get();
     }
 
-    /**
-     * Append this custom attribute to the model's array/JSON output automatically
-     */
+   
     protected $appends = ['assigned_members'];
 
     public function getAssignedMembersAttribute()

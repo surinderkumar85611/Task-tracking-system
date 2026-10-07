@@ -55,7 +55,6 @@ const form = reactive({
   code: "",
 });
 
-// Ensure only digits can be typed into the input field
 const cleanInput = () => {
   form.code = form.code.replace(/\D/g, "");
   validateOtp();
@@ -102,7 +101,6 @@ const submitOtp = () => {
 </script>
 
 <style scoped>
-/* Reuses your beautiful dark-mode theme variables and structural styling */
 .auth-page {
   min-height: 100vh;
   display: flex;

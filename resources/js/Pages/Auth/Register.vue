@@ -178,7 +178,6 @@ const register = () => {
   validatePassword();
   validateConfirmPassword();
 
-  // Stop if frontend validation fails
   if (hasErrors.value) {
     return;
   }

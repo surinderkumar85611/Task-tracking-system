@@ -76,7 +76,7 @@
                     </button>
 
                     <div class="notification-bell-container" ref="bellRef">
-                        <!-- FIX 3: badge shows only UNSEEN overdue projects and clears when the bell is opened -->
+                        
                         <button class="icon-btn" @click.stop="toggleBell" aria-label="Notifications">
                             🔔
                             <span v-if="unseenOverdueCount" class="bell-alert-green-dot">{{ unseenOverdueCount }}</span>
@@ -381,7 +381,7 @@
                         <div class="leads-table">
                             <div class="leads-table-head">
                                 <span>Activity</span>
-                                <span>Project</span>
+                                <span>Project/Task</span>
                                 <span>By</span>
                             </div>
 

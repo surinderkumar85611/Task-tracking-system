@@ -3,7 +3,6 @@
     <div class="tl-hierarchy-block-card" @dragover.prevent @drop="handleDrop"
         @click.stop="$emit('edit-member', member)">
 
-        <!-- TEAM LEADER HEADER -->
         <div class="tl-card-info-header">
 
 
@@ -49,7 +48,6 @@
         </div>
 
 
-        <!-- CHILDREN -->
         <div class="subordinates-list-segment">
 
             <div v-if="member.team_members?.length" class="subordinates-flex-grid">
