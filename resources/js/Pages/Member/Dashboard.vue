@@ -7,7 +7,6 @@
 
     <main class="main-content">
 
-      <!-- TOPBAR -->
       <div class="topbar">
         <div class="topbar-greeting">
           <h2>
@@ -37,7 +36,6 @@
             {{ theme.isDark ? '☀️' : '🌙' }}
           </button>
 
-          <!-- NOTIFICATIONS -->
           <div class="notification-bell-container" v-click-outside="handleClickOutside">
             <button class="icon-btn" @click.stop="
               notificationStore.showBellDropdown =
@@ -59,7 +57,6 @@
 
                 <div class="notification-scroll-area">
 
-                  <!-- NORMAL NOTIFICATIONS -->
                   <div v-for="notification in unreadNotifications" :key="'notif-' + notification.id"
                     class="notification-alert-item" @click="markAsRead(notification.id)">
                     <div class="alert-item-indicator">🔔</div>
@@ -79,7 +76,6 @@
                     </div>
                   </div>
 
-                  <!-- URGENT TASKS -->
                   <div v-for="task in notificationStore.activeUrgentTasks" :key="'urgent-' + task.id"
                     class="notification-alert-item urgent">
                     <div class="alert-item-indicator urgent-indicator">⚠️</div>
@@ -105,7 +101,6 @@
             </div>
           </div>
 
-          <!-- PROFILE -->
           <div class="profile-container">
             <img
               v-if="member?.avatar_url"
@@ -133,10 +128,8 @@
 
       <div class="content-wrapper">
 
-        <!-- STATS -->
         <section class="stats-grid">
 
-          <!-- My Tasks -->
           <div class="stat-card assigned-tasks-card">
             <div class="stat-icon-badge">📋</div>
             <span class="stat-label">My Tasks</span>

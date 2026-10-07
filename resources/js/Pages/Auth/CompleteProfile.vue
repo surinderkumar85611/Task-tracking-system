@@ -21,7 +21,6 @@
 
                 <form @submit.prevent="completeProfile">
 
-                    <!-- Name -->
                     <div class="field-group">
                         <input type="text" v-model="form.name" placeholder="Full Name"
                             @blur="validateName(); handleBlur('name')" @input="validateName" />
@@ -31,7 +30,6 @@
                         </p>
                     </div>
 
-                    <!-- Email -->
                     <div class="field-group">
                         <label class="field-label">
                             Email Address
@@ -40,7 +38,6 @@
                         <input type="email" v-model="form.email" readonly />
                     </div>
 
-                    <!-- Department -->
                     <div class="field-group">
                         <label class="field-label">
                             Department
@@ -49,7 +46,6 @@
                         <input type="text" v-model="form.department" readonly />
                     </div>
 
-                    <!-- Role -->
                     <div class="field-group">
                         <label class="field-label">
                             Role
@@ -58,7 +54,6 @@
                         <input type="text" v-model="form.role" readonly />
                     </div>
 
-                    <!-- Password -->
                     <div class="field-group">
                         <div class="input-wrapper">
                             <input :type="showPassword ? 'text' : 'password'" v-model="form.password"
@@ -75,7 +70,6 @@
                         </p>
                     </div>
 
-                    <!-- Confirm Password -->
                     <div class="field-group">
                         <div class="input-wrapper">
                             <input :type="showConfirmPassword ? 'text' : 'password'"

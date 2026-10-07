@@ -38,7 +38,6 @@ class Project extends Model
         return $this->hasMany(Task::class);
     }
 
-    // The single pending extension request for this project (null if none)
     public function pendingExtensionRequest()
     {
         return $this->hasOne(ExtensionRequest::class)
