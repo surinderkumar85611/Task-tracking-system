@@ -31,15 +31,49 @@
                 <section v-if="activeTab === 'profile'" class="sa-card settings-card">
                     <div class="card-title">
                         <h3>Profile information</h3>
-                        <p>Update your name and email address.</p>
+                        <p>Update your name and profile photo.</p>
                     </div>
 
                     <div class="avatar-section">
-                        <div class="avatar-circle">{{ userInitials }}</div>
+                        <div class="avatar-wrapper" @click="triggerAvatarUpload" title="Change profile photo">
+                            <img
+                                v-if="avatarPreview || avatarUrl"
+                                :src="avatarPreview || avatarUrl"
+                                class="avatar-image"
+                                alt="Profile photo"
+                            />
+                            <div v-else class="avatar-circle">{{ userInitials }}</div>
+
+                            <div class="avatar-edit-overlay">
+                                <span>📷</span>
+                            </div>
+                        </div>
+
+                        <input
+                            ref="avatarInput"
+                            type="file"
+                            accept="image/png, image/jpeg, image/webp"
+                            class="hidden-file-input"
+                            @change="handleAvatarChange"
+                        />
+
                         <div>
                             <h4>{{ form.name || 'Super Admin' }}</h4>
                             <span>{{ form.email }}</span>
                             <div class="role-tag"><span class="sa-pill violet">Super Administrator</span></div>
+                            <div class="photo-actions">
+                                <button type="button" class="change-photo-link" @click="triggerAvatarUpload">
+                                    Change photo
+                                </button>
+                                <button
+                                    v-if="avatarPreview"
+                                    type="button"
+                                    class="cancel-photo-link"
+                                    @click="cancelAvatarChange"
+                                >
+                                    Undo
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -52,7 +86,8 @@
 
                         <div class="form-group">
                             <label>Email address</label>
-                            <input type="email" v-model="form.email" />
+                            <input type="email" :value="form.email" disabled readonly />
+                            <small class="field-hint">Contact your admin to change your email</small>
                             <p v-if="errors.email" class="error-text">{{ errors.email }}</p>
                         </div>
                     </div>
@@ -68,7 +103,77 @@
                 <section v-if="activeTab === 'security'" class="sa-card settings-card">
                     <div class="card-title">
                         <h3>Security</h3>
-                        <p>Protect your account with two factor authentication.</p>
+                        <p>Update your password and protect your account with two factor authentication.</p>
+                    </div>
+
+                    <div class="password-form-block">
+                        <div class="settings-grid">
+
+                            <div class="form-group">
+                                <label>Current Password</label>
+                                <div class="password-wrapper">
+                                    <input :type="showCurrentPassword ? 'text' : 'password'"
+                                        v-model="security.currentPassword" placeholder="Enter current password" @blur="
+                                            validateCurrentPassword();
+                                        handlePasswordBlur('currentPassword')
+                                            " @input="
+                                            validateCurrentPassword();
+                                        if (passwordTouched.newPassword) validateNewPassword();
+                                            " />
+                                    <button type="button" class="eye-btn"
+                                        @click="showCurrentPassword = !showCurrentPassword">
+                                        {{ showCurrentPassword ? '👁️' : '👁️' }}
+                                    </button>
+                                </div>
+                                <p v-if="passwordErrors.currentPassword && passwordTouched.currentPassword"
+                                    class="error-text">
+                                    {{ passwordErrors.currentPassword }}
+                                </p>
+                            </div>
+
+                            <div class="form-group">
+                                <label>New Password</label>
+                                <div class="password-wrapper">
+                                    <input :type="showNewPassword ? 'text' : 'password'" v-model="security.newPassword"
+                                        placeholder="Enter new password" @blur="
+                                            validateNewPassword();
+                                        handlePasswordBlur('newPassword')
+                                            " @input="validateNewPassword" />
+                                    <button type="button" class="eye-btn" @click="showNewPassword = !showNewPassword">
+                                        {{ showNewPassword ? '👁️' : '👁️' }}
+                                    </button>
+                                </div>
+                                <p v-if="passwordErrors.newPassword && passwordTouched.newPassword" class="error-text">
+                                    {{ passwordErrors.newPassword }}
+                                </p>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Confirm Password</label>
+                                <div class="password-wrapper">
+                                    <input :type="showConfirmPassword ? 'text' : 'password'"
+                                        v-model="security.confirmPassword" placeholder="Confirm new password" @blur="
+                                            validateConfirmPassword();
+                                        handlePasswordBlur('confirmPassword')
+                                            " @input="validateConfirmPassword" />
+                                    <button type="button" class="eye-btn"
+                                        @click="showConfirmPassword = !showConfirmPassword">
+                                        {{ showConfirmPassword ? '👁️' : '👁️' }}
+                                    </button>
+                                </div>
+                                <p v-if="passwordErrors.confirmPassword && passwordTouched.confirmPassword"
+                                    class="error-text">
+                                    {{ passwordErrors.confirmPassword }}
+                                </p>
+                            </div>
+
+                            <div class="form-group password-btn-alignment">
+                                <button class="sa-btn" @click="updatePassword" :disabled="updatingPassword">
+                                    {{ updatingPassword ? 'Updating...' : 'Update Security' }}
+                                </button>
+                            </div>
+
+                        </div>
                     </div>
 
                     <div class="twofa-box">
@@ -127,6 +232,57 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- NOTIFICATIONS -->
+                <section v-if="activeTab === 'notifications'" class="sa-card settings-card">
+                    <div class="card-title">
+                        <h3>Notification preferences</h3>
+                        <p>Control how and when you receive updates.</p>
+                    </div>
+
+                    <div class="notification-list">
+
+                        <div class="notify-item">
+                            <div>
+                                <h4>Email Notifications</h4>
+                                <p>Receive updates by email.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" v-model="notifications.email">
+                                <span></span>
+                            </label>
+                        </div>
+
+                        <div class="notify-item">
+                            <div>
+                                <h4>Task Assignments</h4>
+                                <p>Notify when tasks are assigned.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" v-model="notifications.tasks">
+                                <span></span>
+                            </label>
+                        </div>
+
+                        <div class="notify-item">
+                            <div>
+                                <h4>Project Updates</h4>
+                                <p>Notify on project status changes.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" v-model="notifications.projects">
+                                <span></span>
+                            </label>
+                        </div>
+
+                    </div>
+
+                    <div class="card-footer">
+                        <button class="sa-btn" @click="saveNotificationPreferences">
+                            Save Preferences
+                        </button>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -134,7 +290,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from "vue";
-import { router, Head } from "@inertiajs/vue3";
+import { Head } from "@inertiajs/vue3";
 import axios from "axios";
 import { useToast } from "vue-toastification";
 import QrcodeVue from "qrcode.vue";
@@ -145,11 +301,16 @@ const toast = useToast();
 const props = defineProps({
     profile: {
         type: Object,
-        default: () => ({ name: "", email: "", two_factor_enabled: false }),
+        default: () => ({
+            name: "",
+            email: "",
+            two_factor_enabled: false,
+            avatar_url: null,
+            notification_preferences: null,
+        }),
     },
 });
 
-/* theme (same key on every Super Admin page) */
 const isDark = ref(localStorage.getItem("sa_theme") !== "light");
 watch(isDark, (v) => localStorage.setItem("sa_theme", v ? "dark" : "light"));
 
@@ -161,33 +322,218 @@ const original = reactive({ name: props.profile.name, email: props.profile.email
 const errors = ref({});
 const saving = ref(false);
 
-const changed = computed(() => form.name !== original.name || form.email !== original.email);
+const avatarUrl = ref(props.profile.avatar_url || null);
+const avatarInput = ref(null);
+const avatarFile = ref(null);
+const avatarPreview = ref(null);
+
+const changed = computed(
+    () => form.name !== original.name || form.email !== original.email || !!avatarFile.value
+);
 
 const userInitials = computed(() =>
     (form.name || "SA").split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()
 );
 
-const saveProfile = () => {
+/* ---------- avatar upload ---------- */
+const triggerAvatarUpload = () => {
+    avatarInput.value?.click();
+};
+
+const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+        toast.error("Please choose an image file");
+        e.target.value = "";
+        return;
+    }
+
+    const maxSizeBytes = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSizeBytes) {
+        toast.error("Image must be smaller than 5MB");
+        e.target.value = "";
+        return;
+    }
+
+    if (avatarPreview.value) {
+        URL.revokeObjectURL(avatarPreview.value);
+    }
+
+    avatarFile.value = file;
+    avatarPreview.value = URL.createObjectURL(file);
+};
+
+const cancelAvatarChange = () => {
+    if (avatarPreview.value) {
+        URL.revokeObjectURL(avatarPreview.value);
+    }
+    avatarFile.value = null;
+    avatarPreview.value = null;
+    if (avatarInput.value) avatarInput.value.value = "";
+};
+
+const saveProfile = async () => {
     saving.value = true;
     errors.value = {};
 
-    router.put("/super-admin/profile", { name: form.name, email: form.email }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            original.name = form.name;
-            original.email = form.email;
-            toast.success("Profile updated successfully");
-        },
-        onError: (errs) => {
+    try {
+        const formData = new FormData();
+        // file uploads need POST, so the PUT route is reached through method spoofing
+        formData.append("_method", "PUT");
+        formData.append("name", form.name);
+        formData.append("email", form.email);
+
+        if (avatarFile.value) {
+            formData.append("avatar", avatarFile.value);
+        }
+
+        const res = await axios.post("/super-admin/profile", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        if (res.data?.avatar_url) {
+            avatarUrl.value = res.data.avatar_url;
+        }
+
+        original.name = form.name;
+        original.email = form.email;
+        cancelAvatarChange();
+        toast.success("Profile updated successfully");
+    } catch (err) {
+        if (err.response?.status === 422) {
+            const errs = err.response.data?.errors || {};
             const flat = {};
-            Object.keys(errs || {}).forEach((k) => {
+            Object.keys(errs).forEach((k) => {
                 flat[k] = Array.isArray(errs[k]) ? errs[k][0] : errs[k];
             });
             errors.value = flat;
             toast.error("Please check the highlighted fields");
-        },
-        onFinish: () => { saving.value = false; },
-    });
+        } else {
+            console.error(err);
+            toast.error(err.response?.data?.message || "Failed to update profile");
+        }
+    } finally {
+        saving.value = false;
+    }
+};
+
+/* ---------- password ---------- */
+const security = reactive({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+});
+
+const passwordErrors = reactive({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+});
+
+const passwordTouched = reactive({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false,
+});
+
+const updatingPassword = ref(false);
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
+
+const validateCurrentPassword = () => {
+    if (!security.currentPassword) {
+        passwordErrors.currentPassword = "Current password is required";
+    } else {
+        passwordErrors.currentPassword = "";
+    }
+};
+
+const validateNewPassword = () => {
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+
+    if (!security.newPassword) {
+        passwordErrors.newPassword = "Password is required";
+    } else if (security.newPassword.length < 8) {
+        passwordErrors.newPassword = "Password must be at least 8 characters";
+    } else if (!regex.test(security.newPassword)) {
+        passwordErrors.newPassword = "Must include uppercase, lowercase, number & special character";
+    } else if (security.currentPassword && security.newPassword === security.currentPassword) {
+        passwordErrors.newPassword = "New password must be different from your current password";
+    } else {
+        passwordErrors.newPassword = "";
+    }
+    validateConfirmPassword();
+};
+
+const validateConfirmPassword = () => {
+    if (!security.confirmPassword) {
+        passwordErrors.confirmPassword = "Confirm password is required";
+    } else if (security.newPassword !== security.confirmPassword) {
+        passwordErrors.confirmPassword = "Passwords do not match";
+    } else {
+        passwordErrors.confirmPassword = "";
+    }
+};
+
+const handlePasswordBlur = (field) => {
+    passwordTouched[field] = true;
+};
+
+const updatePassword = async () => {
+    passwordTouched.currentPassword = true;
+    passwordTouched.newPassword = true;
+    passwordTouched.confirmPassword = true;
+
+    validateCurrentPassword();
+    validateNewPassword();
+    validateConfirmPassword();
+
+    if (passwordErrors.currentPassword || passwordErrors.newPassword || passwordErrors.confirmPassword) {
+        return;
+    }
+
+    updatingPassword.value = true;
+
+    try {
+        const response = await axios.post("/super-admin/change-password", {
+            current_password: security.currentPassword,
+            password: security.newPassword,
+            password_confirmation: security.confirmPassword,
+        });
+
+        security.currentPassword = "";
+        security.newPassword = "";
+        security.confirmPassword = "";
+
+        passwordErrors.currentPassword = "";
+        passwordErrors.newPassword = "";
+        passwordErrors.confirmPassword = "";
+
+        passwordTouched.currentPassword = false;
+        passwordTouched.newPassword = false;
+        passwordTouched.confirmPassword = false;
+
+        toast.success(response.data.message || "Password updated successfully");
+    } catch (error) {
+        const serverMessage = error.response?.data?.message || "";
+
+        if (serverMessage === "Current password is incorrect") {
+            passwordErrors.currentPassword = "Current password does not match";
+            passwordTouched.currentPassword = true;
+        } else if (/same as|must be different|reuse/i.test(serverMessage)) {
+            // Covers a backend rule like Laravel's `different:current_password`
+            passwordErrors.newPassword = "New password must be different from your current password";
+            passwordTouched.newPassword = true;
+        } else {
+            console.error(error);
+            toast.error(serverMessage || "Failed to update password");
+        }
+    } finally {
+        updatingPassword.value = false;
+    }
 };
 
 /* ---------- two factor ---------- */
@@ -255,12 +601,60 @@ const disable2FA = async () => {
         twoFA.loading = false;
     }
 };
+
+/* ---------- notifications ---------- */
+const savedPrefs = props.profile.notification_preferences;
+
+const notifications = reactive({
+    email: savedPrefs ? !!savedPrefs.email : true,
+    tasks: savedPrefs ? !!savedPrefs.tasks : true,
+    projects: savedPrefs ? !!savedPrefs.projects : true,
+    reports: savedPrefs ? !!savedPrefs.reports : false,
+});
+
+const originalNotifications = reactive({
+    email: notifications.email,
+    tasks: notifications.tasks,
+    projects: notifications.projects,
+    reports: notifications.reports,
+});
+
+const saveNotificationPreferences = async () => {
+    const hasChanges =
+        notifications.email !== originalNotifications.email ||
+        notifications.tasks !== originalNotifications.tasks ||
+        notifications.projects !== originalNotifications.projects ||
+        notifications.reports !== originalNotifications.reports;
+
+    if (!hasChanges) {
+        toast.warning("Nothing to update on saving the preferences");
+        return;
+    }
+
+    try {
+        await axios.put("/super-admin/notification-preferences", {
+            email: notifications.email,
+            tasks: notifications.tasks,
+            projects: notifications.projects,
+            reports: notifications.reports,
+        });
+
+        originalNotifications.email = notifications.email;
+        originalNotifications.tasks = notifications.tasks;
+        originalNotifications.projects = notifications.projects;
+        originalNotifications.reports = notifications.reports;
+
+        toast.success("Preferences saved successfully");
+    } catch (error) {
+        console.error("Failed to save preferences:", error);
+        toast.error("Failed to update preferences");
+    }
+};
 </script>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
 
-/* ---------- theme variables ---------- */
 .sa-page.theme-dark {
     --dashboard-bg: #10121c;
     --panel-bg: #171a26;
@@ -343,7 +737,6 @@ const disable2FA = async () => {
     font-family: 'Lexend', 'Inter', sans-serif;
 }
 
-/* ---------- main area ---------- */
 .sa-main {
     flex: 1;
     min-width: 0;
@@ -388,7 +781,6 @@ const disable2FA = async () => {
     padding: 28px 40px 60px;
 }
 
-/* ---------- cards & grids ---------- */
 .sa-card {
     background: var(--panel-bg);
     border: 1px solid var(--border-subtle);
@@ -424,7 +816,6 @@ const disable2FA = async () => {
     }
 }
 
-/* ---------- stat cards ---------- */
 .sa-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -506,7 +897,6 @@ const disable2FA = async () => {
     color: var(--text-muted);
 }
 
-/* ---------- buttons, inputs, pills, avatars ---------- */
 .sa-btn {
     display: inline-flex;
     align-items: center;
@@ -735,6 +1125,15 @@ const disable2FA = async () => {
     margin-bottom: 28px;
 }
 
+.avatar-wrapper {
+    position: relative;
+    width: 74px;
+    height: 74px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
 .avatar-circle {
     width: 74px;
     height: 74px;
@@ -748,6 +1147,76 @@ const disable2FA = async () => {
     color: var(--on-accent);
     background: linear-gradient(150deg, #2be3bb, var(--accent));
     box-shadow: 0 6px 18px var(--accent-soft);
+}
+
+.avatar-image {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    border: 1px solid var(--border-subtle);
+}
+
+.avatar-edit-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.avatar-wrapper:hover .avatar-edit-overlay {
+    opacity: 1;
+}
+
+.hidden-file-input {
+    display: none;
+}
+
+.photo-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.change-photo-link {
+    display: inline-block;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--accent);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+}
+
+.change-photo-link:hover {
+    text-decoration: underline;
+}
+
+.cancel-photo-link {
+    display: inline-block;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+}
+
+.cancel-photo-link:hover {
+    color: var(--c-red);
 }
 
 .avatar-section h4 {
@@ -800,6 +1269,20 @@ const disable2FA = async () => {
     box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
+.form-group input:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+    background: var(--card-inner-bg);
+    color: var(--text-muted);
+    border-style: dashed;
+}
+
+.field-hint {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
 .error-text {
     margin-top: 6px;
     font-size: 12.5px;
@@ -811,6 +1294,47 @@ const disable2FA = async () => {
     display: flex;
     justify-content: flex-end;
     margin-top: 28px;
+}
+
+/* ---------- password ---------- */
+.password-form-block {
+    padding: 20px;
+    margin-bottom: 24px;
+    border-radius: 12px;
+    background: var(--card-inner-bg);
+    border: 1px solid var(--border-subtle);
+}
+
+.password-btn-alignment {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+}
+
+.password-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.password-wrapper input {
+    width: 100%;
+    padding-right: 42px;
+}
+
+.eye-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.65;
+}
+
+.eye-btn:hover {
+    opacity: 1;
 }
 
 .twofa-box {
@@ -895,9 +1419,83 @@ const disable2FA = async () => {
     word-break: break-all;
 }
 
+/* ---------- notifications ---------- */
+.notification-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.notify-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: var(--card-inner-bg);
+    border: 1px solid var(--border-subtle);
+}
+
+.notify-item h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-header);
+    margin-bottom: 3px;
+}
+
+.notify-item p {
+    font-size: 12.5px;
+    color: var(--text-muted);
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 23px;
+    flex-shrink: 0;
+}
+
+.switch input {
+    display: none;
+}
+
+.switch span {
+    position: absolute;
+    inset: 0;
+    background: var(--border-deep);
+    border-radius: 30px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.switch span::before {
+    content: "";
+    position: absolute;
+    width: 17px;
+    height: 17px;
+    left: 3px;
+    top: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.2s;
+}
+
+.switch input:checked + span {
+    background: var(--accent);
+}
+
+.switch input:checked + span::before {
+    transform: translateX(19px);
+}
+
 @media (max-width: 800px) {
     .settings-grid {
         grid-template-columns: 1fr;
+    }
+
+    .password-btn-alignment {
+        justify-content: flex-start;
     }
 }
 </style>

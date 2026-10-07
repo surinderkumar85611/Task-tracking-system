@@ -11,7 +11,6 @@
 
       <nav class="sa-menu">
         <Link href="/super-admin/dashboard" :class="{ active: isActive('/super-admin/dashboard') }">📊 Dashboard</Link>
-        <Link href="/super-admin/dashboard" :class="{ active: false }">👤 Administrators</Link>
         <Link href="/super-admin/workspaces" :class="{ active: isActive('/super-admin/workspaces') }">🏢 Workspaces</Link>
         <Link href="/super-admin/projects" :class="{ active: isActive('/super-admin/projects') }">📁 Projects</Link>
         <Link href="/super-admin/teams" :class="{ active: isActive('/super-admin/teams') }">👥 Teams</Link>
@@ -35,9 +34,7 @@ function logout() {
 </script>
 
 <style scoped>
-/* Self-contained: doesn't rely on the host page defining --accent etc.,
-   so it drops into any Super Admin page unchanged. Falls back to its
-   own teal if the page happens to define --accent too (dashboard does). */
+
 .sa-sidebar {
   width: 252px;
   background: #10121a;

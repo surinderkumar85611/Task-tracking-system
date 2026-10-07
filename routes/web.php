@@ -233,7 +233,6 @@ Route::middleware('auth')->prefix('member')->group(function () {
     Route::put('/{member}/assign-workspace', [MemberController::class, 'assignWorkspace']);
     Route::put('/{member}/independent', [MemberController::class, 'makeIndependent'])->name('members.make-independent');
     Route::delete('/{member}', [MemberController::class, 'destroy']);
-    Route::put('/{member}/promote', [MemberController::class, 'promote']);
 });
 
 Route::post('/invite/generate', [InvitationController::class, 'generate']);
@@ -358,17 +357,18 @@ Route::prefix('super-admin')->middleware(['auth:super_admin'])->group(function (
     // add / remove team members (parameter must be named {teamLeader} to match the controller)
     Route::post('/teams/{teamLeader}/members/{member}', [SuperAdminTeamController::class, 'addMember']);
     Route::delete('/teams/{teamLeader}/members/{member}', [SuperAdminTeamController::class, 'removeMember']);
-  
+
     // create administrator / team leader
     Route::post('/admin', [SuperAdminUserController::class, 'store']);
     Route::delete('/admin/{user}', [SuperAdminPageController::class, 'destroyAdmin']);
 
-    Route::patch('/projects/{project}', [SuperAdminController::class, 'updateProjectProgress']);
+    Route::patch('/projects/{project}', [SuperAdminPageController::class, 'updateProjectProgress']);
 
-    Route::get('/workspaces', [SuperAdminController::class, 'workspaces']);
-    Route::post('/workspaces', [SuperAdminController::class, 'storeWorkspace']);
-    Route::put('/workspaces/{workspace}', [SuperAdminController::class, 'updateWorkspace']);
-    Route::delete('/workspaces/{workspace}', [SuperAdminController::class, 'destroyWorkspace']);
+    // workspaces: list, add, rename, delete
+    Route::get('/workspaces', [SuperAdminPageController::class, 'workspaces']);
+    Route::post('/workspaces', [SuperAdminPageController::class, 'storeWorkspace']);
+    Route::put('/workspaces/{workspace}', [SuperAdminPageController::class, 'updateWorkspace']);
+    Route::delete('/workspaces/{workspace}', [SuperAdminPageController::class, 'destroyWorkspace']);
 
     // settings: profile + two factor authentication
     Route::get('/settings', [SuperAdminSettingsController::class, 'index']);
