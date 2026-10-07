@@ -59,41 +59,49 @@
         <!-- ===================== ORGANISATION ===================== -->
         <template v-if="tab === 'organisation'">
 
-            <!-- 1. administrators -->
-            <section class="org-section">
-                <div class="org-title">
-                    <span class="org-step">1</span>
-                    <h3>Administrators</h3>
-                    <span class="sa-pill violet">{{ filteredAdmins.length }}</span>
+            <div class="org-bar">
+                <p class="org-note">💡 Click a workspace to open its team leaders and members. Drag a member onto another team to move them.</p>
+                <div class="org-bar-actions">
+                    <button class="sa-btn ghost sm" @click="expandAllWs">Expand all</button>
+                    <button class="sa-btn ghost sm" @click="collapseAllWs">Collapse all</button>
                 </div>
+            </div>
 
-                <div class="admin-grid">
-                    <article v-for="a in filteredAdmins" :key="a.id" class="person-card">
-                        <div class="sa-avatar lg" :class="av(a.id)">{{ initials(a.name) }}</div>
-                        <div class="person-info">
-                            <strong>{{ a.name }}</strong>
-                            <span>{{ a.email }}</span>
-                            <small>Joined {{ fmtDate(a.created_at) }}</small>
+            <!-- workspace -> administrator -> team leaders -> members -->
+            <section v-for="w in filteredWorkspaces" :key="w.id ?? 'none'" class="ws-block"
+                :class="{ open: isWsOpen(w) }">
+
+                <header class="ws-head" role="button" tabindex="0" @click="toggleWs(w)"
+                    @keydown.enter="toggleWs(w)" @dragenter="openOnDrag(w)" @dragover.prevent="openOnDrag(w)">
+                    <div class="ws-title">
+                        <span class="ws-icon">🏢</span>
+                        <div>
+                            <h3>{{ w.name }}</h3>
+                            <small>{{ w.leaders.length }} team leader(s) · {{ memberTotal(w) }} member(s)</small>
                         </div>
-                        <span class="sa-pill violet">Administrator</span>
+                    </div>
+
+                    <div v-if="w.admin" class="ws-admin">
+                        <div class="sa-avatar" :class="av(w.admin.id)">{{ initials(w.admin.name) }}</div>
+                        <div class="ws-admin-info">
+                            <strong>{{ w.admin.name }}</strong>
+                            <span>{{ w.admin.email }}</span>
+                        </div>
+                        <span class="sa-pill violet">🛡️ Administrator</span>
                         <button class="sa-icon-btn danger sm" title="Remove administrator"
-                            @click="askRemove('admin', a)">🗑</button>
-                    </article>
-                    <div v-if="!filteredAdmins.length" class="sa-empty">No administrators found.</div>
-                </div>
-            </section>
+                            @click.stop="askRemove('admin', w.admin)">🗑</button>
+                    </div>
+                    <div v-else class="ws-admin none">
+                        <span class="sa-pill">No administrator</span>
+                    </div>
 
-            <!-- 2 + 3. leaders with their members -->
-            <section class="org-section">
-                <div class="org-title">
-                    <span class="org-step">2</span>
-                    <h3>Team leaders &amp; their teams</h3>
-                    <span class="sa-pill blue">{{ filteredLeaders.length }}</span>
-                    <small class="org-hint">💡 Drag a member onto another team to move them</small>
-                </div>
+                    <span class="chev" :class="{ open: isWsOpen(w) }">▾</span>
+                </header>
 
-                <div class="team-grid">
-                    <article v-for="l in filteredLeaders" :key="l.id" class="team-card"
+                <div v-if="isWsOpen(w)" class="ws-body">
+
+                <div v-if="w.leaders.length" class="team-grid">
+                    <article v-for="l in w.leaders" :key="l.id" class="team-card"
                         :class="{ over: overTarget === 'l' + l.id }" @dragover.prevent="overTarget = 'l' + l.id"
                         @dragleave="onLeave($event, 'l' + l.id)" @drop.prevent="moveToLeader(l.id)">
 
@@ -102,8 +110,7 @@
                             <div class="team-head-info">
                                 <h4>{{ l.name }}</h4>
                                 <div class="team-head-tags">
-                                    <span class="sa-pill blue">Team Leader</span>
-                                    <span class="sa-pill">{{ l.workspace_name }}</span>
+                                    <span class="sa-pill amber">🎯 Team Leader · TL{{ l.level ?? 1 }}</span>
                                 </div>
                             </div>
                             <button class="sa-icon-btn danger sm" title="Remove team leader"
@@ -122,7 +129,7 @@
 
                         <div class="team-members-label">
                             <span>Members</span>
-                            <span class="org-step small">3</span>
+                            <span class="sa-pill green">{{ l.members.length }}</span>
                         </div>
 
                         <ul class="member-list">
@@ -142,8 +149,33 @@
                             </li>
                         </ul>
                     </article>
+                </div>
+                <div v-else class="sa-empty">No team leaders in this workspace yet.</div>
+                </div>
+            </section>
 
-                    <div v-if="!filteredLeaders.length" class="sa-empty full">No team leaders found.</div>
+            <div v-if="!filteredWorkspaces.length" class="sa-empty section-gap">No workspaces match your search.</div>
+
+            <!-- administrators that do not own a workspace yet -->
+            <section v-if="idleAdmins.length" class="org-section">
+                <div class="org-title">
+                    <span class="org-step">+</span>
+                    <h3>Administrators without a workspace</h3>
+                    <span class="sa-pill violet">{{ idleAdmins.length }}</span>
+                </div>
+
+                <div class="admin-grid">
+                    <article v-for="a in idleAdmins" :key="a.id" class="person-card">
+                        <div class="sa-avatar lg" :class="av(a.id)">{{ initials(a.name) }}</div>
+                        <div class="person-info">
+                            <strong>{{ a.name }}</strong>
+                            <span>{{ a.email }}</span>
+                            <small>Joined {{ fmtDate(a.created_at) }}</small>
+                        </div>
+                        <span class="sa-pill violet">Administrator</span>
+                        <button class="sa-icon-btn danger sm" title="Remove administrator"
+                            @click="askRemove('admin', a)">🗑</button>
+                    </article>
                 </div>
             </section>
 
@@ -385,6 +417,7 @@ const props = defineProps({
     admins: { type: Array, default: () => [] },
     leaders: { type: Array, default: () => [] },
     unassigned: { type: Array, default: () => [] },
+    workspaces: { type: Array, default: () => [] },
     orgStats: { type: Object, default: () => ({ admins: 0, leaders: 0, members: 0, people: 0 }) },
 });
 
@@ -425,6 +458,60 @@ const filteredLeaders = computed(() =>
     localLeaders.value.filter((l) => hit(l.name) || l.members.some((m) => hit(m.name)))
 );
 const visibleMembers = (l) => (hit(l.name) ? l.members : l.members.filter((m) => hit(m.name)));
+
+/* ---------- workspaces: administrator -> team leaders -> members ---------- */
+const workspaceGroups = computed(() =>
+    props.workspaces.map((w) => ({
+        ...w,
+        leaders: localLeaders.value.filter((l) => (w.leader_ids || []).includes(l.id)),
+    }))
+);
+
+const filteredWorkspaces = computed(() =>
+    workspaceGroups.value
+        .map((w) => {
+            const wsHit = hit(w.name) || (w.admin && (hit(w.admin.name) || hit(w.admin.email)));
+            return {
+                ...w,
+                leaders: wsHit
+                    ? w.leaders
+                    : w.leaders.filter((l) => hit(l.name) || l.members.some((m) => hit(m.name))),
+            };
+        })
+        .filter((w) => !q.value || w.leaders.length || hit(w.name) || (w.admin && hit(w.admin.name)))
+);
+
+const memberTotal = (w) => w.leaders.reduce((sum, l) => sum + l.members.length, 0);
+
+/* ---------- open / close a workspace ---------- */
+const expandedWs = ref([]);
+const wsKey = (w) => w.id ?? "none";
+
+// while searching, every matching workspace is shown open
+const isWsOpen = (w) => !!q.value || expandedWs.value.includes(wsKey(w));
+
+const toggleWs = (w) => {
+    const k = wsKey(w);
+    expandedWs.value = expandedWs.value.includes(k)
+        ? expandedWs.value.filter((x) => x !== k)
+        : [...expandedWs.value, k];
+};
+
+const expandAllWs = () => { expandedWs.value = workspaceGroups.value.map(wsKey); };
+const collapseAllWs = () => { expandedWs.value = []; };
+
+// dragging a member over a closed workspace opens it so it can be dropped inside
+const openOnDrag = (w) => {
+    if (drag.value && !isWsOpen(w)) expandedWs.value = [...expandedWs.value, wsKey(w)];
+};
+
+const idleAdmins = computed(() =>
+    props.admins.filter(
+        (a) =>
+            !props.workspaces.some((w) => w.admin && w.admin.id === a.id) &&
+            (hit(a.name) || hit(a.email))
+    )
+);
 
 /* ---------- drag and drop ---------- */
 const drag = ref(null);
@@ -512,7 +599,7 @@ const confirmMessage = computed(() => {
     const { kind, item } = confirmState.value;
     if (!item) return "";
     return kind === "admin"
-        ? `${item.name} will lose access to the system. This cannot be undone.`
+        ? `${item.name} will lose access to the system. Their workspace and its team leaders stay, but will show no administrator. This cannot be undone.`
         : `${item.name} will be removed and can no longer log in. Their ${item.members.length} team member(s) will become unassigned.`;
 });
 
@@ -1705,5 +1792,152 @@ const cellStyle = (c) => ({
     .rate-pills {
         grid-column: 1 / -1;
     }
+}
+
+/* ---------- workspaces ---------- */
+.org-note {
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.ws-block {
+    margin-bottom: 26px;
+    padding: 18px;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--panel-bg) 55%, transparent);
+    border: 1px solid var(--border-subtle);
+}
+
+.ws-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-divider);
+}
+
+.ws-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ws-icon {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 11px;
+    font-size: 20px;
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.ws-title h3 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-header);
+}
+
+.ws-title small {
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+.ws-admin {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px 8px 8px;
+    border-radius: 12px;
+    background: var(--card-inner-bg);
+    border: 1px solid var(--border-subtle);
+}
+
+.ws-admin.none {
+    padding: 8px 14px;
+}
+
+.ws-admin-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.ws-admin-info strong {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-header);
+}
+
+.ws-admin-info span {
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+/* ---------- collapsible workspaces ---------- */
+.sa-btn.sm {
+    padding: 7px 13px;
+    font-size: 12px;
+}
+
+.org-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.org-bar .org-note {
+    margin-bottom: 0;
+}
+
+.org-bar-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.ws-block .ws-head {
+    justify-content: flex-start;
+    gap: 22px;
+    margin-bottom: 0;
+    padding: 4px 6px;
+    border-bottom: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.ws-block .ws-head:hover {
+    background: var(--card-inner-bg);
+}
+
+.ws-block.open .ws-head {
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-radius: 12px 12px 0 0;
+    border-bottom: 1px solid var(--border-divider);
+}
+
+.ws-block .chev {
+    margin-left: auto;
+    font-size: 18px;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+}
+
+.ws-block .chev.open {
+    transform: rotate(180deg);
+    color: var(--accent);
+}
+
+.ws-body {
+    padding-top: 2px;
 }
 </style>

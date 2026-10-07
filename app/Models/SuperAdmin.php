@@ -17,5 +17,10 @@ class SuperAdmin extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+    ];
+
+    protected $casts = [
+        'two_factor_enabled' => 'boolean',
     ];
 }

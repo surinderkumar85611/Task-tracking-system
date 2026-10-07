@@ -16,7 +16,6 @@
 
                 <nav class="menu">
                     <Link href="/super-admin/dashboard" class="active">📊 Dashboard</Link>
-                    <Link href="/super-admin/dashboard">👤 Administrators</Link>
                     <Link href="/super-admin/workspaces">🏢 Workspaces</Link>
                     <Link href="/super-admin/projects">📁 Projects</Link>
                     <Link href="/super-admin/teams">👥 Teams</Link>
@@ -945,7 +944,6 @@ const activityDotClass = (type) => {
 };
 
 
-// FIX 3: notification badge counts only overdue projects that have not been seen yet.
 const SEEN_KEY = "sa_seen_overdue_projects";
 
 const readSeen = () => {
@@ -1086,7 +1084,6 @@ const removeMember = (memberId) => {
     });
 };
 
-// FIX 2: create user with visible validation errors, saving state and toasts.
 const form = ref({ role: "ADMIN", name: "", email: "", password: "", password_confirmation: "" });
 const formErrors = ref({});
 const creatingUser = ref(false);

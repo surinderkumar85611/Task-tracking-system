@@ -78,7 +78,6 @@
                     <p v-else class="all-good">🎉 Every team has at least one ongoing project.</p>
                 </section>
 
-                <!-- overall projects in the organisation -->
                 <div class="sa-grid-2">
                     <section class="sa-card">
                         <div class="sa-card-head">
@@ -295,13 +294,11 @@ const props = defineProps({
     },
 });
 
-/* theme (same key on every Super Admin page) */
 const isDark = ref(localStorage.getItem("sa_theme") !== "light");
 watch(isDark, (v) => localStorage.setItem("sa_theme", v ? "dark" : "light"));
 
 const search = ref("");
 
-/* ---------- helpers ---------- */
 const initials = (name) =>
     (name || "?").split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 const av = (id) => (typeof id === "number" ? "av-" + (id % 6) : "av-5");
@@ -339,7 +336,6 @@ const deadlineTone = (p) => {
     return "blue";
 };
 
-/* ---------- search ---------- */
 const q = computed(() => search.value.trim().toLowerCase());
 const hit = (text) => !q.value || (text || "").toLowerCase().includes(q.value);
 
@@ -384,7 +380,6 @@ const shownGroups = computed(() =>
         .filter((g) => !q.value || groupMatches(g) || g.leaders.length)
 );
 
-/* ---------- organisation-wide analytics ---------- */
 const allLeaders = computed(() => [
     ...props.admins.flatMap((a) => a.leaders),
     ...props.unlinked,
@@ -472,7 +467,6 @@ const cellStyle = (c) => ({
     color: c ? "var(--text-header)" : "var(--text-muted)",
 });
 
-/* ---------- expand / collapse ---------- */
 const expanded = ref([]);
 
 // while searching, every matching administrator is shown open
@@ -491,7 +485,6 @@ const collapseAll = () => { expanded.value = []; };
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
 
-/* ---------- theme variables ---------- */
 .sa-page.theme-dark {
     --dashboard-bg: #10121c;
     --panel-bg: #171a26;
@@ -574,7 +567,6 @@ const collapseAll = () => { expanded.value = []; };
     font-family: 'Lexend', 'Inter', sans-serif;
 }
 
-/* ---------- main area ---------- */
 .sa-main {
     flex: 1;
     min-width: 0;
@@ -619,7 +611,6 @@ const collapseAll = () => { expanded.value = []; };
     padding: 28px 40px 60px;
 }
 
-/* ---------- cards & grids ---------- */
 .sa-card {
     background: var(--panel-bg);
     border: 1px solid var(--border-subtle);
@@ -655,7 +646,6 @@ const collapseAll = () => { expanded.value = []; };
     }
 }
 
-/* ---------- stat cards ---------- */
 .sa-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -737,7 +727,6 @@ const collapseAll = () => { expanded.value = []; };
     color: var(--text-muted);
 }
 
-/* ---------- buttons, inputs, pills, avatars ---------- */
 .sa-btn {
     display: inline-flex;
     align-items: center;
@@ -843,7 +832,6 @@ const collapseAll = () => { expanded.value = []; };
 .sa-avatar.av-4 { background: var(--c-cyan); }
 .sa-avatar.av-5 { background: var(--c-red); }
 
-/* ---------- tabs, progress, empty ---------- */
 .sa-tabs {
     display: inline-flex;
     gap: 3px;
@@ -892,7 +880,6 @@ const collapseAll = () => { expanded.value = []; };
     border-radius: 10px;
 }
 
-/* ---------- confirm modal ---------- */
 .sa-modal-overlay {
     position: fixed;
     inset: 0;
@@ -938,7 +925,6 @@ const collapseAll = () => { expanded.value = []; };
     font-size: 12px;
 }
 
-/* highlighted workspace tag */
 .ws-tag {
     display: inline-flex;
     align-items: center;
@@ -965,7 +951,6 @@ const collapseAll = () => { expanded.value = []; };
     font-weight: 500;
 }
 
-/* urgent card */
 .urgent-card {
     margin-bottom: 26px;
     border-color: rgba(214, 72, 79, 0.35);
@@ -1019,7 +1004,6 @@ const collapseAll = () => { expanded.value = []; };
     color: var(--text-card-sub);
 }
 
-/* list header */
 .list-title {
     display: flex;
     align-items: center;
@@ -1044,7 +1028,6 @@ const collapseAll = () => { expanded.value = []; };
     gap: 8px;
 }
 
-/* administrator rows */
 .admin-list {
     display: flex;
     flex-direction: column;
@@ -1166,7 +1149,6 @@ const collapseAll = () => { expanded.value = []; };
     padding-top: 18px;
 }
 
-/* leaders */
 .leader-card {
     padding: 16px;
     border-radius: 12px;
@@ -1203,7 +1185,6 @@ const collapseAll = () => { expanded.value = []; };
     gap: 6px;
 }
 
-/* project table */
 .proj-table {
     display: flex;
     flex-direction: column;
@@ -1311,7 +1292,6 @@ const collapseAll = () => { expanded.value = []; };
     background: var(--c-red);
 }
 
-/* role tags */
 .tag-row {
     display: flex;
     flex-wrap: wrap;
@@ -1324,7 +1304,6 @@ const collapseAll = () => { expanded.value = []; };
     font-size: 11px;
 }
 
-/* charts (same look as the Teams analytics) */
 .section-gap {
     margin-bottom: 26px;
 }
