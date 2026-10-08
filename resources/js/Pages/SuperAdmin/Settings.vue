@@ -295,7 +295,7 @@ import axios from "axios";
 import { useToast } from "vue-toastification";
 import QrcodeVue from "qrcode.vue";
 import Sidebar from "./Sidebar.vue";
-
+import { useSuperAdminTheme } from "@/composables/useSuperAdminTheme";
 const toast = useToast();
 
 const props = defineProps({
@@ -311,9 +311,7 @@ const props = defineProps({
     },
 });
 
-const isDark = ref(localStorage.getItem("sa_theme") !== "light");
-watch(isDark, (v) => localStorage.setItem("sa_theme", v ? "dark" : "light"));
-
+const { isDark } = useSuperAdminTheme();
 const activeTab = ref("profile");
 
 /* ---------- profile ---------- */

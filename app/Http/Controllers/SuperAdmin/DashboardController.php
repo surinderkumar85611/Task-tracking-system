@@ -15,7 +15,6 @@ class DashboardController extends Controller
     {
         $projects = Project::with(['teamLeader', 'workspace'])->get();
 
-        // ---- allProjects: flat list the Vue page filters/searches/charts ----
         $allProjects = $projects->map(function ($p) {
             return [
                 'id' => $p->id,

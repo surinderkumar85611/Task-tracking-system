@@ -193,56 +193,123 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- WORKSPACE OVERVIEW (workspace + team members | teams + TL projects) -->
+                        <div class="workspace-overview">
+
+                            <!-- LEFT: workspace name at the top, then team members with roles -->
+                            <div class="overview-card workspace-card">
+                                <div class="workspace-heading">
+                                    <span class="overview-label">Workspace</span>
+                                    <h3 class="workspace-name">{{ workspaceName }}</h3>
+                                </div>
+
+                                <div class="overview-subtitle">Team Members &amp; Roles</div>
+
+                                <div class="overview-list">
+                                    <div class="overview-row" v-for="person in workspacePeople" :key="person.key">
+                                        <div class="overview-avatar">{{ person.initials }}</div>
+
+                                        <div class="overview-info">
+                                            <strong>
+                                                {{ person.name }}
+                                                <em v-if="person.isYou" class="you-tag">You</em>
+                                            </strong>
+                                            <span>{{ person.role }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div v-if="workspacePeople.length === 0" class="overview-empty">
+                                        No team members yet.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- RIGHT: total teams + projects assigned to the TL -->
+                            <div class="overview-card teams-card">
+                                <span class="overview-label">Teams Overview</span>
+
+                                <div class="overview-metrics">
+                                    <div class="metric-tile">
+                                        <span class="metric-value">{{ totalTeams }}</span>
+                                        <span class="metric-label">Total Teams</span>
+                                    </div>
+
+                                    <div class="metric-tile">
+                                        <span class="metric-value">{{ tlAssignedProjects }}</span>
+                                        <span class="metric-label">Projects Assigned to TL</span>
+                                    </div>
+                                </div>
+
+                                <div class="overview-subtitle">Team Lead</div>
+
+                                <div class="overview-list">
+                                    <div class="overview-row" v-for="lead in teamLeadsDetail" :key="lead.key">
+                                        <div class="overview-avatar tl-avatar">{{ lead.initials }}</div>
+
+                                        <div class="overview-info">
+                                            <strong>{{ lead.name }}</strong>
+                                            <span>{{ lead.projectCount }} project{{ lead.projectCount === 1 ? "" : "s" }} assigned</span>
+                                        </div>
+                                    </div>
+
+                                    <div v-if="teamLeadsDetail.length === 0" class="overview-empty">
+                                        No team lead assigned yet.
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
 
                     <!-- Right Sidebar -->
                     <div class="sidebar-right-stack">
 
+                        <!-- Productivity: completed projects out of all assigned projects -->
                         <div class="productivity-card">
                             <div class="prod-top-row">
                                 <span class="prod-title">Productivity</span>
-                                <h2 class="prod-percentage">86%</h2>
+                                <h2 class="prod-percentage">
+                                    {{ productivity.total ? productivity.rate + '%' : '—' }}
+                                </h2>
                             </div>
 
                             <p class="prod-desc-text">
-                                Team performance increased this month.
+                                {{ productivityMessage }}
                             </p>
+
+                            <div class="prod-track">
+                                <div class="prod-fill" :style="{ width: productivity.rate + '%' }"></div>
+                            </div>
 
                             <button class="prod-view-btn">
                                 View Report
                             </button>
                         </div>
 
-                        <!-- Team Members -->
-                        <div class="panel-container team-members-panel">
+                        <!-- Projects assigned per month -->
+                        <div class="panel-container monthly-projects-panel">
                             <div class="panel-header">
-                                <h2>Team Members</h2>
+                                <h2>Projects Assigned per Month</h2>
+                                <span class="monthly-total">{{ monthlyTotal }} total</span>
                             </div>
 
-                            <div class="rep-list">
+                            <div class="month-chart">
+                                <div class="month-col" v-for="month in monthlyProjects" :key="month.key">
+                                    <span class="month-count">{{ month.count }}</span>
 
-                                <div class="rep-row" v-for="member in teamMembersList" :key="member.id">
-                                    <div class="rep-avatar">
-                                        {{ member.first_name.charAt(0) }}{{ member.last_name.charAt(0) }}
+                                    <div class="month-bar-track">
+                                        <div class="month-bar-fill" :class="{ 'is-current': month.isCurrent }"
+                                            :style="{ height: month.height + '%' }"></div>
                                     </div>
 
-                                    <div class="rep-info">
-                                        <strong>
-                                            {{ member.first_name }}
-                                            {{ member.last_name }}
-                                        </strong>
-
-                                        <span>
-                                            {{ member.role }}
-                                        </span>
-                                    </div>
-
-                                    <span class="status-pill online">
-                                        Active
-                                    </span>
+                                    <span class="month-label">{{ month.label }}</span>
                                 </div>
-
                             </div>
+
+                            <p v-if="monthlyTotal === 0" class="overview-empty">
+                                No projects assigned in the last 6 months.
+                            </p>
                         </div>
 
                     </div>
@@ -270,7 +337,10 @@ const props = defineProps({
     widgets: Array,
     projects: Array,
     members: Array,
-    notifications: Array
+    notifications: Array,
+    // NEW: optional data for the workspace / teams sections
+    workspace: Object, // { id, name }
+    teams: Array       // list of teams in the workspace
 });
 
 const search = ref("");
@@ -295,12 +365,222 @@ const saveWidgetOrder = () => {
 
 const boards = computed(() => props.projects || []);
 
+// A project counts as completed when its status is "Completed" or all of its work is done (100%)
+const isProjectCompleted = (project) =>
+    String(project.status || "").toLowerCase() === "completed" ||
+    Number(project.progress || 0) >= 100;
+
+// Productivity = completed projects out of all projects assigned to the team
+const productivity = computed(() => {
+    const total = boards.value.length;
+    const completed = boards.value.filter(isProjectCompleted).length;
+
+    return {
+        total,
+        completed,
+        rate: total ? Math.round((completed / total) * 100) : 0,
+    };
+});
+
+const productivityMessage = computed(() => {
+    const { total, completed } = productivity.value;
+
+    if (!total) return "No projects have been assigned yet.";
+
+    return `${completed} of ${total} project${total === 1 ? "" : "s"} completed.`;
+});
+
 const teamMembersList = computed(() => props.members || []);
 
 const theme = useThemeStore();
 const showProfileMenu = ref(false);
 
 const currentUserId = computed(() => page.props.auth?.user?.id ?? null);
+
+/* ---------------------------------------------------------------
+   WORKSPACE OVERVIEW
+   --------------------------------------------------------------- */
+
+const authUser = computed(() => page.props.auth?.user ?? null);
+
+// Workspaces shared from HandleInertiaRequests (owned by the logged-in admin)
+const sharedWorkspaces = computed(() => page.props.workspaces || []);
+
+const findWorkspaceName = (id) => {
+    if (id == null || id === "") return null;
+    return (
+        sharedWorkspaces.value.find((w) => String(w.id) === String(id))?.name ||
+        null
+    );
+};
+
+// Workspace name shown at the top of the left card:
+// 1) the workspace the team leader belongs to (member.workspace_id)
+// 2) the workspace currently selected in the sidebar (session workspace_id)
+const workspaceName = computed(
+    () =>
+        props.workspace?.name ||
+        teamLeads.value.map((lead) => lead.workspace?.name || findWorkspaceName(lead.workspace_id)).find(Boolean) ||
+        findWorkspaceName(page.props.currentWorkspace) ||
+        teamMembersList.value.map((m) => m.workspace?.name || findWorkspaceName(m.workspace_id)).find(Boolean) ||
+        "—"
+);
+
+const getInitials = (name) =>
+    String(name || "")
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join("");
+
+const fullName = (person) =>
+    [person?.first_name, person?.last_name].filter(Boolean).join(" ") ||
+    person?.name ||
+    "Unknown";
+
+// Logged-in admin (with their role) first, followed by the rest of the team members and their roles
+const workspacePeople = computed(() => {
+    const people = [];
+    const admin = authUser.value;
+
+    if (admin) {
+        const name = fullName(admin);
+        people.push({
+            key: "admin-" + (admin.id ?? "me"),
+            name,
+            initials: getInitials(name),
+            role: admin.role || "Admin",
+            isYou: true,
+        });
+    }
+
+    teamMembersList.value
+        .filter((member) => !admin || member.id !== admin.id)
+        .forEach((member) => {
+            const name = fullName(member);
+            people.push({
+                key: "member-" + member.id,
+                name,
+                initials: getInitials(name),
+                role: member.role || "Member",
+                isYou: false,
+            });
+        });
+
+    return people;
+});
+
+// Total teams in the workspace
+// Each team leader leads one team (members point to their TL via assigned_to)
+const totalTeams = computed(
+    () =>
+        props.stats?.totalTeams ??
+        props.teams?.length ??
+        teamLeads.value.length
+);
+
+// Is this member a Team Lead?
+const isTeamLead = (member) =>
+    ["tl", "team lead", "team leader"].includes(
+        String(member?.role || "").trim().toLowerCase()
+    );
+
+const teamLeads = computed(() => teamMembersList.value.filter(isTeamLead));
+
+// Keys a project may use to point at its TL / assignee
+const TL_KEYS = ["team_lead_id", "tl_id", "assigned_to", "assigned_to_id", "lead_id"];
+
+const projectHasAssignmentInfo = computed(() =>
+    boards.value.some((project) => TL_KEYS.some((key) => project[key] != null))
+);
+
+const projectsForLead = (lead) =>
+    boards.value.filter((project) =>
+        TL_KEYS.some(
+            (key) => project[key] != null && String(project[key]) === String(lead.id)
+        )
+    ).length;
+
+// Per-TL details (name + number of projects assigned)
+const teamLeadsDetail = computed(() =>
+    teamLeads.value.map((lead) => {
+        const name = fullName(lead);
+        return {
+            key: "tl-" + lead.id,
+            name,
+            initials: getInitials(name),
+            // If projects don't carry assignee info, all workspace projects are treated as assigned to the TL
+            projectCount: projectHasAssignmentInfo.value
+                ? projectsForLead(lead)
+                : boards.value.length,
+        };
+    })
+);
+
+// Total number of projects assigned to the TL
+const tlAssignedProjects = computed(() => {
+    if (props.stats?.tlProjects != null) return props.stats.tlProjects;
+
+    if (!teamLeads.value.length) return 0;
+
+    if (!projectHasAssignmentInfo.value) return boards.value.length;
+
+    return boards.value.filter((project) =>
+        teamLeads.value.some((lead) =>
+            TL_KEYS.some(
+                (key) => project[key] != null && String(project[key]) === String(lead.id)
+            )
+        )
+    ).length;
+});
+
+/* ---------------------------------------------------------------
+   PROJECTS ASSIGNED PER MONTH (last 6 months)
+   --------------------------------------------------------------- */
+const monthKey = (date) => `${date.getFullYear()}-${date.getMonth()}`;
+
+const monthlyProjects = computed(() => {
+    const now = new Date();
+    const months = [];
+
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push({
+            key: monthKey(d),
+            label: d.toLocaleString("default", { month: "short" }),
+            count: 0,
+            isCurrent: i === 0,
+        });
+    }
+
+    boards.value.forEach((project) => {
+        // Date the project was assigned / created
+        const raw =
+            project.assigned_at ||
+            project.created_at ||
+            project.start_date ||
+            project.deadline;
+        if (!raw) return;
+
+        const date = new Date(raw);
+        if (isNaN(date)) return;
+
+        const bucket = months.find((m) => m.key === monthKey(date));
+        if (bucket) bucket.count++;
+    });
+
+    const max = Math.max(...months.map((m) => m.count), 1);
+
+    return months.map((m) => ({
+        ...m,
+        height: m.count ? Math.max((m.count / max) * 100, 8) : 0,
+    }));
+});
+
+const monthlyTotal = computed(() =>
+    monthlyProjects.value.reduce((sum, m) => sum + m.count, 0)
+);
 
 const unreadNotifications = computed(() => {
     return [...(props.notifications || [])]
@@ -817,6 +1097,230 @@ const logout = () => {
     font-size: 11.5px;
 }
 
+/* ---------- Workspace overview (below the project cards) ---------- */
+.workspace-overview {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 22px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border-divider);
+}
+
+@media (max-width: 900px) {
+    .workspace-overview {
+        grid-template-columns: 1fr;
+    }
+}
+
+.overview-card {
+    background: var(--card-inner-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 9px;
+    padding: 16px 18px;
+    min-width: 0;
+    transition: border-color 0.15s ease;
+}
+
+.overview-card:hover {
+    border-color: var(--border-deep);
+}
+
+.overview-label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.workspace-heading {
+    margin-bottom: 14px;
+}
+
+.workspace-name {
+    margin: 4px 0 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-header);
+    letter-spacing: -0.2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.overview-subtitle {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-card-sub);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-divider);
+}
+
+.overview-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.overview-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border-divider);
+}
+
+.overview-row:last-child {
+    border-bottom: none;
+}
+
+.overview-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--c-blue);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 10.5px;
+    flex-shrink: 0;
+}
+
+.overview-avatar.tl-avatar {
+    background: var(--c-violet);
+}
+
+.overview-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.overview-info strong {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.overview-info span {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.you-tag {
+    font-style: normal;
+    font-size: 9.5px;
+    font-weight: 600;
+    margin-left: 6px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.overview-empty {
+    padding: 14px 0 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.overview-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 12px 0 16px;
+}
+
+.metric-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: var(--accent-soft);
+    border: 1px solid var(--border-subtle);
+}
+
+.metric-value {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--text-header);
+    letter-spacing: -0.3px;
+}
+
+.metric-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* ---------- Projects per month chart ---------- */
+.monthly-total {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.month-chart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    height: 190px;
+    padding-top: 6px;
+}
+
+.month-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    height: 100%;
+    min-width: 0;
+}
+
+.month-count {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-header);
+}
+
+.month-bar-track {
+    flex: 1;
+    width: 100%;
+    max-width: 34px;
+    display: flex;
+    align-items: flex-end;
+    background: var(--input-element-bg);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.month-bar-fill {
+    width: 100%;
+    background: var(--c-violet);
+    border-radius: 6px;
+    transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.month-bar-fill.is-current {
+    background: var(--accent);
+}
+
+.month-label {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
 .sidebar-right-stack {
     display: flex;
     flex-direction: column;
@@ -855,10 +1359,25 @@ const logout = () => {
 }
 
 .prod-desc-text {
-    margin: 0 0 16px 0;
+    margin: 0 0 12px 0;
     font-size: 12.5px;
     opacity: 0.9;
     font-weight: 400;
+}
+
+.prod-track {
+    height: 6px;
+    margin: 0 0 16px 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.25);
+    overflow: hidden;
+}
+
+.prod-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #ffffff;
+    transition: width 0.6s ease;
 }
 
 .prod-view-btn {

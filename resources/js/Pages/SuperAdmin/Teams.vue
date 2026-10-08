@@ -410,7 +410,7 @@ import { ref, computed, watch } from "vue";
 import { router, Head } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 import Sidebar from "./Sidebar.vue";
-
+import { useSuperAdminTheme } from "@/composables/useSuperAdminTheme";
 const toast = useToast();
 
 const props = defineProps({
@@ -421,9 +421,7 @@ const props = defineProps({
     orgStats: { type: Object, default: () => ({ admins: 0, leaders: 0, members: 0, people: 0 }) },
 });
 
-/* theme (same key on every Super Admin page) */
-const isDark = ref(localStorage.getItem("sa_theme") !== "light");
-watch(isDark, (v) => localStorage.setItem("sa_theme", v ? "dark" : "light"));
+const { isDark } = useSuperAdminTheme();
 
 const tab = ref("organisation");
 const search = ref("");
