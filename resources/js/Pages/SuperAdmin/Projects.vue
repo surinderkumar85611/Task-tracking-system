@@ -283,7 +283,7 @@
 import { ref, computed, watch } from "vue";
 import { Head } from "@inertiajs/vue3";
 import Sidebar from "./Sidebar.vue";
-
+import { useSuperAdminTheme } from "@/composables/useSuperAdminTheme";
 const props = defineProps({
     admins: { type: Array, default: () => [] },
     unlinked: { type: Array, default: () => [] },
@@ -294,8 +294,7 @@ const props = defineProps({
     },
 });
 
-const isDark = ref(localStorage.getItem("sa_theme") !== "light");
-watch(isDark, (v) => localStorage.setItem("sa_theme", v ? "dark" : "light"));
+const { isDark } = useSuperAdminTheme();
 
 const search = ref("");
 

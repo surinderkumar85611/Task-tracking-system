@@ -1,5 +1,5 @@
 <template>
-  <aside class="sa-sidebar">
+  <aside class="sa-sidebar" :class="isDark ? 'theme-dark' : 'theme-light'">
     <div>
       <div class="sa-logo">
         <div class="sa-logo-icon">S</div>
@@ -24,8 +24,11 @@
 
 <script setup>
 import { Link, usePage, router } from "@inertiajs/vue3";
+import { useSuperAdminTheme } from "@/composables/useSuperAdminTheme";
 
 const page = usePage();
+const { isDark } = useSuperAdminTheme();
+
 const isActive = (path) => page.url.startsWith(path);
 
 function logout() {
@@ -35,10 +38,37 @@ function logout() {
 
 <style scoped>
 
+/* Theme colours (same values the dashboard uses for its own sidebar) */
+.sa-sidebar.theme-dark {
+  --accent: #1fd1ab;
+  --accent-soft: rgba(31, 209, 171, 0.16);
+  --sidebar-bg: #10121a;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-divider: rgba(255, 255, 255, 0.06);
+  --sidebar-text: #8a8fa5;
+  --sidebar-text-hover: #e7e9f2;
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.04);
+  --sidebar-logo-title: #f4f5f9;
+  --sidebar-logo-sub: #6d7288;
+}
+
+.sa-sidebar.theme-light {
+  --accent: #0b8a75;
+  --accent-soft: rgba(11, 138, 117, 0.1);
+  --sidebar-bg: #ffffff;
+  --sidebar-border: rgba(30, 35, 70, 0.08);
+  --sidebar-divider: rgba(30, 35, 70, 0.08);
+  --sidebar-text: #5b607a;
+  --sidebar-text-hover: #1c2033;
+  --sidebar-hover-bg: rgba(30, 35, 70, 0.05);
+  --sidebar-logo-title: #12141f;
+  --sidebar-logo-sub: #767c93;
+}
+
 .sa-sidebar {
   width: 252px;
-  background: #10121a;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -47,30 +77,31 @@ function logout() {
   height: 100vh;
   position: sticky;
   top: 0;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
-.sa-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; padding: 4px 8px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.sa-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; padding: 4px 8px 20px; border-bottom: 1px solid var(--sidebar-divider); }
 .sa-logo-icon {
   width: 38px; height: 38px; border-radius: 9px;
-  background: linear-gradient(150deg, #2be3bb, var(--accent, #1fd1ab));
+  background: linear-gradient(150deg, #2be3bb, var(--accent));
   display: flex; justify-content: center; align-items: center;
   font-family: 'Lexend', 'Inter', sans-serif;
   font-size: 16px; font-weight: 700; color: #06110e; flex-shrink: 0;
 }
-.sa-logo h2 { font-size: 14.5px; font-weight: 600; color: #f4f5f9; margin-bottom: 1px; letter-spacing: -0.1px; font-family: 'Lexend', 'Inter', sans-serif; }
-.sa-logo span { color: #6d7288; font-size: 11px; font-family: 'Inter', sans-serif; letter-spacing: 0.2px; }
+.sa-logo h2 { font-size: 14.5px; font-weight: 600; color: var(--sidebar-logo-title); margin-bottom: 1px; letter-spacing: -0.1px; font-family: 'Lexend', 'Inter', sans-serif; }
+.sa-logo span { color: var(--sidebar-logo-sub); font-size: 11px; font-family: 'Inter', sans-serif; letter-spacing: 0.2px; }
 
 .sa-menu { display: flex; flex-direction: column; gap: 2px; }
 .sa-menu a {
-  text-decoration: none; color: #8a8fa5; display: flex; align-items: center; gap: 12px;
+  text-decoration: none; color: var(--sidebar-text); display: flex; align-items: center; gap: 12px;
   padding: 10px 12px; border-radius: 8px; font-weight: 500; font-size: 13px; transition: .15s;
   position: relative; font-family: 'Inter', sans-serif;
 }
-.sa-menu a:hover { background: rgba(255, 255, 255, 0.04); color: #e7e9f2; }
-.sa-menu a.active { background: rgba(23, 178, 149, 0.14); color: #f4f5f9; }
+.sa-menu a:hover { background: var(--sidebar-hover-bg); color: var(--sidebar-text-hover); }
+.sa-menu a.active { background: var(--accent-soft); color: var(--sidebar-text-hover); }
 .sa-menu a.active::before {
   content: ""; position: absolute; left: -16px; top: 50%; transform: translateY(-50%);
-  width: 3px; height: 18px; border-radius: 0 3px 3px 0; background: var(--accent, #1fd1ab);
+  width: 3px; height: 18px; border-radius: 0 3px 3px 0; background: var(--accent);
 }
 
 .sa-logout-btn {
