@@ -47,6 +47,10 @@ Route::prefix('super-admin')->name('super-admin.')->group(function () {
             ->name('login');
 
         Route::post('/login', [SuperAdminAuthController::class, 'login']);
+
+        // second step of login: verifies the 6-digit 2FA code (admin is not logged in yet)
+        Route::post('/2fa/challenge', [SuperAdminAuthController::class, 'verifyTwoFactor'])
+            ->middleware('throttle:5,1');
     });
 
     Route::middleware('auth:super_admin')->group(function () {

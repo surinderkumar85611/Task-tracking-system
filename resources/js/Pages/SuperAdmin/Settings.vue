@@ -87,7 +87,7 @@
                         <div class="form-group">
                             <label>Email address</label>
                             <input type="email" :value="form.email" disabled readonly />
-                            <small class="field-hint">Contact your admin to change your email</small>
+                            <small class="field-hint"></small>
                             <p v-if="errors.email" class="error-text">{{ errors.email }}</p>
                         </div>
                     </div>
