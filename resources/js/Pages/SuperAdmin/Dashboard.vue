@@ -489,6 +489,7 @@
                                     <th>User</th>
                                     <th>Email</th>
                                     <th>Joined</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -501,6 +502,9 @@
                                     </td>
                                     <td>{{ admin.email }}</td>
                                     <td>{{ new Date(admin.created_at).toLocaleDateString() }}</td>
+                                    <td>
+                                        <button class="remove-btn" @click="askDeleteAdmin(admin)">Delete</button>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -607,6 +611,37 @@
                     <button class="cancel-btn" @click="closeCreateModal">Cancel</button>
                     <button class="save-btn" :disabled="creatingUser" @click="createAdmin">
                         {{ creatingUser ? "Creating..." : "Create User" }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- delete administrator confirmation -->
+        <div v-if="adminToDelete" class="modal-overlay" @click.self="cancelDeleteAdmin">
+            <div class="modal confirm-modal">
+                <div class="confirm-icon">⚠️</div>
+                <h2 class="confirm-title">Delete “{{ adminToDelete.name }}”?</h2>
+
+                <div class="confirm-warning">
+                    <p>
+                        👤 <strong>{{ adminToDelete.name }}</strong> ({{ adminToDelete.email }}) will be
+                        permanently deleted from the system.
+                    </p>
+                    <p>This cannot be undone.</p>
+                </div>
+
+                <label class="confirm-label">
+                    Type <span class="confirm-name">{{ adminToDelete.name }}</span> to confirm
+                </label>
+                <input class="confirm-input" v-model="deleteConfirmText" type="text"
+                    placeholder="Enter the exact user name" autocomplete="off"
+                    @keyup.enter="confirmDeleteAdmin" />
+
+                <div class="modal-actions">
+                    <button class="cancel-btn" :disabled="deletingAdmin" @click="cancelDeleteAdmin">Cancel</button>
+                    <button class="danger-btn" :disabled="!canConfirmDelete || deletingAdmin"
+                        @click="confirmDeleteAdmin">
+                        {{ deletingAdmin ? "Deleting..." : "Delete user" }}
                     </button>
                 </div>
             </div>
@@ -1127,6 +1162,52 @@ function createAdmin() {
         },
     });
 }
+
+/* ---------- delete administrator ---------- */
+const adminToDelete = ref(null);
+const deletingAdmin = ref(false);
+const deleteConfirmText = ref("");
+
+// the delete button only unlocks once the exact user name has been typed
+const canConfirmDelete = computed(
+    () => !!adminToDelete.value && deleteConfirmText.value.trim() === adminToDelete.value.name
+);
+
+const askDeleteAdmin = (admin) => {
+    deleteConfirmText.value = "";
+    adminToDelete.value = admin;
+};
+
+const cancelDeleteAdmin = () => {
+    if (deletingAdmin.value) return;
+    adminToDelete.value = null;
+    deleteConfirmText.value = "";
+};
+
+const confirmDeleteAdmin = () => {
+    if (!canConfirmDelete.value || deletingAdmin.value) return;
+
+    const admin = adminToDelete.value;
+    deletingAdmin.value = true;
+
+    router.delete(`/super-admin/admin/${admin.id}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast.success(`${admin.name} was deleted.`, { toastClassName: "custom-toast" });
+            adminToDelete.value = null;
+            deleteConfirmText.value = "";
+        },
+        onError: (errs) => {
+            const first = errs && Object.values(errs)[0];
+            toast.error(Array.isArray(first) ? first[0] : (first || "Could not delete the user."), {
+                toastClassName: "custom-toast",
+            });
+        },
+        onFinish: () => {
+            deletingAdmin.value = false;
+        },
+    });
+};
 
 
 const bellRef = ref(null);
@@ -2872,6 +2953,14 @@ function logout() {
     white-space: nowrap;
 }
 
+/* delete button column */
+.admin-table th:last-child,
+.admin-table td:last-child {
+    text-align: right;
+    width: 1%;
+    white-space: nowrap;
+}
+
 .profile-container {
     position: relative;
 }
@@ -3075,6 +3164,80 @@ function logout() {
 
 .team-modal {
     width: 560px;
+}
+
+.confirm-modal {
+    width: 460px;
+    text-align: center;
+}
+
+.confirm-icon {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    font-size: 22px;
+    background: rgba(214, 72, 79, 0.14);
+}
+
+.confirm-title {
+    font-size: 18px;
+    color: var(--text-header);
+    margin-bottom: 18px;
+}
+
+.confirm-warning {
+    text-align: left;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    background: rgba(214, 72, 79, 0.08);
+    border: 1px solid rgba(214, 72, 79, 0.25);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-card-sub);
+}
+
+.confirm-warning p + p {
+    margin-top: 8px;
+}
+
+.confirm-warning strong {
+    color: var(--text-header);
+}
+
+.confirm-label {
+    display: block;
+    text-align: left;
+    margin-bottom: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-card-sub);
+    font-family: 'Inter', sans-serif;
+}
+
+.confirm-name {
+    color: var(--c-red);
+}
+
+.confirm-input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 9px;
+    border: 1px solid var(--border-deep);
+    background: var(--card-inner-bg);
+    color: var(--text-main);
+    outline: none;
+    font-size: 13.5px;
+    font-family: 'Inter', sans-serif;
+}
+
+.confirm-input:focus {
+    border-color: var(--c-red);
+    box-shadow: 0 0 0 3px rgba(214, 72, 79, 0.16);
 }
 
 .modal-header {
@@ -3304,6 +3467,27 @@ function logout() {
 
 .save-btn:hover:not(:disabled) {
     opacity: .9;
+}
+
+.danger-btn {
+    padding: 11px 22px;
+    border: none;
+    border-radius: 9px;
+    background: var(--c-red);
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+}
+
+.danger-btn:hover:not(:disabled) {
+    opacity: .9;
+}
+
+.danger-btn:disabled {
+    opacity: .5;
+    cursor: not-allowed;
 }
 
 .search-highlight {

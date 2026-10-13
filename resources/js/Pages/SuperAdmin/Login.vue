@@ -10,10 +10,17 @@
 
     <div class="right-panel">
       <div class="card">
-        <h2>Welcome Back</h2>
-        <p>Sign in to the Super Admin console</p>
+        <h2>{{ twoFactorRequired ? "Two-Factor Authentication" : "Welcome Back" }}</h2>
+        <p>
+          {{
+            twoFactorRequired
+              ? "Enter the 6-digit code from Google Authenticator"
+              : "Sign in to the Super Admin console"
+          }}
+        </p>
 
-        <form @submit.prevent="login">
+        <!-- STEP 1: email + password -->
+        <form v-if="!twoFactorRequired" @submit.prevent="login">
           <div class="field-group">
             <input
               type="email"
@@ -52,13 +59,37 @@
             {{ loading ? "Signing In..." : "Sign In" }}
           </button>
         </form>
+
+        <!-- STEP 2: 2FA code -->
+        <form v-else @submit.prevent="verifyCode">
+          <div class="field-group">
+            <input
+              ref="codeInput"
+              type="text"
+              v-model="code"
+              placeholder="6-digit code"
+              maxlength="6"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              @input="code = code.replace(/\D/g, '')"
+            />
+          </div>
+
+          <button :disabled="loading">
+            {{ loading ? "Verifying..." : "Verify" }}
+          </button>
+
+          <button type="button" class="link-btn" :disabled="loading" @click="backToLogin">
+            Back to sign in
+          </button>
+        </form>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, computed, ref } from "vue";
+import { reactive, computed, ref, nextTick } from "vue";
 import { router, Head } from "@inertiajs/vue3";
 import { useToast } from "vue-toastification";
 import axios from "axios";
@@ -82,6 +113,11 @@ const touched = reactive({
 
 const showPassword = ref(false);
 const loading = ref(false);
+
+// 2FA step
+const twoFactorRequired = ref(false);
+const code = ref("");
+const codeInput = ref(null);
 
 const hasErrors = computed(() => {
   return !!errors.email || !!errors.password;
@@ -113,6 +149,15 @@ const handleBlur = (field) => {
   touched[field] = true;
 };
 
+const finishLogin = () => {
+  toast.success("Welcome back!", {
+    toastClassName: "custom-toast",
+  });
+  setTimeout(() => {
+    router.visit("/super-admin/dashboard");
+  }, 1200);
+};
+
 const login = () => {
   touched.email = true;
   touched.password = true;
@@ -126,13 +171,16 @@ const login = () => {
 
   axios
     .post("/super-admin/login", form)
-    .then(() => {
-      toast.success("Welcome back!", {
-        toastClassName: "custom-toast",
-      });
-      setTimeout(() => {
-        router.visit("/super-admin/dashboard");
-      }, 1200);
+    .then((res) => {
+      // password was correct but the account has 2FA, so ask for the code
+      if (res.data?.two_factor_required) {
+        twoFactorRequired.value = true;
+        code.value = "";
+        nextTick(() => codeInput.value?.focus());
+        return;
+      }
+
+      finishLogin();
     })
     .catch((error) => {
       const backendErrors = error.response?.data?.errors;
@@ -160,6 +208,60 @@ const login = () => {
     .finally(() => {
       loading.value = false;
     });
+};
+
+const verifyCode = () => {
+  if (!/^\d{6}$/.test(code.value)) {
+    toast.error("Enter the 6-digit code", {
+      toastClassName: "custom-toast",
+    });
+    return;
+  }
+
+  loading.value = true;
+
+  axios
+    .post("/super-admin/2fa/challenge", { code: code.value })
+    .then(() => {
+      finishLogin();
+    })
+    .catch((error) => {
+      if (error.response?.status === 429) {
+        toast.error("Too many attempts. Please wait a minute and try again.", {
+          toastClassName: "custom-toast",
+        });
+        return;
+      }
+
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.errors?.code?.[0] ||
+        "Invalid code. Please try again.";
+
+      toast.error(message, {
+        toastClassName: "custom-toast",
+      });
+
+      // the pending sign-in expired on the server, so start over
+      if (/expired/i.test(message)) {
+        backToLogin();
+        return;
+      }
+
+      code.value = "";
+      nextTick(() => codeInput.value?.focus());
+    })
+    .finally(() => {
+      loading.value = false;
+    });
+};
+
+const backToLogin = () => {
+  twoFactorRequired.value = false;
+  code.value = "";
+  form.password = "";
+  touched.password = false;
+  errors.password = "";
 };
 </script>
 
@@ -290,6 +392,24 @@ button:hover:not(:disabled) {
 button:disabled {
   opacity: .7;
   cursor: not-allowed;
+}
+
+/* secondary text-style button used on the 2FA step */
+.link-btn {
+  height: auto;
+  padding: 10px 0;
+  margin-top: 14px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.link-btn:hover:not(:disabled) {
+  background: transparent;
+  color: white;
+  transform: none;
+  box-shadow: none;
 }
 
 :global(.custom-toast) {
