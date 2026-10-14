@@ -38,6 +38,7 @@ use App\Http\Controllers\SuperAdmin\UserController as SuperAdminUserController;
 use App\Http\Controllers\SuperAdmin\PageController as SuperAdminPageController;
 use App\Http\Controllers\SuperAdmin\SettingsController as SuperAdminSettingsController;
 use App\Http\Controllers\ExtensionRequestController;
+use Illuminate\Support\Facades\Schedule;
 
 Route::prefix('super-admin')->name('super-admin.')->group(function () {
 
@@ -388,3 +389,5 @@ Route::middleware(['auth', 'no-cache'])->group(function () {
     Route::post('/extension-request/{extensionRequest}/reject', [ExtensionRequestController::class, 'reject']);
     Route::post('/extension-notifications/{id}/read', [ExtensionRequestController::class, 'markRead']);
 });
+
+Schedule::command('notifications:prune')->hourly();

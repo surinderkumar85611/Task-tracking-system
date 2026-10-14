@@ -46,8 +46,19 @@ class DashboardController extends Controller
 
         $projectIds = $tasks->pluck('project_id')->unique();
 
+        // Team projects = projects this member has tasks in, plus every project
+        // run by their team leader (projects.team_leader_id). If the member is
+        // a leader themselves, their own id is used.
+        $teamLeaderId = $member->assigned_to ?: $member->id;
+
         $projects = Project::with(['tasks'])
-            ->whereIn('id', $projectIds)
+            ->when(session('workspace_id'), function ($query) {
+                $query->where('workspace_id', session('workspace_id'));
+            })
+            ->where(function ($q) use ($projectIds, $teamLeaderId) {
+                $q->whereIn('id', $projectIds)
+                    ->orWhere('team_leader_id', $teamLeaderId);
+            })
             ->get();
 
         foreach ($projects as $project) {
@@ -57,9 +68,18 @@ class DashboardController extends Controller
             $total = $projectTasks->count();
             $completed = $projectTasks->where('status', 'Completed')->count();
 
-            $project->progress = $total > 0
-                ? round(($completed / $total) * 100)
-                : 0;
+            if ($total > 0) {
+                $project->progress = round(($completed / $total) * 100);
+            } else {
+                // No tasks of this member's own in the project: use the
+                // project's overall task progress, else its stored value.
+                $allTotal = $project->tasks->count();
+                $allCompleted = $project->tasks->where('status', 'Completed')->count();
+
+                $project->progress = $allTotal > 0
+                    ? round(($allCompleted / $allTotal) * 100)
+                    : ($project->progress ?? 0);
+            }
 
             $project->tasks_count = $project->tasks->count();
             $project->members_count = $this->uniqueMemberCount($project->tasks);
@@ -68,7 +88,30 @@ class DashboardController extends Controller
         $completedTasks = $tasks->where('status', 'Completed')->count();
         $pendingTasks = $tasks->where('status', '!=', 'Completed')->count();
 
-        $teamMembers = Member::where('team_id', $member->team_id)->get();
+        // Team = this member + their team leader + everyone under the same leader
+        // (+ anyone assigned to this member, if they are a leader themselves).
+        // Teams are defined by Member.assigned_to (the team leader's member id).
+        $teamMembers = Member::query()
+            ->when(session('workspace_id'), function ($query) {
+                $query->where('workspace_id', session('workspace_id'));
+            })
+            ->where(function ($q) use ($member) {
+                $q->where('id', $member->id)
+                    ->orWhere('assigned_to', $member->id);
+
+                if ($member->assigned_to) {
+                    $q->orWhere('id', $member->assigned_to)
+                        ->orWhere('assigned_to', $member->assigned_to);
+                }
+            })
+            ->get()
+            ->each(function ($m) use ($member) {
+                $m->is_leader = $member->assigned_to
+                    ? (int) $m->id === (int) $member->assigned_to
+                    : (int) $m->id === (int) $member->id;
+            })
+            ->sortByDesc('is_leader')
+            ->values();
 
         $projectHistory = Project::whereIn('id', $projectIds)
             ->where('status', 'Completed')
@@ -102,6 +145,7 @@ class DashboardController extends Controller
         // bell dropdown above, this intentionally INCLUDES self-triggered
         // events too, since it's meant to read as "what happened to your
         // tasks" rather than "things you need to be told about."
+        // Only the last 24 hours are shown.
         $recentActivity = Notification::where('user_id', $user->id)
             ->when(session('workspace_id'), function ($query) {
                 $query->where(function ($q) {
@@ -109,6 +153,7 @@ class DashboardController extends Controller
                         ->orWhereNull('workspace_id');
                 });
             })
+            ->where('created_at', '>=', now()->subDay())
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get()
