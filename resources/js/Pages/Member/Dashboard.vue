@@ -103,9 +103,10 @@
 
           <div class="profile-container">
             <img
-              v-if="member?.avatar_url"
-              :src="member.avatar_url"
+              v-if="avatarSrc && !avatarFailed"
+              :src="avatarSrc"
               class="avatar"
+              @error="avatarFailed = true"
               @click.stop="showProfileMenu = !showProfileMenu"
             />
             <div
@@ -340,7 +341,9 @@
 
                 <div class="rep-info">
                   <strong>{{ teammate.first_name }} {{ teammate.last_name }}</strong>
-                  <span>{{ teammate.department || teammate.role }}</span>
+                  <span>
+                    {{ teammate.is_leader ? 'Team Leader · ' : '' }}{{ teammate.department || teammate.role }}
+                  </span>
                 </div>
 
                 <span class="rep-status">
@@ -367,7 +370,7 @@
                 <span>By</span>
               </div>
 
-              <div v-for="activity in (recentActivity || [])" :key="activity.id" class="leads-row">
+              <div v-for="activity in last24hActivity" :key="activity.id" class="leads-row">
                 <div class="lead-identity">
                   <span class="lead-dot" :class="activityDotClass(activity.type)"></span>
                   <span class="lead-title" :title="activity.message">
@@ -384,7 +387,7 @@
                 </span>
               </div>
 
-              <div v-if="!(recentActivity || []).length" class="empty-state-inline">
+              <div v-if="!last24hActivity.length" class="empty-state-inline">
                 No recent activity yet.
               </div>
             </div>
@@ -495,6 +498,15 @@ const search = ref("");
 const showProfileMenu = ref(false);
 const taskView = ref("board");
 let notificationRefreshInterval = null;
+
+const avatarFailed = ref(false);
+
+const avatarSrc = computed(() => {
+  const url = props.member?.avatar_url;
+  if (!url) return null;
+  if (/^(https?:)?\/\//.test(url) || url.startsWith("/") || url.startsWith("data:")) return url;
+  return `/storage/${url}`;
+});
 
 const workspaces = computed(() => page.props.workspaces || []);
 const currentWorkspace = computed(() => workspaces.value[0] || null);
@@ -631,6 +643,16 @@ const activityDotClass = (type) => {
   if (key.includes("status") || key.includes("progress")) return "in-progress";
   return "";
 };
+
+// Recent Activity: only show items from the last 24 hours.
+const last24hActivity = computed(() => {
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  return (props.recentActivity || []).filter((a) => {
+    if (!a.created_at) return true;
+    const t = new Date(a.created_at).getTime();
+    return isNaN(t) || t >= cutoff;
+  });
+});
 
 watch(
   () => props.teamProjects,
@@ -811,10 +833,10 @@ const markAllRead = () => {
 }
 
 .content-wrapper {
-  max-width: 1520px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   width: 100%;
-  padding: 24px 36px 56px;
+  padding: 18px 28px 48px;
 }
 
 .topbar {
@@ -1534,9 +1556,18 @@ const markAllRead = () => {
 }
 
 .project-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  align-items: start;
+}
+
+.project-list .empty-state-inline {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 700px) {
+  .project-list { grid-template-columns: 1fr; }
 }
 
 .project-mini-card {
@@ -1856,6 +1887,7 @@ const markAllRead = () => {
   border-radius: 50%;
   cursor: pointer;
   border: 1px solid var(--border-subtle);
+  object-fit: cover;
 }
 
 .avatar-fallback {
@@ -2036,7 +2068,6 @@ const markAllRead = () => {
   border: 2px solid var(--panel-bg);
 }
 
-/* --- Quick Links --- */
 .quick-links {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
