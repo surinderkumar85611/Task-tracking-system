@@ -6,88 +6,92 @@
         <Sidebar />
 
         <main class="main-content">
-            <div class="content-wrapper">
 
-                <header class="header">
-                    <div>
-                        <h1>My Tasks</h1>
-                        <p>Everything assigned to you, and who assigned it.</p>
+            <header class="topbar">
+                <div class="topbar-title">
+                    <h1>My Tasks</h1>
+                    <p>Everything assigned to you, and who assigned it.</p>
+                </div>
+
+                <div class="header-right">
+                    <div class="search-wrap">
+                        <svg class="search-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.6" />
+                            <path d="M17 17L13.5 13.5" stroke="currentColor" stroke-width="1.6"
+                                stroke-linecap="round" />
+                        </svg>
+                        <input type="text" v-model="search" placeholder="Search tasks..." class="search-box" />
+                    <div v-if="noResults" class="search-no-results">
+                        No matching results found for "{{ search.trim() }}"
+                    </div>
                     </div>
 
-                    <div class="header-right">
-                        <div class="search-wrap">
-                            <svg class="search-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.6" />
-                                <path d="M17 17L13.5 13.5" stroke="currentColor" stroke-width="1.6"
-                                    stroke-linecap="round" />
+                    <!-- CHAT -->
+                    <div class="notif-wrap">
+                        <button
+                            class="theme-btn notif-btn chat-fab"
+                            :class="{ 'has-unread': unreadCount > 0 }"
+                            title="Team Chat"
+                            @click="toggleChatDropdown"
+                        >
+                            <svg
+                                class="chat-icon"
+                                viewBox="0 0 32 32"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                    d="M16 4C9.373 4 4 8.94 4 15c0 3.09 1.394 5.87 3.646 7.85.24.21.38.52.36.85l-.2 3.34a1 1 0 0 0 1.37 1l3.62-1.55a1 1 0 0 1 .62-.05c.83.17 1.69.26 2.58.26 6.627 0 12-4.94 12-11S22.627 4 16 4Z"
+                                    fill="currentColor"
+                                />
                             </svg>
-                            <input type="text" v-model="search" placeholder="Search tasks..." class="search-box" />
-                        </div>
 
-                        <!-- CHAT -->
-                        <div class="notif-wrap">
-                            <button
-    class="theme-btn notif-btn chat-fab"
-    :class="{ 'has-unread': unreadCount > 0 }"
-    title="Team Chat"
-    @click="toggleChatDropdown"
->
-    <svg
-        class="chat-icon"
-        viewBox="0 0 32 32"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-    >
-        <path
-            d="M16 4C9.373 4 4 8.94 4 15c0 3.09 1.394 5.87 3.646 7.85.24.21.38.52.36.85l-.2 3.34a1 1 0 0 0 1.37 1l3.62-1.55a1 1 0 0 1 .62-.05c.83.17 1.69.26 2.58.26 6.627 0 12-4.94 12-11S22.627 4 16 4Z"
-            fill="currentColor"
-        />
-    </svg>
+                            <span
+                                v-if="unreadCount > 0"
+                                class="notif-badge"
+                            >
+                                {{ unreadCount }}
+                            </span>
+                        </button>
 
-    <span
-        v-if="unreadCount > 0"
-        class="notif-badge"
-    >
-        {{ unreadCount }}
-    </span>
-</button>
+                        <div class="notif-dropdown" v-if="showChatDropdown" @click.stop>
+                            <div class="notif-dropdown-header">
+                                <span>💬 Chat &amp; Updates</span>
+                                <button class="notif-close" @click="showChatDropdown = false">✕</button>
+                            </div>
 
-                            <div class="notif-dropdown" v-if="showChatDropdown" @click.stop>
-                                <div class="notif-dropdown-header">
-                                    <span>💬 Chat &amp; Updates</span>
-                                    <button class="notif-close" @click="showChatDropdown = false">✕</button>
-                                </div>
-
-                                <div class="notif-list" v-if="allTasks.length">
-                                    <button v-for="task in allTasks" :key="task.id" class="notif-item"
-                                        @click="openFromNotif(task)">
-                                        <span class="notif-item-icon">
-                                            {{ (task.notes && task.notes.length > 0 && !task.is_read) ? '🆘' : '💬' }}
+                            <div class="notif-list" v-if="allTasks.length">
+                                <button v-for="task in allTasks" :key="task.id" class="notif-item"
+                                    @click="openFromNotif(task)">
+                                    <span class="notif-item-icon">
+                                        {{ hasUnread(task) ? '🆘' : '💬' }}
+                                    </span>
+                                    <span class="notif-item-body">
+                                        <span class="notif-item-title">{{ task.title }}</span>
+                                        <span class="notif-item-sub">
+                                            {{ task.project?.name || '—' }} ·
+                                            {{ (task.notes && task.notes.length) ? task.notes.length + ' message' +
+                                                (task.notes.length > 1 ? 's' : '') : 'No messages yet' }}
                                         </span>
-                                        <span class="notif-item-body">
-                                            <span class="notif-item-title">{{ task.title }}</span>
-                                            <span class="notif-item-sub">
-                                                {{ task.project?.name || '—' }} ·
-                                                {{ (task.notes && task.notes.length) ? task.notes.length + ' message' +
-                                                    (task.notes.length > 1 ? 's' : '') : 'No messages yet' }}
-                                            </span>
-                                        </span>
-                                        <span v-if="task.notes && task.notes.length > 0 && !task.is_read"
-                                            class="notif-item-dot"></span>
-                                    </button>
-                                </div>
+                                    </span>
+                                    <span v-if="hasUnread(task)"
+                                        class="notif-item-dot"></span>
+                                </button>
+                            </div>
 
-                                <div class="notif-empty" v-else>
-                                    No tasks yet
-                                </div>
+                            <div class="notif-empty" v-else>
+                                No tasks yet
                             </div>
                         </div>
-
-                        <button class="theme-btn" @click="theme.toggleTheme">
-                            {{ theme.isDark ? "☀️" : "🌙" }}
-                        </button>
                     </div>
-                </header>
+
+                    <button class="theme-btn" @click="theme.toggleTheme">
+                        {{ theme.isDark ? "☀️" : "🌙" }}
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
 
                 <section class="stats-grid">
 
@@ -199,7 +203,7 @@
                     </button>
                 </div>
 
-                <div class="dashboard-card">
+                <div class="dashboard-card" v-if="filteredTasks.length || !search.trim()">
                     <div class="tasks-table" v-if="filteredTasks.length">
                         <div class="tasks-table-head">
                             <span>Task</span>
@@ -213,31 +217,28 @@
 
                         <div v-for="task in filteredTasks" :key="task.id" class="tasks-row"
                             :class="{ 'is-overdue': isOverdue(task) }">
-                            <span class="task-title-cell">{{ task.title }}</span>
+                            <span class="task-title-cell" v-html="highlightMatch(task.title)"></span>
 
-                            <span class="task-project-cell">
-                                {{ task.project?.name || '—' }}
-                            </span>
+                            <span class="task-project-cell"
+                                v-html="highlightMatch(task.project?.name || '—')"></span>
 
                             <span class="assigned-by-cell" v-if="task.project?.team_leader">
                                 <span class="assigner-avatar">
                                     {{ task.project.team_leader.first_name?.charAt(0)?.toUpperCase() }}
                                 </span>
-                                {{ task.project.team_leader.first_name }} {{ task.project.team_leader.last_name }}
+                                <span v-html="highlightMatch(leaderName(task))"></span>
                             </span>
                             <span class="assigned-by-cell muted" v-else>—</span>
 
-                            <span class="priority-badge" :class="priorityClass(task.priority)">
-                                {{ task.priority || 'Normal' }}
-                            </span>
+                            <span class="priority-badge" :class="priorityClass(task.priority)"
+                                v-html="highlightMatch(task.priority || 'Normal')"></span>
 
-                            <span class="status-pill" :class="statusClass(task.status)">
-                                {{ task.status || 'Todo' }}
-                            </span>
+                            <span class="status-pill" :class="statusClass(task.status)"
+                                v-html="highlightMatch(task.status || 'Todo')"></span>
 
                             <span class="due-date-cell">
                                 <span v-if="isOverdue(task)" class="overdue-flag">🔥</span>
-                                {{ task.due_date || 'No deadline' }}
+                                <span v-html="highlightMatch(task.due_date || 'No deadline')"></span>
                             </span>
 
                             <span class="actions-cell">
@@ -560,13 +561,61 @@ const monthlyAssigned = computed(() => {
 
 const maxMonthlyCount = computed(() => Math.max(1, ...monthlyAssigned.value.map(b => b.count)));
 
+const escapeHtml = (value) => {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+};
+
+const escapeRegExp = (value) => {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
+// Wraps every match of the search text in a highlight <mark> (text is HTML-escaped).
+const highlightMatch = (text) => {
+    const raw = String(text ?? "");
+    const term = search.value.trim();
+
+    if (!term) return escapeHtml(raw);
+
+    const regex = new RegExp(escapeRegExp(term), "ig");
+    let result = "";
+    let last = 0;
+    let match;
+
+    while ((match = regex.exec(raw)) !== null) {
+        result += escapeHtml(raw.slice(last, match.index));
+        result += '<mark class="search-highlight">' + escapeHtml(match[0]) + '</mark>';
+        last = match.index + match[0].length;
+        if (match[0].length === 0) regex.lastIndex++;
+    }
+
+    return result + escapeHtml(raw.slice(last));
+};
+
+const leaderName = (task) => {
+    const leader = task.project?.team_leader;
+    if (!leader) return "";
+    return `${leader.first_name || ""} ${leader.last_name || ""}`.trim();
+};
+
+// Search covers everything shown in the table row.
+const taskMatches = (task, term) => {
+    return [
+        task.title,
+        task.project?.name,
+        leaderName(task),
+        task.priority || "Normal",
+        task.status || "Todo",
+        task.due_date || "No deadline",
+    ].filter(Boolean).join(" ").toLowerCase().includes(term);
+};
+
 const searchedTasks = computed(() => {
-    if (!search.value) return allTasks.value;
-    const term = search.value.toLowerCase();
-    return allTasks.value.filter(task =>
-        task.title?.toLowerCase().includes(term) ||
-        task.project?.name?.toLowerCase().includes(term)
-    );
+    const term = search.value.trim().toLowerCase();
+    if (!term) return allTasks.value;
+    return allTasks.value.filter(task => taskMatches(task, term));
 });
 
 const filteredTasks = computed(() => {
@@ -580,8 +629,53 @@ const filteredTasks = computed(() => {
     });
 });
 
+// True when something is typed in the search box but nothing matches.
+const noResults = computed(() => !!search.value.trim() && !filteredTasks.value.length);
+
+// Remembers which chat threads have already been viewed (per browser), so the
+// badge goes away once a chat has been opened, even if the server copy of the
+// task comes back as "unread" after a page refresh or after sending a message.
+const SEEN_STORAGE_KEY = "member_seen_task_notes";
+
+const loadSeenNotes = () => {
+    try {
+        return JSON.parse(localStorage.getItem(SEEN_STORAGE_KEY)) || {};
+    } catch (e) {
+        return {};
+    }
+};
+
+const seenNotes = ref(loadSeenNotes());
+
+const noteSignature = (task) => {
+    const notes = task.notes || [];
+    if (!notes.length) return "";
+    return `${notes.length}|${notes[0]?.id}|${notes[notes.length - 1]?.id}`;
+};
+
+const hasUnread = (task) => {
+    if (!task.notes || task.notes.length === 0) return false;
+    if (task.is_read) return false;
+    return seenNotes.value[task.id] !== noteSignature(task);
+};
+
+const markSeen = (task) => {
+    if (!task) return;
+    seenNotes.value = { ...seenNotes.value, [task.id]: noteSignature(task) };
+    try {
+        localStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(seenNotes.value));
+    } catch (e) {
+        // storage unavailable: badge simply falls back to the server's is_read flag
+    }
+};
+
+const markSeenById = (taskId) => {
+    const fresh = allTasks.value.find(t => t.id === taskId);
+    if (fresh) markSeen(fresh);
+};
+
 const tasksWithUnread = computed(() =>
-    allTasks.value.filter(t => t.notes && t.notes.length > 0 && !t.is_read)
+    allTasks.value.filter(hasUnread)
 );
 
 const unreadCount = computed(() => tasksWithUnread.value.length);
@@ -679,10 +773,15 @@ const openUpdatesSidebar = (task) => {
     updatesDraftText.value = "";
     showUpdatesSidebarPane.value = true;
 
+    markSeen(task);
     markTaskAsRead(task);
 };
 
 const closeUpdatesSidebar = () => {
+    if (activeTaskForUpdates.value) {
+        markSeenById(activeTaskForUpdates.value.id);
+    }
+
     showUpdatesSidebarPane.value = false;
     activeTaskForUpdates.value = null;
     updatesDraftText.value = "";
@@ -844,33 +943,39 @@ const getReplyPreview = (html) => {
 }
 
 .content-wrapper {
-    max-width: 1400px;
-    margin: 0 auto;
+    max-width: none;
+    margin: 0;
     width: 100%;
-    padding: 28px 36px 56px;
+    padding: 18px 28px 48px;
 }
 
-.header {
+.topbar {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     gap: 24px;
-    margin-bottom: 22px;
+    padding: 14px 28px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-subtle);
+    position: sticky;
+    top: 0;
+    z-index: 40;
     flex-wrap: wrap;
 }
 
-.header h1 {
-    font-size: 22px;
-    font-weight: 700;
-    margin: 0 0 3px 0;
-    letter-spacing: -0.2px;
+.topbar h1 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.1px;
     color: var(--text-header);
 }
 
-.header p {
-    margin: 0;
+.topbar p {
+    margin: 3px 0 0 0;
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: 12.5px;
+    font-weight: 400;
 }
 
 .header-right {
@@ -1009,7 +1114,7 @@ const getReplyPreview = (html) => {
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid var(--dashboard-bg);
+    border: 2px solid var(--panel-bg);
 }
 
 .notif-dropdown {
@@ -2051,6 +2156,33 @@ const getReplyPreview = (html) => {
     opacity: 0.9;
 }
 
+.search-no-results {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: max-content;
+    min-width: 100%;
+    max-width: 320px;
+    padding: 9px 13px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--c-red);
+    border-radius: 8px;
+    box-shadow: 0 8px 20px var(--shadow-cards);
+    color: var(--text-muted);
+    font-size: 12.5px;
+    overflow-wrap: anywhere;
+    z-index: 60;
+}
+
+:deep(.search-highlight) {
+    background: rgba(241, 180, 76, 0.35);
+    color: var(--text-header);
+    padding: 0 2px;
+    border-radius: 3px;
+    font-weight: 700;
+}
+
 :deep(.ck-editor__editable_inline) {
     min-height: 140px;
     max-height: 300px;
@@ -2116,8 +2248,9 @@ const getReplyPreview = (html) => {
 }
 
 .chat-icon{
-    width: 50px;
-    height: 42px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
     line-height:1;
     transition:.25s ease;
 }
@@ -2162,5 +2295,17 @@ const getReplyPreview = (html) => {
     color:#556ee6;
     background:rgba(85,110,230,.08);
     border-color:#556ee6;
+}
+
+.notif-btn.chat-fab,
+.notif-btn.chat-fab:hover,
+.notif-btn.chat-fab.has-unread {
+    color: #ffffff;
+    border: none;
+    background: linear-gradient(135deg, #34c38f, #29a679);
+}
+
+.notif-btn.chat-fab:hover {
+    background: linear-gradient(135deg, #2fb582, #23945f);
 }
 </style>

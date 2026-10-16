@@ -6,66 +6,70 @@
         <Sidebar />
 
         <main class="main-content">
-            <div class="content-wrapper">
 
-                <header class="header">
-                    <div>
-                        <h1>My Projects</h1>
-                        <p>Projects you're contributing to and their task breakdown.</p>
+            <header class="topbar">
+                <div class="topbar-title">
+                    <h1>My Projects</h1>
+                    <p>Projects you're contributing to and their task breakdown.</p>
+                </div>
+
+                <div class="header-right">
+                    <div class="search-wrap">
+                        <svg class="search-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.6"/>
+                            <path d="M17 17L13.5 13.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                        </svg>
+                        <input type="text" v-model="search" placeholder="Search projects..." class="search-box" />
+                    <div v-if="noResults" class="search-no-results">
+                        No matching results found for "{{ search.trim() }}"
+                    </div>
                     </div>
 
-                    <div class="header-right">
-                        <div class="search-wrap">
-                            <svg class="search-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.6"/>
-                                <path d="M17 17L13.5 13.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                            </svg>
-                            <input type="text" v-model="search" placeholder="Search projects..." class="search-box" />
-                        </div>
+                    <div class="notif-wrap">
+                        <button
+                            class="theme-btn notif-btn"
+                            :class="{ 'has-notes': unreadCount > 0 }"
+                            title="Chat and updates"
+                            @click="toggleNotifDropdown"
+                        >
+                            💬
+                            <span v-if="unreadCount > 0" class="notif-badge">{{ unreadCount }}</span>
+                        </button>
 
-                        <div class="notif-wrap">
-                            <button
-                                class="theme-btn notif-btn"
-                                :class="{ 'has-notes': tasksWithNotes.length > 0 }"
-                                title="Chat and updates"
-                                @click="toggleNotifDropdown"
-                            >
-                                💬
-                                <span v-if="tasksWithNotes.length" class="notif-badge">{{ tasksWithNotes.length }}</span>
-                            </button>
+                        <div class="notif-dropdown" v-if="showNotifDropdown" @click.stop>
+                            <div class="notif-dropdown-header">
+                                <span>💬 Chat &amp; Updates</span>
+                                <button class="notif-close" @click="showNotifDropdown = false">✕</button>
+                            </div>
 
-                            <div class="notif-dropdown" v-if="showNotifDropdown" @click.stop>
-                                <div class="notif-dropdown-header">
-                                    <span>💬 Chat &amp; Updates</span>
-                                    <button class="notif-close" @click="showNotifDropdown = false">✕</button>
-                                </div>
+                            <div class="notif-list" v-if="tasksWithNotes.length">
+                                <button
+                                    v-for="entry in tasksWithNotes"
+                                    :key="entry.task.id"
+                                    class="notif-item"
+                                    @click="openFromNotif(entry)"
+                                >
+                                    <span class="notif-item-icon">🆘</span>
+                                    <span class="notif-item-body">
+                                        <span class="notif-item-title">{{ entry.task.title }}</span>
+                                        <span class="notif-item-sub">{{ entry.project.name }} · {{ entry.task.notes.length }} update{{ entry.task.notes.length === 1 ? '' : 's' }}</span>
+                                    </span>
+                                </button>
+                            </div>
 
-                                <div class="notif-list" v-if="tasksWithNotes.length">
-                                    <button
-                                        v-for="entry in tasksWithNotes"
-                                        :key="entry.task.id"
-                                        class="notif-item"
-                                        @click="openFromNotif(entry)"
-                                    >
-                                        <span class="notif-item-icon">🆘</span>
-                                        <span class="notif-item-body">
-                                            <span class="notif-item-title">{{ entry.task.title }}</span>
-                                            <span class="notif-item-sub">{{ entry.project.name }} · {{ entry.task.notes.length }} update{{ entry.task.notes.length === 1 ? '' : 's' }}</span>
-                                        </span>
-                                    </button>
-                                </div>
-
-                                <div class="notif-empty" v-else>
-                                    No chat updates yet
-                                </div>
+                            <div class="notif-empty" v-else>
+                                No chat updates yet
                             </div>
                         </div>
-
-                        <button class="theme-btn" @click="theme.toggleTheme">
-                            {{ theme.isDark ? "☀️" : "🌙" }}
-                        </button>
                     </div>
-                </header>
+
+                    <button class="theme-btn" @click="theme.toggleTheme">
+                        {{ theme.isDark ? "☀️" : "🌙" }}
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
 
                 <section class="stats-grid">
 
@@ -156,18 +160,17 @@
 
                 <div class="projects-list">
 
-                    <div v-if="!filteredProjects.length" class="empty-board-state">
-                        <h3>No projects match your search</h3>
+                    <div v-if="!filteredProjects.length && !search.trim()" class="empty-board-state">
+                        <h3>No projects assigned yet</h3>
                     </div>
 
                     <div v-for="project in filteredProjects" :key="project.id" class="project-card">
 
                         <div class="project-card-top">
                             <div class="project-title-block">
-                                <h2>{{ project.name }}</h2>
-                                <span class="status-pill" :class="statusClass(effectiveProjectStatus(project))">
-                                    {{ effectiveProjectStatus(project) }}
-                                </span>
+                                <h2 v-html="highlightMatch(project.name)"></h2>
+                                <span class="status-pill" :class="statusClass(effectiveProjectStatus(project))"
+                                    v-html="highlightMatch(effectiveProjectStatus(project))"></span>
                             </div>
 
                             <div class="project-progress-block">
@@ -176,9 +179,8 @@
                             </div>
                         </div>
 
-                        <p class="project-desc" v-if="project.description">
-                            {{ project.description }}
-                        </p>
+                        <p class="project-desc" v-if="project.description"
+                            v-html="highlightMatch(project.description)"></p>
 
                         <div class="mini-progress">
                             <div class="mini-progress-fill" :style="{ width: projectProgress(project) + '%' }"></div>
@@ -186,9 +188,9 @@
 
                         <div class="project-meta-row">
                             <span v-if="project.team_leader">
-                                👤 Led by {{ project.team_leader.first_name }} {{ project.team_leader.last_name }}
+                                👤 Led by <span v-html="highlightMatch(leaderName(project))"></span>
                             </span>
-                            <span>📅 Due: {{ project.deadline || 'No deadline' }}</span>
+                            <span>📅 Due: <span v-html="highlightMatch(project.deadline || 'No deadline')"></span></span>
                             <span>📋 {{ (project.tasks || []).length }} Tasks</span>
                             <span>✅ {{ projectCompletedCount(project) }} Completed</span>
                         </div>
@@ -202,14 +204,15 @@
                                 <span>Due</span>
                             </div>
 
-                            <div v-for="task in project.tasks" :key="task.id" class="tasks-row">
-                                <span class="task-title-cell">{{ task.title }}</span>
+                            <div v-for="task in visibleTasks(project)" :key="task.id" class="tasks-row">
+                                <span class="task-title-cell" v-html="highlightMatch(task.title)"></span>
 
                                 <span class="assignee-cell">
                                     <span
                                         v-for="member in (task.assigned_members || [])"
                                         :key="member.id"
                                         class="mini-avatar"
+                                        :class="{ 'avatar-match': memberMatches(member) }"
                                         :title="`${member.first_name} ${member.last_name || ''}`.trim()"
                                     >
                                         {{ member.first_name?.charAt(0)?.toUpperCase() || '?' }}
@@ -219,17 +222,14 @@
                                     </span>
                                 </span>
 
-                                <span class="priority-badge" :class="priorityClass(task.priority)">
-                                    {{ task.priority || 'Normal' }}
-                                </span>
+                                <span class="priority-badge" :class="priorityClass(task.priority)"
+                                    v-html="highlightMatch(task.priority || 'Normal')"></span>
 
-                                <span class="status-pill" :class="statusClass(task.status)">
-                                    {{ task.status || 'Todo' }}
-                                </span>
+                                <span class="status-pill" :class="statusClass(task.status)"
+                                    v-html="highlightMatch(task.status || 'Todo')"></span>
 
-                                <span class="due-date-cell">
-                                    {{ task.due_date || task.deadline || '—' }}
-                                </span>
+                                <span class="due-date-cell"
+                                    v-html="highlightMatch(task.due_date || task.deadline || '—')"></span>
                             </div>
                         </div>
 
@@ -454,11 +454,90 @@ const props = defineProps({
 
 const search = ref("");
 
+const searchTerm = computed(() => search.value.trim().toLowerCase());
+
+const escapeHtml = (value) => {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+};
+
+const escapeRegExp = (value) => {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
+// Wraps every match of the search text in a highlight <mark> (text is HTML-escaped).
+const highlightMatch = (text) => {
+    const raw = String(text ?? "");
+    const term = search.value.trim();
+
+    if (!term) return escapeHtml(raw);
+
+    const regex = new RegExp(escapeRegExp(term), "ig");
+    let result = "";
+    let last = 0;
+    let match;
+
+    while ((match = regex.exec(raw)) !== null) {
+        result += escapeHtml(raw.slice(last, match.index));
+        result += '<mark class="search-highlight">' + escapeHtml(match[0]) + '</mark>';
+        last = match.index + match[0].length;
+        if (match[0].length === 0) regex.lastIndex++;
+    }
+
+    return result + escapeHtml(raw.slice(last));
+};
+
+const leaderName = (project) => {
+    if (!project.team_leader) return "";
+    return `${project.team_leader.first_name || ""} ${project.team_leader.last_name || ""}`.trim();
+};
+
+const memberName = (member) => `${member.first_name || ""} ${member.last_name || ""}`.trim();
+
+const memberMatches = (member) => {
+    const term = searchTerm.value;
+    return !!term && memberName(member).toLowerCase().includes(term);
+};
+
+const projectMatches = (project, term) => {
+    return [
+        project.name,
+        project.description,
+        effectiveProjectStatus(project),
+        project.deadline || "No deadline",
+        leaderName(project),
+    ].filter(Boolean).join(" ").toLowerCase().includes(term);
+};
+
+const taskMatches = (task, term) => {
+    const assignees = (task.assigned_members || []).map(memberName).join(" ");
+    return [
+        task.title,
+        assignees,
+        task.priority || "Normal",
+        task.status || "Todo",
+        task.due_date || task.deadline,
+    ].filter(Boolean).join(" ").toLowerCase().includes(term);
+};
+
 const filteredProjects = computed(() => {
-    if (!search.value) return props.projects || [];
-    const term = search.value.toLowerCase();
-    return (props.projects || []).filter(p => p.name?.toLowerCase().includes(term));
+    const term = searchTerm.value;
+    if (!term) return props.projects || [];
+    return (props.projects || []).filter(project =>
+        projectMatches(project, term) ||
+        (project.tasks || []).some(task => taskMatches(task, term))
+    );
 });
+
+// When searching, a project whose own details don't match only lists its matching tasks.
+const visibleTasks = (project) => {
+    const tasks = project.tasks || [];
+    const term = searchTerm.value;
+    if (!term || projectMatches(project, term)) return tasks;
+    return tasks.filter(task => taskMatches(task, term));
+};
 
 const allTasks = computed(() => {
     return (props.projects || []).flatMap(p => p.tasks || []);
@@ -577,6 +656,55 @@ const tasksWithNotes = computed(() => {
     return entries;
 });
 
+// True when something is typed in the search box but nothing matches.
+const noResults = computed(() => !!searchTerm.value && !filteredProjects.value.length);
+
+// Remembers which chat threads have already been viewed (per browser), so the
+// badge goes away once a chat has been opened, even if the server copy of the
+// task comes back as "unread" after a page refresh or after sending a message.
+const SEEN_STORAGE_KEY = "member_seen_task_notes";
+
+const loadSeenNotes = () => {
+    try {
+        return JSON.parse(localStorage.getItem(SEEN_STORAGE_KEY)) || {};
+    } catch (e) {
+        return {};
+    }
+};
+
+const seenNotes = ref(loadSeenNotes());
+
+const noteSignature = (task) => {
+    const notes = task.notes || [];
+    if (!notes.length) return "";
+    return `${notes.length}|${notes[0]?.id}|${notes[notes.length - 1]?.id}`;
+};
+
+const hasUnread = (task) => {
+    if (!task.notes || task.notes.length === 0) return false;
+    if (task.is_read) return false;
+    return seenNotes.value[task.id] !== noteSignature(task);
+};
+
+const markSeen = (task) => {
+    if (!task) return;
+    seenNotes.value = { ...seenNotes.value, [task.id]: noteSignature(task) };
+    try {
+        localStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(seenNotes.value));
+    } catch (e) {
+        // storage unavailable: badge simply falls back to the server's is_read flag
+    }
+};
+
+const markSeenById = (taskId) => {
+    const fresh = allTasks.value.find(t => t.id === taskId);
+    if (fresh) markSeen(fresh);
+};
+
+const unreadCount = computed(() =>
+    tasksWithNotes.value.filter(entry => hasUnread(entry.task)).length
+);
+
 const showNotifDropdown = ref(false);
 
 const toggleNotifDropdown = () => {
@@ -640,10 +768,15 @@ const openUpdatesSidebar = (task, project) => {
     updatesDraftText.value = "";
     showUpdatesSidebarPane.value = true;
 
+    markSeen(task);
     markTaskAsRead(task);
 };
 
 const closeUpdatesSidebar = () => {
+    if (activeTaskForUpdates.value) {
+        markSeenById(activeTaskForUpdates.value.id);
+    }
+
     showUpdatesSidebarPane.value = false;
     activeTaskForUpdates.value = null;
     activeProjectForUpdates.value = null;
@@ -807,33 +940,39 @@ const getReplyPreview = (html) => {
 }
 
 .content-wrapper {
-    max-width: 1400px;
-    margin: 0 auto;
+    max-width: none;
+    margin: 0;
     width: 100%;
-    padding: 28px 36px 56px;
+    padding: 18px 28px 48px;
 }
 
-.header {
+.topbar {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     gap: 24px;
-    margin-bottom: 22px;
+    padding: 14px 28px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-subtle);
+    position: sticky;
+    top: 0;
+    z-index: 40;
     flex-wrap: wrap;
 }
 
-.header h1 {
-    font-size: 22px;
-    font-weight: 700;
-    margin: 0 0 3px 0;
-    letter-spacing: -0.2px;
+.topbar h1 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.1px;
     color: var(--text-header);
 }
 
-.header p {
-    margin: 0;
+.topbar p {
+    margin: 3px 0 0 0;
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: 12.5px;
+    font-weight: 400;
 }
 
 .header-right {
@@ -928,7 +1067,7 @@ const getReplyPreview = (html) => {
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid var(--dashboard-bg);
+    border: 2px solid var(--panel-bg);
 }
 
 .notif-dropdown {
@@ -1475,6 +1614,10 @@ const getReplyPreview = (html) => {
     margin-left: 0;
 }
 
+.mini-avatar.avatar-match {
+    box-shadow: 0 0 0 2px var(--c-amber);
+}
+
 .mini-avatar:nth-child(even) { background: var(--c-blue); }
 .mini-avatar:nth-child(3n) { background: var(--c-violet); }
 .mini-avatar:nth-child(4n) { background: var(--c-amber); }
@@ -1897,6 +2040,33 @@ const getReplyPreview = (html) => {
 
 .monday-btn-primary:hover {
     opacity: 0.9;
+}
+
+.search-no-results {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: max-content;
+    min-width: 100%;
+    max-width: 320px;
+    padding: 9px 13px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--c-red);
+    border-radius: 8px;
+    box-shadow: 0 8px 20px var(--shadow-cards);
+    color: var(--text-muted);
+    font-size: 12.5px;
+    overflow-wrap: anywhere;
+    z-index: 60;
+}
+
+:deep(.search-highlight) {
+    background: rgba(241, 180, 76, 0.35);
+    color: var(--text-header);
+    padding: 0 2px;
+    border-radius: 3px;
+    font-weight: 700;
 }
 
 :deep(.ck-editor__editable_inline) {
