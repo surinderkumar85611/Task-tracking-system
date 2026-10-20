@@ -474,11 +474,11 @@ const confirmDelete = () => {
     --c-red: #d6484f;
     --c-gold: #d9a441;
 
-    width: 100vw;
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     display: flex;
-    height: 100vh;
     overflow: hidden;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background: var(--dashboard-bg);
@@ -547,9 +547,8 @@ const confirmDelete = () => {
 }
 
 .sa-content {
-    max-width: 1640px;
-    margin: 0 auto;
-    padding: 28px 40px 60px;
+    width: 100%;
+    padding: 18px 24px 40px;
 }
 
 /* ---------- cards & grids ---------- */
