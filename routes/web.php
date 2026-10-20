@@ -276,7 +276,7 @@ Route::post(
     [DashboardController::class, 'reorderWidgets']
 )->middleware(['auth', 'no-cache']);
 
-Route::post('/editor/upload', [EditorController::class, 'upload']);
+//Route::post('/editor/upload', [EditorController::class, 'upload']);
 
 Route::prefix('notifications')->middleware(['auth', 'no-cache'])->group(function () {
     Route::get('/', [NotificationController::class, 'index']);
