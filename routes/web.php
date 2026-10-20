@@ -238,6 +238,7 @@ Route::middleware('auth')->prefix('member')->group(function () {
     Route::put('/{member}/assign-workspace', [MemberController::class, 'assignWorkspace']);
     Route::put('/{member}/independent', [MemberController::class, 'makeIndependent'])->name('members.make-independent');
     Route::delete('/{member}', [MemberController::class, 'destroy']);
+    Route::put('/{member}/promote', [MemberController::class, 'promote']);
 });
 
 Route::post('/invite/generate', [InvitationController::class, 'generate']);
