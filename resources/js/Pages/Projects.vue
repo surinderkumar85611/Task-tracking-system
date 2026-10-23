@@ -125,8 +125,7 @@
                             <h2 :style="{ borderLeft: `6px solid ${getGroupColor(project.status)}` }">
                                 {{ project.name }}
                             </h2>
-                            <button class="extension-bell-btn"
-                                :class="{ pending: project.pending_extension_request }"
+                            <button class="extension-bell-btn" :class="{ pending: project.pending_extension_request }"
                                 :title="project.pending_extension_request ? 'Review extension request' : 'No pending extension request'"
                                 @click="openExtensionReview(project.id)">
                                 🔔<span v-if="project.pending_extension_request" class="ext-badge">1</span>
@@ -210,9 +209,9 @@
                                             <div class="modal-pills-row">
                                                 <div v-for="mId in task.member_id" :key="mId" class="member-pill-badge">
                                                     <span class="pill-avatar-dot">{{ getMemberInitials(project, mId)
-                                                    }}</span>
+                                                        }}</span>
                                                     <span class="pill-name-text">{{ getMemberFirstNameOnly(project, mId)
-                                                    }}</span>
+                                                        }}</span>
                                                     <span class="pill-remove-btn"
                                                         @click.stop="toggleMemberAssignment(task, mId)">×</span>
                                                 </div>
@@ -2158,22 +2157,22 @@ const logout = () => {
 }
 
 .col-task {
-    width: 20%;
+    width: 15%;
     text-align: center;
 }
 
 .col-member {
-    width: 12%;
+    width: 9%;
     text-align: center;
 }
 
 .col-status {
-    width: 14%;
+    width: 9%;
     text-align: center;
 }
 
 .col-priority {
-    width: 12%;
+    width: 9%;
     text-align: center;
 }
 
