@@ -5,8 +5,6 @@
 
         <div class="tl-card-info-header">
 
-
-
             <div class="avatar-circle-initials">
                 {{ getInitials(member.first_name, member.last_name) }}
             </div>
@@ -40,7 +38,6 @@
                 </span>
 
             </div>
-            <!-- DRAG HANDLE ONLY -->
             <div class="drag-handle" draggable="true" title="Drag to move" @dragstart="startDrag($event, member)"
                 @click.stop>
                 ⠿
@@ -54,7 +51,6 @@
 
                 <template v-for="child in member.team_members" :key="child.id">
 
-                    <!-- MEMBER -->
                     <div v-if="child.role === 'Member'" class="member-sub-pill-row"
                         @click.stop="$emit('edit-member', child)">
 
@@ -78,23 +74,18 @@
                             </span>
 
                         </div>
-                        <!-- DRAG HANDLE -->
                         <div class="member-drag-handle" draggable="true" title="Drag member"
                             @dragstart="startDrag($event, child)" @click.stop>
                             ⠿
                         </div>
                     </div>
 
-
-                    <!-- TEAM LEADER -->
                     <TeamNode v-else :member="child" @drag-member="$emit('drag-member', $event)"
                         @drop-member="$emit('drop-member', $event)" @drop-leader="$emit('drop-leader', $event)"
                         @remove-member="$emit('remove-member', $event)" @edit-member="$emit('edit-member', $event)" />
 
                 </template>
 
-
-                <!-- DROP SLOT -->
                 <div v-if="member.role === 'TL'" class="empty-member-slot" @dragover.prevent @drop="handleDrop">
                     +
                 </div>
@@ -207,11 +198,6 @@ const getTotalTeamCount = (node) => {
     cursor: pointer;
 }
 
-
-/* =========================
-   DRAG HANDLE
-========================= */
-
 .drag-handle {
     width: 30px;
     height: 30px;
@@ -243,11 +229,6 @@ const getTotalTeamCount = (node) => {
     cursor: grabbing;
 }
 
-
-/* =========================
-   MEMBER DRAG HANDLE
-========================= */
-
 .member-drag-handle {
     width: 24px;
     height: 24px;
@@ -273,11 +254,6 @@ const getTotalTeamCount = (node) => {
     cursor: grabbing;
 }
 
-
-/* =========================
-   MEMBER CARD
-========================= */
-
 .member-sub-pill-row {
     position: relative;
 
@@ -290,11 +266,6 @@ const getTotalTeamCount = (node) => {
     border-color: #6366f1;
     background: rgba(99, 102, 241, 0.06);
 }
-
-
-/* =========================
-   DELETE
-========================= */
 
 .member-delete-btn {
     position: absolute;
@@ -330,11 +301,6 @@ const getTotalTeamCount = (node) => {
 .member-sub-pill-row:hover .member-delete-btn {
     opacity: 1;
 }
-
-
-/* =========================
-   DROP SLOT
-========================= */
 
 .empty-member-slot {
     width: 70px;

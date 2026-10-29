@@ -183,7 +183,7 @@
                                         </button>
                                     </td>
                                     <td class="cell-member" style="position: relative; padding: 0;">
-                                        <!-- Clickable Cell Area (Matches image_c2dc86.png cell hover borders) -->
+
                                         <div class="monday-owner-cell-trigger"
                                             @click.stop="toggleAssigneeDropdown(task.id, $event)">
                                             <div v-if="task.member_id && task.member_id.length > 0"
@@ -199,19 +199,17 @@
                                             </div>
                                         </div>
 
-                                        <!-- Premium Custom Flyout Dialog Panel -->
                                         <div v-if="activeAssigneeDropdownTaskId === task.id"
                                             class="monday-popup-modal-panel"
                                             :style="{ top: dropdownPosition.top, left: dropdownPosition.left }"
                                             v-click-outside="closeAssigneeDropdown">
 
-                                            <!-- Active Selections Row Area -->
                                             <div class="modal-pills-row">
                                                 <div v-for="mId in task.member_id" :key="mId" class="member-pill-badge">
                                                     <span class="pill-avatar-dot">{{ getMemberInitials(project, mId)
-                                                        }}</span>
+                                                    }}</span>
                                                     <span class="pill-name-text">{{ getMemberFirstNameOnly(project, mId)
-                                                        }}</span>
+                                                    }}</span>
                                                     <span class="pill-remove-btn"
                                                         @click.stop="toggleMemberAssignment(task, mId)">×</span>
                                                 </div>
@@ -221,7 +219,6 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Search Input Bar Header -->
                                             <div class="modal-search-wrapper">
                                                 <span class="search-magnifier-icon">🔍</span>
                                                 <input type="text" v-model="memberSearchQuery"
@@ -230,7 +227,6 @@
                                                 <span class="search-info-bubble">ℹ️</span>
                                             </div>
 
-                                            <!-- Filtered Suggested Lists section -->
                                             <div class="modal-section-title">Suggested people</div>
                                             <div class="modal-list-scrollway">
                                                 <div v-for="member in filterScopeMembers(project)" :key="member.id"
@@ -256,7 +252,6 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Sticky Interaction Footer Block -->
                                             <div class="modal-action-footer">
                                                 <div class="footer-notification-info">
                                                     <span class="footer-bell-icon">🔔</span>
@@ -1829,11 +1824,6 @@ watch(() => showEditModal?.value, (newVal) => {
 
 });
 
-// ---------------------------------------------------------------------------
-// Deadline extension requests (leader -> admin) + notifications
-// ---------------------------------------------------------------------------
-
-// ids clicked in this session, hidden immediately while the server request finishes
 const locallyReadNotificationIds = ref([]);
 
 const extensionNotifications = computed(
@@ -1846,13 +1836,11 @@ const bellCount = computed(
 );
 
 const markNotificationRead = (n) => {
-    // hide right away so the badge count drops instantly
     locallyReadNotificationIds.value.push(n.id);
 
     router.post(`/extension-notifications/${n.id}/read`, {}, {
         preserveScroll: true,
         onError: () => {
-            // bring it back if the server could not mark it as read
             locallyReadNotificationIds.value = locallyReadNotificationIds.value.filter(id => id !== n.id);
             toast.error("Could not mark the notification as read.");
         }
@@ -1906,7 +1894,6 @@ const closeExtensionReview = () => {
     cancelReject();
 };
 
-// Clicking a notification in the header bell: mark it read and open that project's request
 const openFromNotification = (n) => {
     markNotificationRead(n);
     notificationStore.showBellDropdown = false;
@@ -3662,7 +3649,6 @@ tbody tr {
 </style>
 
 <style>
-/* Global styles to target CKEditor elements appended directly to the body */
 .ck-body-wrapper,
 .ck.ck-body-wrapper,
 .ck-balloon-panel {

@@ -49,7 +49,6 @@ Route::prefix('super-admin')->name('super-admin.')->group(function () {
 
         Route::post('/login', [SuperAdminAuthController::class, 'login']);
 
-        // second step of login: verifies the 6-digit 2FA code (admin is not logged in yet)
         Route::post('/2fa/challenge', [SuperAdminAuthController::class, 'verifyTwoFactor'])
             ->middleware('throttle:5,1');
     });
@@ -353,30 +352,24 @@ Route::middleware(['auth', 'no-cache'])
 
 Route::prefix('super-admin')->middleware(['auth:super_admin'])->group(function () {
 
-    // pages
     Route::get('/teams', [SuperAdminPageController::class, 'teams']);
     Route::get('/projects', [SuperAdminPageController::class, 'projects']);
 
-    // remove a team leader
     Route::delete('/leaders/{leader}', [SuperAdminPageController::class, 'destroyLeader']);
 
-    // add / remove team members (parameter must be named {teamLeader} to match the controller)
     Route::post('/teams/{teamLeader}/members/{member}', [SuperAdminTeamController::class, 'addMember']);
     Route::delete('/teams/{teamLeader}/members/{member}', [SuperAdminTeamController::class, 'removeMember']);
 
-    // create administrator / team leader
     Route::post('/admin', [SuperAdminUserController::class, 'store']);
     Route::delete('/admin/{user}', [SuperAdminPageController::class, 'destroyAdmin']);
 
     Route::patch('/projects/{project}', [SuperAdminPageController::class, 'updateProjectProgress']);
 
-    // workspaces: list, add, rename, delete
     Route::get('/workspaces', [SuperAdminPageController::class, 'workspaces']);
     Route::post('/workspaces', [SuperAdminPageController::class, 'storeWorkspace']);
     Route::put('/workspaces/{workspace}', [SuperAdminPageController::class, 'updateWorkspace']);
     Route::delete('/workspaces/{workspace}', [SuperAdminPageController::class, 'destroyWorkspace']);
 
-    // settings: profile + two factor authentication
     Route::get('/settings', [SuperAdminSettingsController::class, 'index']);
     Route::put('/profile', [SuperAdminSettingsController::class, 'updateProfile']);
     Route::get('/2fa/generate', [SuperAdminSettingsController::class, 'generateSecret']);
