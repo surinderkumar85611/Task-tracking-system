@@ -249,11 +249,7 @@
                         <div class="twofa-content">
 
                             <div v-if="twoFA.enabled" class="twofa-enabled-container">
-                                <p style="
-                    color:#4caf50;
-                    font-weight:bold;
-                    margin-bottom:12px;
-                ">
+                                <p style="color:#4caf50; font-weight:bold; margin-bottom:12px;">
                                     🔒 Two-Factor Authentication is currently active on your account.
                                 </p>
 
@@ -293,9 +289,7 @@
                                         </strong>
                                     </p>
 
-                                    <code>
-                    {{ twoFA.secret }}
-                </code>
+                                    <code>{{ twoFA.secret }}</code>
 
                                     <div class="form-group inline-verification-input">
                                         <label>

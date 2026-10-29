@@ -316,8 +316,6 @@
 
                     <div class="professional-modal-window">
 
-                        <!-- HEADER -->
-
                         <div class="modal-custom-header">
 
                             <div>
@@ -339,12 +337,7 @@
 
                         </div>
 
-
-                        <!-- BODY -->
-
                         <div class="modal-custom-body">
-
-                            <!-- FIRST NAME -->
 
                             <div class="input-group-wrapper">
 
@@ -360,9 +353,6 @@
 
                             </div>
 
-
-                            <!-- LAST NAME -->
-
                             <div class="input-group-wrapper">
 
                                 <label>
@@ -377,9 +367,6 @@
 
                             </div>
 
-
-                            <!-- EMAIL -->
-
                             <div class="input-group-wrapper">
 
                                 <label>
@@ -391,9 +378,6 @@
                                 </div>
 
                             </div>
-
-
-                            <!-- PHONE -->
 
                             <div class="input-group-wrapper">
 
@@ -414,9 +398,6 @@
 
                             </div>
 
-
-                            <!-- DEPARTMENT -->
-
                             <div class="input-group-wrapper">
 
                                 <label>
@@ -430,9 +411,6 @@
                                 </small>
 
                             </div>
-
-
-                            <!-- CURRENT ROLE -->
 
                             <div class="input-group-wrapper">
 
@@ -453,9 +431,6 @@
                                 </div>
 
                             </div>
-
-
-                            <!-- PROMOTION -->
 
                             <div v-if="canPromote" class="promotion-box">
 
@@ -511,18 +486,12 @@
 
                             </div>
 
-
-                            <!-- TL3 MESSAGE -->
-
                             <div v-else-if="
                                 selectedMember?.role === 'TL' &&
                                 Number(selectedMember?.level) === 3
                             " class="max-level-message">
                                 🏆 This Team Leader is already at TL3.
                             </div>
-
-
-                            <!-- SAVE -->
 
                             <button class="action-primary-btn" @click="updateMember">
                                 Save Changes
@@ -2086,10 +2055,6 @@ watch(() => form.role, (role) => {
     background: #b91c1c;
 }
 
-/* =========================================
-   EDIT MEMBER MODAL
-========================================= */
-
 .professional-modal-window {
     width: min(520px, calc(100vw - 32px));
     max-width: 520px;
@@ -2122,19 +2087,9 @@ watch(() => form.role, (role) => {
     border-radius: 10px;
 }
 
-
-/* =========================================
-   MODAL BODY
-========================================= */
-
 .modal-custom-body {
     padding: 22px;
 }
-
-
-/* =========================================
-   PROMOTION BOX
-========================================= */
 
 .promotion-box {
     margin-top: 14px;
@@ -2193,11 +2148,6 @@ watch(() => form.role, (role) => {
     color: #94a3b8;
 }
 
-
-/* =========================================
-   CURRENT -> NEXT LEVEL
-========================================= */
-
 .promotion-current {
     display: flex;
     align-items: center;
@@ -2231,11 +2181,6 @@ watch(() => form.role, (role) => {
 
     font-weight: 700;
 }
-
-
-/* =========================================
-   PROMOTION BUTTON
-========================================= */
 
 .promotion-btn {
     width: 100%;
@@ -2272,11 +2217,6 @@ watch(() => form.role, (role) => {
     transform: translateY(0);
 }
 
-
-/* =========================================
-   TL3 REACHED
-========================================= */
-
 .max-level-message {
     margin-top: 14px;
 
@@ -2292,11 +2232,6 @@ watch(() => form.role, (role) => {
 
     font-size: 13px;
 }
-
-
-/* =========================================
-   MOBILE
-========================================= */
 
 @media (max-width: 600px) {
 

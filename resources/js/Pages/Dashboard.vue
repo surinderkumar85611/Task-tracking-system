@@ -7,7 +7,6 @@
 
         <main class="main-content">
 
-            <!-- TOPBAR -->
             <div class="topbar">
                 <div class="topbar-greeting">
                     <h2>
@@ -59,7 +58,6 @@
 
                                 <div class="notification-scroll-area">
 
-                                    <!-- NORMAL NOTIFICATIONS -->
                                     <div v-for="notification in unreadNotifications" :key="'notif-' + notification.id"
                                         class="notification-alert-item" @click="markAsRead(notification.id)">
                                         <div class="alert-item-indicator">🔔</div>
@@ -79,7 +77,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- URGENT TASKS -->
                                     <div v-for="task in notificationStore.activeUrgentTasks" :key="'urgent-' + task.id"
                                         class="notification-alert-item urgent">
                                         <div class="alert-item-indicator urgent-indicator">⚠️</div>
@@ -96,7 +93,6 @@
 
                                 </div>
 
-                                <!-- EMPTY STATE -->
                                 <div v-if="unreadNotifications.length === 0 && notificationStore.activeUrgentTasks.length === 0"
                                     class="notification-empty-state">
                                     🎉 No notifications right now.
@@ -158,7 +154,6 @@
 
                 <div class="dashboard-layout-split">
 
-                    <!-- Active Projects -->
                     <div class="panel-container active-projects-panel">
                         <div class="panel-header">
                             <h2>Active Projects</h2>
@@ -194,10 +189,8 @@
                             </div>
                         </div>
 
-                        <!-- WORKSPACE OVERVIEW (workspace + team members | teams + TL projects) -->
                         <div class="workspace-overview">
 
-                            <!-- LEFT: workspace name at the top, then team members with roles -->
                             <div class="overview-card workspace-card">
                                 <div class="workspace-heading">
                                     <span class="overview-label">Workspace</span>
@@ -225,7 +218,6 @@
                                 </div>
                             </div>
 
-                            <!-- RIGHT: total teams + projects assigned to the TL -->
                             <div class="overview-card teams-card">
                                 <span class="overview-label">Teams Overview</span>
 
@@ -249,7 +241,9 @@
 
                                         <div class="overview-info">
                                             <strong>{{ lead.name }}</strong>
-                                            <span>{{ lead.projectCount }} project{{ lead.projectCount === 1 ? "" : "s" }} assigned</span>
+                                            <span>{{ lead.projectCount }} project{{ lead.projectCount === 1 ? "" : "s"
+                                                }}
+                                                assigned</span>
                                         </div>
                                     </div>
 
@@ -262,10 +256,8 @@
                         </div>
                     </div>
 
-                    <!-- Right Sidebar -->
                     <div class="sidebar-right-stack">
 
-                        <!-- Productivity: completed projects out of all assigned projects -->
                         <div class="productivity-card">
                             <div class="prod-top-row">
                                 <span class="prod-title">Productivity</span>
@@ -287,7 +279,6 @@
                             </button>
                         </div>
 
-                        <!-- Projects assigned per month -->
                         <div class="panel-container monthly-projects-panel">
                             <div class="panel-header">
                                 <h2>Projects Assigned per Month</h2>
@@ -338,9 +329,8 @@ const props = defineProps({
     projects: Array,
     members: Array,
     notifications: Array,
-    // NEW: optional data for the workspace / teams sections
-    workspace: Object, // { id, name }
-    teams: Array       // list of teams in the workspace
+    workspace: Object,
+    teams: Array
 });
 
 const search = ref("");
@@ -365,12 +355,10 @@ const saveWidgetOrder = () => {
 
 const boards = computed(() => props.projects || []);
 
-// A project counts as completed when its status is "Completed" or all of its work is done (100%)
 const isProjectCompleted = (project) =>
     String(project.status || "").toLowerCase() === "completed" ||
     Number(project.progress || 0) >= 100;
 
-// Productivity = completed projects out of all projects assigned to the team
 const productivity = computed(() => {
     const total = boards.value.length;
     const completed = boards.value.filter(isProjectCompleted).length;
@@ -397,13 +385,8 @@ const showProfileMenu = ref(false);
 
 const currentUserId = computed(() => page.props.auth?.user?.id ?? null);
 
-/* ---------------------------------------------------------------
-   WORKSPACE OVERVIEW
-   --------------------------------------------------------------- */
-
 const authUser = computed(() => page.props.auth?.user ?? null);
 
-// Workspaces shared from HandleInertiaRequests (owned by the logged-in admin)
 const sharedWorkspaces = computed(() => page.props.workspaces || []);
 
 const findWorkspaceName = (id) => {
@@ -414,9 +397,6 @@ const findWorkspaceName = (id) => {
     );
 };
 
-// Workspace name shown at the top of the left card:
-// 1) the workspace the team leader belongs to (member.workspace_id)
-// 2) the workspace currently selected in the sidebar (session workspace_id)
 const workspaceName = computed(
     () =>
         props.workspace?.name ||
@@ -439,7 +419,6 @@ const fullName = (person) =>
     person?.name ||
     "Unknown";
 
-// Logged-in admin (with their role) first, followed by the rest of the team members and their roles
 const workspacePeople = computed(() => {
     const people = [];
     const admin = authUser.value;
@@ -471,8 +450,6 @@ const workspacePeople = computed(() => {
     return people;
 });
 
-// Total teams in the workspace
-// Each team leader leads one team (members point to their TL via assigned_to)
 const totalTeams = computed(
     () =>
         props.stats?.totalTeams ??
@@ -480,7 +457,6 @@ const totalTeams = computed(
         teamLeads.value.length
 );
 
-// Is this member a Team Lead?
 const isTeamLead = (member) =>
     ["tl", "team lead", "team leader"].includes(
         String(member?.role || "").trim().toLowerCase()
@@ -488,7 +464,6 @@ const isTeamLead = (member) =>
 
 const teamLeads = computed(() => teamMembersList.value.filter(isTeamLead));
 
-// Keys a project may use to point at its TL / assignee
 const TL_KEYS = ["team_lead_id", "tl_id", "assigned_to", "assigned_to_id", "lead_id"];
 
 const projectHasAssignmentInfo = computed(() =>
@@ -502,7 +477,6 @@ const projectsForLead = (lead) =>
         )
     ).length;
 
-// Per-TL details (name + number of projects assigned)
 const teamLeadsDetail = computed(() =>
     teamLeads.value.map((lead) => {
         const name = fullName(lead);
@@ -510,7 +484,6 @@ const teamLeadsDetail = computed(() =>
             key: "tl-" + lead.id,
             name,
             initials: getInitials(name),
-            // If projects don't carry assignee info, all workspace projects are treated as assigned to the TL
             projectCount: projectHasAssignmentInfo.value
                 ? projectsForLead(lead)
                 : boards.value.length,
@@ -518,7 +491,6 @@ const teamLeadsDetail = computed(() =>
     })
 );
 
-// Total number of projects assigned to the TL
 const tlAssignedProjects = computed(() => {
     if (props.stats?.tlProjects != null) return props.stats.tlProjects;
 
@@ -535,9 +507,6 @@ const tlAssignedProjects = computed(() => {
     ).length;
 });
 
-/* ---------------------------------------------------------------
-   PROJECTS ASSIGNED PER MONTH (last 6 months)
-   --------------------------------------------------------------- */
 const monthKey = (date) => `${date.getFullYear()}-${date.getMonth()}`;
 
 const monthlyProjects = computed(() => {
@@ -555,7 +524,6 @@ const monthlyProjects = computed(() => {
     }
 
     boards.value.forEach((project) => {
-        // Date the project was assigned / created
         const raw =
             project.assigned_at ||
             project.created_at ||
@@ -1097,7 +1065,6 @@ const logout = () => {
     font-size: 11.5px;
 }
 
-/* ---------- Workspace overview (below the project cards) ---------- */
 .workspace-overview {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1262,7 +1229,6 @@ const logout = () => {
     color: var(--text-muted);
 }
 
-/* ---------- Projects per month chart ---------- */
 .monthly-total {
     font-size: 11px;
     font-weight: 600;
