@@ -19,7 +19,6 @@
           }}
         </p>
 
-        <!-- STEP 1: email + password -->
         <form v-if="!twoFactorRequired" @submit.prevent="login">
           <div class="field-group">
             <input
@@ -60,7 +59,6 @@
           </button>
         </form>
 
-        <!-- STEP 2: 2FA code -->
         <form v-else @submit.prevent="verifyCode">
           <div class="field-group">
             <input
@@ -114,7 +112,6 @@ const touched = reactive({
 const showPassword = ref(false);
 const loading = ref(false);
 
-// 2FA step
 const twoFactorRequired = ref(false);
 const code = ref("");
 const codeInput = ref(null);
@@ -172,7 +169,6 @@ const login = () => {
   axios
     .post("/super-admin/login", form)
     .then((res) => {
-      // password was correct but the account has 2FA, so ask for the code
       if (res.data?.two_factor_required) {
         twoFactorRequired.value = true;
         code.value = "";
@@ -242,7 +238,6 @@ const verifyCode = () => {
         toastClassName: "custom-toast",
       });
 
-      // the pending sign-in expired on the server, so start over
       if (/expired/i.test(message)) {
         backToLogin();
         return;
@@ -394,7 +389,6 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* secondary text-style button used on the 2FA step */
 .link-btn {
   height: auto;
   padding: 10px 0;
