@@ -27,7 +27,6 @@
                     <button :class="{ active: activeTab === 'security' }" @click="activeTab = 'security'">🔒 Security</button>
                 </div>
 
-                <!-- PROFILE -->
                 <section v-if="activeTab === 'profile'" class="sa-card settings-card">
                     <div class="card-title">
                         <h3>Profile information</h3>
@@ -99,7 +98,6 @@
                     </div>
                 </section>
 
-                <!-- SECURITY -->
                 <section v-if="activeTab === 'security'" class="sa-card settings-card">
                     <div class="card-title">
                         <h3>Security</h3>
@@ -186,7 +184,6 @@
 
                         <div class="twofa-content">
 
-                            <!-- enabled -->
                             <div v-if="twoFA.enabled">
                                 <p class="twofa-active">🔒 Two-factor authentication is active on your account.</p>
 
@@ -200,7 +197,6 @@
                                 </button>
                             </div>
 
-                            <!-- not enabled -->
                             <div v-else>
                                 <p class="twofa-desc">
                                     Secure your account using a code from Google Authenticator each time you sign in.
@@ -233,7 +229,6 @@
                     </div>
                 </section>
 
-                <!-- NOTIFICATIONS -->
                 <section v-if="activeTab === 'notifications'" class="sa-card settings-card">
                     <div class="card-title">
                         <h3>Notification preferences</h3>
@@ -314,7 +309,6 @@ const props = defineProps({
 const { isDark } = useSuperAdminTheme();
 const activeTab = ref("profile");
 
-/* ---------- profile ---------- */
 const form = reactive({ name: props.profile.name, email: props.profile.email });
 const original = reactive({ name: props.profile.name, email: props.profile.email });
 const errors = ref({});
@@ -333,7 +327,6 @@ const userInitials = computed(() =>
     (form.name || "SA").split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()
 );
 
-/* ---------- avatar upload ---------- */
 const triggerAvatarUpload = () => {
     avatarInput.value?.click();
 };
@@ -348,7 +341,7 @@ const handleAvatarChange = (e) => {
         return;
     }
 
-    const maxSizeBytes = 5 * 1024 * 1024; // 5MB
+    const maxSizeBytes = 5 * 1024 * 1024;
     if (file.size > maxSizeBytes) {
         toast.error("Image must be smaller than 5MB");
         e.target.value = "";
@@ -378,7 +371,6 @@ const saveProfile = async () => {
 
     try {
         const formData = new FormData();
-        // file uploads need POST, so the PUT route is reached through method spoofing
         formData.append("_method", "PUT");
         formData.append("name", form.name);
         formData.append("email", form.email);
@@ -417,7 +409,6 @@ const saveProfile = async () => {
     }
 };
 
-/* ---------- password ---------- */
 const security = reactive({
     currentPassword: "",
     newPassword: "",
@@ -522,7 +513,6 @@ const updatePassword = async () => {
             passwordErrors.currentPassword = "Current password does not match";
             passwordTouched.currentPassword = true;
         } else if (/same as|must be different|reuse/i.test(serverMessage)) {
-            // Covers a backend rule like Laravel's `different:current_password`
             passwordErrors.newPassword = "New password must be different from your current password";
             passwordTouched.newPassword = true;
         } else {
@@ -534,7 +524,6 @@ const updatePassword = async () => {
     }
 };
 
-/* ---------- two factor ---------- */
 const twoFA = reactive({
     qr: null,
     secret: null,
@@ -600,7 +589,6 @@ const disable2FA = async () => {
     }
 };
 
-/* ---------- notifications ---------- */
 const savedPrefs = props.profile.notification_preferences;
 
 const notifications = reactive({
@@ -1000,7 +988,6 @@ const saveNotificationPreferences = async () => {
 .sa-avatar.av-4 { background: var(--c-cyan); }
 .sa-avatar.av-5 { background: var(--c-red); }
 
-/* ---------- tabs, progress, empty ---------- */
 .sa-tabs {
     display: inline-flex;
     gap: 3px;
@@ -1294,7 +1281,6 @@ const saveNotificationPreferences = async () => {
     margin-top: 28px;
 }
 
-/* ---------- password ---------- */
 .password-form-block {
     padding: 20px;
     margin-bottom: 24px;
@@ -1417,7 +1403,6 @@ const saveNotificationPreferences = async () => {
     word-break: break-all;
 }
 
-/* ---------- notifications ---------- */
 .notification-list {
     display: flex;
     flex-direction: column;

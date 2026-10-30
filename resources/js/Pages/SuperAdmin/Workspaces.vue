@@ -1,4 +1,5 @@
 <template>
+
     <Head title="Workspaces" />
 
     <div class="sa-page" :class="isDark ? 'theme-dark' : 'theme-light'">
@@ -24,7 +25,6 @@
 
             <div class="sa-content">
 
-                <!-- totals -->
                 <section class="sa-stats">
                     <div class="sa-stat cyan">
                         <div class="sa-stat-icon">🏢</div>
@@ -52,7 +52,6 @@
                     </div>
                 </section>
 
-                <!-- workspace cards -->
                 <div class="ws-grid">
                     <article v-for="w in filtered" :key="w.id" class="ws-card">
 
@@ -64,11 +63,11 @@
                             </div>
                             <div class="ws-card-actions">
                                 <button class="sa-icon-btn sm" title="Edit workspace" @click="openRename(w)">✏️</button>
-                                <button class="sa-icon-btn danger sm" title="Delete workspace" @click="openDelete(w)">🗑</button>
+                                <button class="sa-icon-btn danger sm" title="Delete workspace"
+                                    @click="openDelete(w)">🗑</button>
                             </div>
                         </header>
 
-                        <!-- administrator -->
                         <div class="ws-admin" :class="{ none: !w.admin }">
                             <template v-if="w.admin">
                                 <div class="sa-avatar" :class="av(w.admin.id)">{{ initials(w.admin.name) }}</div>
@@ -81,7 +80,6 @@
                             <span v-else class="sa-pill">No administrator</span>
                         </div>
 
-                        <!-- project numbers -->
                         <div class="ws-metrics">
                             <div>
                                 <strong>{{ w.projects_total }}</strong>
@@ -117,7 +115,6 @@
                             </div>
                         </div>
 
-                        <!-- team leaders -->
                         <div class="ws-leaders">
                             <div class="ws-leaders-title">
                                 <span>Team leaders</span>
@@ -144,13 +141,16 @@
                     </article>
 
                     <div v-if="!filtered.length" class="sa-empty full">
-                        {{ workspaces.length ? 'No workspaces match your search.' : 'No workspaces yet. Click “Add workspace” to create the first one.' }}
+                        {{ workspaces.length
+                            ?
+                            'No workspaces match your search.'
+                            :
+                            'No workspaces yet. Click “Add workspace” to create the first one.' }}
                     </div>
                 </div>
             </div>
         </main>
 
-        <!-- add / rename -->
         <div v-if="formModal.show" class="sa-modal-overlay" @click.self="closeForm">
             <div class="sa-modal form">
                 <h3>{{ formModal.mode === 'add' ? 'Add workspace' : 'Edit workspace' }}</h3>
@@ -211,17 +211,19 @@
             </div>
         </div>
 
-        <!-- delete -->
         <div v-if="deleteModal.show" class="sa-modal-overlay" @click.self="closeDelete">
             <div class="sa-modal form">
                 <div class="sa-modal-icon">⚠️</div>
                 <h3 class="center">Delete “{{ deleteModal.workspace.name }}”?</h3>
 
                 <ul class="delete-list">
-                    <li>🗑 <strong>{{ deleteModal.workspace.projects_total }}</strong> project(s) and all of their tasks will be deleted.</li>
+                    <li>🗑 <strong>{{ deleteModal.workspace.projects_total }}</strong> project(s) and all of their tasks
+                        will be
+                        deleted.</li>
                     <li>
                         👥 <strong>{{ deleteModal.workspace.leaders.length }}</strong> team leader(s) and
-                        <strong>{{ deleteModal.workspace.members_count }}</strong> member(s) will stay in the system, but
+                        <strong>{{ deleteModal.workspace.members_count }}</strong> member(s) will stay in the system,
+                        but
                         will be removed from this workspace and from their teams.
                     </li>
                     <li>This cannot be undone.</li>
@@ -266,7 +268,6 @@ const props = defineProps({
 
 const { isDark } = useSuperAdminTheme();
 
-/* ---------- helpers ---------- */
 const initials = (name) =>
     (name || "?").split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 const av = (id) => "av-" + (Number(id) % 6);
@@ -286,7 +287,6 @@ const flatErrors = (errs) => {
     return flat;
 };
 
-/* ---------- search ---------- */
 const search = ref("");
 const q = computed(() => search.value.trim().toLowerCase());
 const hit = (text) => !q.value || (text || "").toLowerCase().includes(q.value);
@@ -301,13 +301,11 @@ const filtered = computed(() =>
     )
 );
 
-/* ---------- add / rename ---------- */
 const formModal = reactive({ show: false, mode: "add", id: null });
 const form = reactive({ name: "", description: "", owner: "" });
 const errors = ref({});
 const saving = ref(false);
 
-// a team member picked as the new administrator
 const selectedMember = computed(() => {
     if (!String(form.owner).startsWith("member:")) return null;
     const id = Number(String(form.owner).split(":")[1]);
@@ -386,7 +384,6 @@ const submitForm = () => {
     }
 };
 
-/* ---------- delete ---------- */
 const deleteModal = reactive({ show: false, workspace: null, typed: "", busy: false });
 
 const canDelete = computed(
@@ -424,7 +421,6 @@ const confirmDelete = () => {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
 
-/* ---------- theme variables ---------- */
 .sa-page.theme-dark {
     --dashboard-bg: #10121c;
     --panel-bg: #171a26;
@@ -507,7 +503,6 @@ const confirmDelete = () => {
     font-family: 'Lexend', 'Inter', sans-serif;
 }
 
-/* ---------- main area ---------- */
 .sa-main {
     flex: 1;
     min-width: 0;
@@ -551,7 +546,6 @@ const confirmDelete = () => {
     padding: 18px 24px 40px;
 }
 
-/* ---------- cards & grids ---------- */
 .sa-card {
     background: var(--panel-bg);
     border: 1px solid var(--border-subtle);
@@ -587,7 +581,6 @@ const confirmDelete = () => {
     }
 }
 
-/* ---------- stat cards ---------- */
 .sa-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -626,12 +619,29 @@ const confirmDelete = () => {
     background: var(--tone);
 }
 
-.sa-stat.blue { --tone: var(--c-blue); }
-.sa-stat.violet { --tone: var(--c-violet); }
-.sa-stat.green { --tone: var(--c-green); }
-.sa-stat.amber { --tone: var(--c-amber); }
-.sa-stat.cyan { --tone: var(--c-cyan); }
-.sa-stat.red { --tone: var(--c-red); }
+.sa-stat.blue {
+    --tone: var(--c-blue);
+}
+
+.sa-stat.violet {
+    --tone: var(--c-violet);
+}
+
+.sa-stat.green {
+    --tone: var(--c-green);
+}
+
+.sa-stat.amber {
+    --tone: var(--c-amber);
+}
+
+.sa-stat.cyan {
+    --tone: var(--c-cyan);
+}
+
+.sa-stat.red {
+    --tone: var(--c-red);
+}
 
 .sa-stat-icon {
     width: 34px;
@@ -669,7 +679,6 @@ const confirmDelete = () => {
     color: var(--text-muted);
 }
 
-/* ---------- buttons, inputs, pills, avatars ---------- */
 .sa-btn {
     display: inline-flex;
     align-items: center;
@@ -687,12 +696,34 @@ const confirmDelete = () => {
     transition: opacity 0.15s ease;
 }
 
-.sa-btn:hover:not(:disabled) { opacity: 0.9; }
-.sa-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.sa-btn.ghost { background: transparent; color: var(--text-main); border: 1px solid var(--border-deep); }
-.sa-btn.ghost:hover:not(:disabled) { background: var(--card-inner-hover); }
-.sa-btn.danger { background: var(--c-red); color: #fff; }
-.sa-btn.success { background: var(--c-green); color: #fff; }
+.sa-btn:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
+.sa-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.sa-btn.ghost {
+    background: transparent;
+    color: var(--text-main);
+    border: 1px solid var(--border-deep);
+}
+
+.sa-btn.ghost:hover:not(:disabled) {
+    background: var(--card-inner-hover);
+}
+
+.sa-btn.danger {
+    background: var(--c-red);
+    color: #fff;
+}
+
+.sa-btn.success {
+    background: var(--c-green);
+    color: #fff;
+}
 
 .sa-icon-btn {
     width: 36px;
@@ -709,9 +740,21 @@ const confirmDelete = () => {
     transition: all 0.15s ease;
 }
 
-.sa-icon-btn:hover { background: var(--card-inner-hover); border-color: var(--border-deep); }
-.sa-icon-btn.danger:hover { background: rgba(214, 72, 79, 0.14); border-color: rgba(214, 72, 79, 0.4); }
-.sa-icon-btn.sm { width: 30px; height: 30px; font-size: 12px; }
+.sa-icon-btn:hover {
+    background: var(--card-inner-hover);
+    border-color: var(--border-deep);
+}
+
+.sa-icon-btn.danger:hover {
+    background: rgba(214, 72, 79, 0.14);
+    border-color: rgba(214, 72, 79, 0.4);
+}
+
+.sa-icon-btn.sm {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+}
 
 .sa-input {
     width: 250px;
@@ -726,8 +769,15 @@ const confirmDelete = () => {
     transition: all 0.2s ease;
 }
 
-.sa-input::placeholder { color: var(--text-muted); }
-.sa-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--panel-bg); }
+.sa-input::placeholder {
+    color: var(--text-muted);
+}
+
+.sa-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    background: var(--panel-bg);
+}
 
 .sa-pill {
     --tone: var(--text-muted);
@@ -743,12 +793,29 @@ const confirmDelete = () => {
     background: color-mix(in srgb, var(--tone) 14%, transparent);
 }
 
-.sa-pill.green { --tone: var(--c-green); }
-.sa-pill.blue { --tone: var(--c-blue); }
-.sa-pill.amber { --tone: var(--c-amber); }
-.sa-pill.red { --tone: var(--c-red); }
-.sa-pill.violet { --tone: var(--c-violet); }
-.sa-pill.cyan { --tone: var(--c-cyan); }
+.sa-pill.green {
+    --tone: var(--c-green);
+}
+
+.sa-pill.blue {
+    --tone: var(--c-blue);
+}
+
+.sa-pill.amber {
+    --tone: var(--c-amber);
+}
+
+.sa-pill.red {
+    --tone: var(--c-red);
+}
+
+.sa-pill.violet {
+    --tone: var(--c-violet);
+}
+
+.sa-pill.cyan {
+    --tone: var(--c-cyan);
+}
 
 .sa-avatar {
     width: 34px;
@@ -766,16 +833,44 @@ const confirmDelete = () => {
     user-select: none;
 }
 
-.sa-avatar.sm { width: 28px; height: 28px; font-size: 10.5px; border-radius: 7px; }
-.sa-avatar.lg { width: 44px; height: 44px; font-size: 15px; border-radius: 11px; }
-.sa-avatar.av-0 { background: var(--c-blue); }
-.sa-avatar.av-1 { background: var(--c-violet); }
-.sa-avatar.av-2 { background: var(--c-green); }
-.sa-avatar.av-3 { background: var(--c-amber); }
-.sa-avatar.av-4 { background: var(--c-cyan); }
-.sa-avatar.av-5 { background: var(--c-red); }
+.sa-avatar.sm {
+    width: 28px;
+    height: 28px;
+    font-size: 10.5px;
+    border-radius: 7px;
+}
 
-/* ---------- tabs, progress, empty ---------- */
+.sa-avatar.lg {
+    width: 44px;
+    height: 44px;
+    font-size: 15px;
+    border-radius: 11px;
+}
+
+.sa-avatar.av-0 {
+    background: var(--c-blue);
+}
+
+.sa-avatar.av-1 {
+    background: var(--c-violet);
+}
+
+.sa-avatar.av-2 {
+    background: var(--c-green);
+}
+
+.sa-avatar.av-3 {
+    background: var(--c-amber);
+}
+
+.sa-avatar.av-4 {
+    background: var(--c-cyan);
+}
+
+.sa-avatar.av-5 {
+    background: var(--c-red);
+}
+
 .sa-tabs {
     display: inline-flex;
     gap: 3px;
@@ -799,7 +894,11 @@ const confirmDelete = () => {
     transition: all 0.15s ease;
 }
 
-.sa-tabs button.active { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.sa-tabs button.active {
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 600;
+}
 
 .sa-progress {
     height: 6px;
@@ -808,7 +907,7 @@ const confirmDelete = () => {
     background: var(--border-deep);
 }
 
-.sa-progress > div {
+.sa-progress>div {
     height: 100%;
     border-radius: 999px;
     background: var(--accent);
@@ -824,7 +923,6 @@ const confirmDelete = () => {
     border-radius: 10px;
 }
 
-/* ---------- confirm modal ---------- */
 .sa-modal-overlay {
     position: fixed;
     inset: 0;
@@ -860,12 +958,25 @@ const confirmDelete = () => {
     background: rgba(214, 72, 79, 0.14);
 }
 
-.sa-modal h3 { font-size: 17px; color: var(--text-header); margin-bottom: 8px; }
-.sa-modal p { font-size: 13px; line-height: 1.55; color: var(--text-muted); }
-.sa-modal-actions { display: flex; justify-content: center; gap: 12px; margin-top: 22px; }
+.sa-modal h3 {
+    font-size: 17px;
+    color: var(--text-header);
+    margin-bottom: 8px;
+}
 
+.sa-modal p {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-muted);
+}
 
-/* ---------- workspace cards ---------- */
+.sa-modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 22px;
+}
+
 .ws-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(430px, 1fr));
@@ -1001,9 +1112,17 @@ const confirmDelete = () => {
     color: var(--text-muted);
 }
 
-.ws-metrics .good strong { color: var(--c-green); }
-.ws-metrics .info strong { color: var(--c-blue); }
-.ws-metrics .wait strong { color: var(--c-amber); }
+.ws-metrics .good strong {
+    color: var(--c-green);
+}
+
+.ws-metrics .info strong {
+    color: var(--c-blue);
+}
+
+.ws-metrics .wait strong {
+    color: var(--c-amber);
+}
 
 .ws-rate-head {
     display: flex;
@@ -1039,9 +1158,17 @@ const confirmDelete = () => {
     transition: width 0.4s ease;
 }
 
-.s-done { background: var(--c-green); }
-.s-active { background: var(--c-blue); }
-.s-wait { background: var(--c-amber); }
+.s-done {
+    background: var(--c-green);
+}
+
+.s-active {
+    background: var(--c-blue);
+}
+
+.s-wait {
+    background: var(--c-amber);
+}
 
 .ws-leaders-title {
     display: flex;
@@ -1117,7 +1244,6 @@ const confirmDelete = () => {
     grid-column: 1 / -1;
 }
 
-/* ---------- modals ---------- */
 .sa-modal.form {
     width: 500px;
     text-align: left;

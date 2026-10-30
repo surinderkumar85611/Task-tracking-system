@@ -1,4 +1,5 @@
 <template>
+
     <Head title="Teams" />
 
     <div class="sa-page" :class="isDark ? 'theme-dark' : 'theme-light'">
@@ -23,367 +24,367 @@
 
             <div class="sa-content">
 
-        <!-- organisation totals -->
-        <section class="sa-stats">
-            <div class="sa-stat violet">
-                <div class="sa-stat-icon">🛡️</div>
-                <span class="sa-stat-label">Administrators</span>
-                <h2 class="sa-stat-value">{{ orgStats.admins }}</h2>
-                <small class="sa-stat-sub">Workspace owners</small>
-            </div>
-            <div class="sa-stat blue">
-                <div class="sa-stat-icon">🎯</div>
-                <span class="sa-stat-label">Team Leaders</span>
-                <h2 class="sa-stat-value">{{ orgStats.leaders }}</h2>
-                <small class="sa-stat-sub">Leading a team</small>
-            </div>
-            <div class="sa-stat green">
-                <div class="sa-stat-icon">👥</div>
-                <span class="sa-stat-label">Team Members</span>
-                <h2 class="sa-stat-value">{{ orgStats.members }}</h2>
-                <small class="sa-stat-sub">Across the organisation</small>
-            </div>
-            <div class="sa-stat cyan">
-                <div class="sa-stat-icon">🌐</div>
-                <span class="sa-stat-label">Total People</span>
-                <h2 class="sa-stat-value">{{ orgStats.people }}</h2>
-                <small class="sa-stat-sub">Admins + leaders + members</small>
-            </div>
-        </section>
+                <section class="sa-stats">
+                    <div class="sa-stat violet">
+                        <div class="sa-stat-icon">🛡️</div>
+                        <span class="sa-stat-label">Administrators</span>
+                        <h2 class="sa-stat-value">{{ orgStats.admins }}</h2>
+                        <small class="sa-stat-sub">Workspace owners</small>
+                    </div>
+                    <div class="sa-stat blue">
+                        <div class="sa-stat-icon">🎯</div>
+                        <span class="sa-stat-label">Team Leaders</span>
+                        <h2 class="sa-stat-value">{{ orgStats.leaders }}</h2>
+                        <small class="sa-stat-sub">Leading a team</small>
+                    </div>
+                    <div class="sa-stat green">
+                        <div class="sa-stat-icon">👥</div>
+                        <span class="sa-stat-label">Team Members</span>
+                        <h2 class="sa-stat-value">{{ orgStats.members }}</h2>
+                        <small class="sa-stat-sub">Across the organisation</small>
+                    </div>
+                    <div class="sa-stat cyan">
+                        <div class="sa-stat-icon">🌐</div>
+                        <span class="sa-stat-label">Total People</span>
+                        <h2 class="sa-stat-value">{{ orgStats.people }}</h2>
+                        <small class="sa-stat-sub">Admins + leaders + members</small>
+                    </div>
+                </section>
 
-        <div class="sa-tabs">
-            <button :class="{ active: tab === 'organisation' }" @click="tab = 'organisation'">🏛️ Organisation</button>
-            <button :class="{ active: tab === 'analytics' }" @click="tab = 'analytics'">📊 Team analytics</button>
-        </div>
-
-        <!-- ===================== ORGANISATION ===================== -->
-        <template v-if="tab === 'organisation'">
-
-            <div class="org-bar">
-                <p class="org-note">💡 Click a workspace to open its team leaders and members. Drag a member onto another team to move them.</p>
-                <div class="org-bar-actions">
-                    <button class="sa-btn ghost sm" @click="expandAllWs">Expand all</button>
-                    <button class="sa-btn ghost sm" @click="collapseAllWs">Collapse all</button>
+                <div class="sa-tabs">
+                    <button :class="{ active: tab === 'organisation' }" @click="tab = 'organisation'">🏛️
+                        Organisation</button>
+                    <button :class="{ active: tab === 'analytics' }" @click="tab = 'analytics'">📊 Team
+                        analytics</button>
                 </div>
-            </div>
 
-            <!-- workspace -> administrator -> team leaders -> members -->
-            <section v-for="w in filteredWorkspaces" :key="w.id ?? 'none'" class="ws-block"
-                :class="{ open: isWsOpen(w) }">
+                <template v-if="tab === 'organisation'">
 
-                <header class="ws-head" role="button" tabindex="0" @click="toggleWs(w)"
-                    @keydown.enter="toggleWs(w)" @dragenter="openOnDrag(w)" @dragover.prevent="openOnDrag(w)">
-                    <div class="ws-title">
-                        <span class="ws-icon">🏢</span>
-                        <div>
-                            <h3>{{ w.name }}</h3>
-                            <small>{{ w.leaders.length }} team leader(s) · {{ memberTotal(w) }} member(s)</small>
+                    <div class="org-bar">
+                        <p class="org-note">💡 Click a workspace to open its team leaders and members. Drag a member
+                            onto another team to move them.</p>
+                        <div class="org-bar-actions">
+                            <button class="sa-btn ghost sm" @click="expandAllWs">Expand all</button>
+                            <button class="sa-btn ghost sm" @click="collapseAllWs">Collapse all</button>
                         </div>
                     </div>
 
-                    <div v-if="w.admin" class="ws-admin">
-                        <div class="sa-avatar" :class="av(w.admin.id)">{{ initials(w.admin.name) }}</div>
-                        <div class="ws-admin-info">
-                            <strong>{{ w.admin.name }}</strong>
-                            <span>{{ w.admin.email }}</span>
-                        </div>
-                        <span class="sa-pill violet">🛡️ Administrator</span>
-                        <button class="sa-icon-btn danger sm" title="Remove administrator"
-                            @click.stop="askRemove('admin', w.admin)">🗑</button>
-                    </div>
-                    <div v-else class="ws-admin none">
-                        <span class="sa-pill">No administrator</span>
-                    </div>
+                    <section v-for="w in filteredWorkspaces" :key="w.id ?? 'none'" class="ws-block"
+                        :class="{ open: isWsOpen(w) }">
 
-                    <span class="chev" :class="{ open: isWsOpen(w) }">▾</span>
-                </header>
-
-                <div v-if="isWsOpen(w)" class="ws-body">
-
-                <div v-if="w.leaders.length" class="team-grid">
-                    <article v-for="l in w.leaders" :key="l.id" class="team-card"
-                        :class="{ over: overTarget === 'l' + l.id }" @dragover.prevent="overTarget = 'l' + l.id"
-                        @dragleave="onLeave($event, 'l' + l.id)" @drop.prevent="moveToLeader(l.id)">
-
-                        <header class="team-head">
-                            <div class="sa-avatar lg" :class="av(l.id)">{{ initials(l.name) }}</div>
-                            <div class="team-head-info">
-                                <h4>{{ l.name }}</h4>
-                                <div class="team-head-tags">
-                                    <span class="sa-pill amber">🎯 Team Leader · TL{{ l.level ?? 1 }}</span>
+                        <header class="ws-head" role="button" tabindex="0" @click="toggleWs(w)"
+                            @keydown.enter="toggleWs(w)" @dragenter="openOnDrag(w)" @dragover.prevent="openOnDrag(w)">
+                            <div class="ws-title">
+                                <span class="ws-icon">🏢</span>
+                                <div>
+                                    <h3>{{ w.name }}</h3>
+                                    <small>{{ w.leaders.length }} team leader(s) · {{ memberTotal(w) }}
+                                        member(s)</small>
                                 </div>
                             </div>
-                            <button class="sa-icon-btn danger sm" title="Remove team leader"
-                                @click="askRemove('leader', l)">🗑</button>
+
+                            <div v-if="w.admin" class="ws-admin">
+                                <div class="sa-avatar" :class="av(w.admin.id)">{{ initials(w.admin.name) }}</div>
+                                <div class="ws-admin-info">
+                                    <strong>{{ w.admin.name }}</strong>
+                                    <span>{{ w.admin.email }}</span>
+                                </div>
+                                <span class="sa-pill violet">🛡️ Administrator</span>
+                                <button class="sa-icon-btn danger sm" title="Remove administrator"
+                                    @click.stop="askRemove('admin', w.admin)">🗑</button>
+                            </div>
+                            <div v-else class="ws-admin none">
+                                <span class="sa-pill">No administrator</span>
+                            </div>
+
+                            <span class="chev" :class="{ open: isWsOpen(w) }">▾</span>
                         </header>
 
-                        <div class="team-metrics">
-                            <div><strong>{{ l.members.length }}</strong><span>Members</span></div>
-                            <div><strong>{{ l.projects.length }}</strong><span>Projects</span></div>
-                            <div><strong>{{ l.completion_rate }}%</strong><span>Success</span></div>
+                        <div v-if="isWsOpen(w)" class="ws-body">
+
+                            <div v-if="w.leaders.length" class="team-grid">
+                                <article v-for="l in w.leaders" :key="l.id" class="team-card"
+                                    :class="{ over: overTarget === 'l' + l.id }"
+                                    @dragover.prevent="overTarget = 'l' + l.id" @dragleave="onLeave($event, 'l' + l.id)"
+                                    @drop.prevent="moveToLeader(l.id)">
+
+                                    <header class="team-head">
+                                        <div class="sa-avatar lg" :class="av(l.id)">{{ initials(l.name) }}</div>
+                                        <div class="team-head-info">
+                                            <h4>{{ l.name }}</h4>
+                                            <div class="team-head-tags">
+                                                <span class="sa-pill amber">🎯 Team Leader · TL{{ l.level ?? 1 }}</span>
+                                            </div>
+                                        </div>
+                                        <button class="sa-icon-btn danger sm" title="Remove team leader"
+                                            @click="askRemove('leader', l)">🗑</button>
+                                    </header>
+
+                                    <div class="team-metrics">
+                                        <div><strong>{{ l.members.length }}</strong><span>Members</span></div>
+                                        <div><strong>{{ l.projects.length }}</strong><span>Projects</span></div>
+                                        <div><strong>{{ l.completion_rate }}%</strong><span>Success</span></div>
+                                    </div>
+
+                                    <div class="sa-progress">
+                                        <div :style="{ width: l.completion_rate + '%' }"></div>
+                                    </div>
+
+                                    <div class="team-members-label">
+                                        <span>Members</span>
+                                        <span class="sa-pill green">{{ l.members.length }}</span>
+                                    </div>
+
+                                    <ul class="member-list">
+                                        <li v-for="m in visibleMembers(l)" :key="m.id" class="member-row"
+                                            draggable="true" @dragstart="onDragStart($event, m, l.id)"
+                                            @dragend="onDragEnd">
+                                            <div class="sa-avatar sm" :class="av(m.id)">{{ initials(m.name) }}</div>
+                                            <div class="member-info">
+                                                <strong>{{ m.name }}</strong>
+                                                <span>{{ roleLabel(m) }}</span>
+                                            </div>
+                                            <span class="sa-pill" :class="m.role === 'TL' ? 'amber' : 'green'">
+                                                {{ m.role === 'TL' ? 'Sub-leader' : 'Member' }}
+                                            </span>
+                                        </li>
+                                        <li v-if="!visibleMembers(l).length" class="member-empty">
+                                            Drop members here
+                                        </li>
+                                    </ul>
+                                </article>
+                            </div>
+                            <div v-else class="sa-empty">No team leaders in this workspace yet.</div>
+                        </div>
+                    </section>
+
+                    <div v-if="!filteredWorkspaces.length" class="sa-empty section-gap">No workspaces match your search.
+                    </div>
+
+                    <section v-if="idleAdmins.length" class="org-section">
+                        <div class="org-title">
+                            <span class="org-step">+</span>
+                            <h3>Administrators without a workspace</h3>
+                            <span class="sa-pill violet">{{ idleAdmins.length }}</span>
                         </div>
 
-                        <div class="sa-progress">
-                            <div :style="{ width: l.completion_rate + '%' }"></div>
+                        <div class="admin-grid">
+                            <article v-for="a in idleAdmins" :key="a.id" class="person-card">
+                                <div class="sa-avatar lg" :class="av(a.id)">{{ initials(a.name) }}</div>
+                                <div class="person-info">
+                                    <strong>{{ a.name }}</strong>
+                                    <span>{{ a.email }}</span>
+                                    <small>Joined {{ fmtDate(a.created_at) }}</small>
+                                </div>
+                                <span class="sa-pill violet">Administrator</span>
+                                <button class="sa-icon-btn danger sm" title="Remove administrator"
+                                    @click="askRemove('admin', a)">🗑</button>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="org-section">
+                        <div class="org-title">
+                            <span class="org-step">+</span>
+                            <h3>Unassigned members</h3>
+                            <span class="sa-pill amber">{{ filteredUnassigned.length }}</span>
+                            <small class="org-hint">Drop a member here to take them off their team</small>
                         </div>
 
-                        <div class="team-members-label">
-                            <span>Members</span>
-                            <span class="sa-pill green">{{ l.members.length }}</span>
-                        </div>
-
-                        <ul class="member-list">
-                            <li v-for="m in visibleMembers(l)" :key="m.id" class="member-row" draggable="true"
-                                @dragstart="onDragStart($event, m, l.id)" @dragend="onDragEnd">
+                        <div class="unassigned-zone" :class="{ over: overTarget === 'unassigned' }"
+                            @dragover.prevent="overTarget = 'unassigned'" @dragleave="onLeave($event, 'unassigned')"
+                            @drop.prevent="moveToUnassigned">
+                            <div v-for="m in filteredUnassigned" :key="m.id" class="chip" draggable="true"
+                                @dragstart="onDragStart($event, m, null)" @dragend="onDragEnd">
                                 <div class="sa-avatar sm" :class="av(m.id)">{{ initials(m.name) }}</div>
                                 <div class="member-info">
                                     <strong>{{ m.name }}</strong>
                                     <span>{{ roleLabel(m) }}</span>
                                 </div>
-                                <span class="sa-pill" :class="m.role === 'TL' ? 'amber' : 'green'">
-                                    {{ m.role === 'TL' ? 'Sub-leader' : 'Member' }}
-                                </span>
-                            </li>
-                            <li v-if="!visibleMembers(l).length" class="member-empty">
-                                Drop members here
-                            </li>
-                        </ul>
-                    </article>
-                </div>
-                <div v-else class="sa-empty">No team leaders in this workspace yet.</div>
-                </div>
-            </section>
-
-            <div v-if="!filteredWorkspaces.length" class="sa-empty section-gap">No workspaces match your search.</div>
-
-            <!-- administrators that do not own a workspace yet -->
-            <section v-if="idleAdmins.length" class="org-section">
-                <div class="org-title">
-                    <span class="org-step">+</span>
-                    <h3>Administrators without a workspace</h3>
-                    <span class="sa-pill violet">{{ idleAdmins.length }}</span>
-                </div>
-
-                <div class="admin-grid">
-                    <article v-for="a in idleAdmins" :key="a.id" class="person-card">
-                        <div class="sa-avatar lg" :class="av(a.id)">{{ initials(a.name) }}</div>
-                        <div class="person-info">
-                            <strong>{{ a.name }}</strong>
-                            <span>{{ a.email }}</span>
-                            <small>Joined {{ fmtDate(a.created_at) }}</small>
-                        </div>
-                        <span class="sa-pill violet">Administrator</span>
-                        <button class="sa-icon-btn danger sm" title="Remove administrator"
-                            @click="askRemove('admin', a)">🗑</button>
-                    </article>
-                </div>
-            </section>
-
-            <!-- unassigned members -->
-            <section class="org-section">
-                <div class="org-title">
-                    <span class="org-step">+</span>
-                    <h3>Unassigned members</h3>
-                    <span class="sa-pill amber">{{ filteredUnassigned.length }}</span>
-                    <small class="org-hint">Drop a member here to take them off their team</small>
-                </div>
-
-                <div class="unassigned-zone" :class="{ over: overTarget === 'unassigned' }"
-                    @dragover.prevent="overTarget = 'unassigned'" @dragleave="onLeave($event, 'unassigned')"
-                    @drop.prevent="moveToUnassigned">
-                    <div v-for="m in filteredUnassigned" :key="m.id" class="chip" draggable="true"
-                        @dragstart="onDragStart($event, m, null)" @dragend="onDragEnd">
-                        <div class="sa-avatar sm" :class="av(m.id)">{{ initials(m.name) }}</div>
-                        <div class="member-info">
-                            <strong>{{ m.name }}</strong>
-                            <span>{{ roleLabel(m) }}</span>
-                        </div>
-                    </div>
-                    <p v-if="!filteredUnassigned.length" class="zone-empty">
-                        Everyone is on a team. Drag a member here to unassign them.
-                    </p>
-                </div>
-            </section>
-        </template>
-
-        <!-- ===================== ANALYTICS ===================== -->
-        <template v-else>
-
-            <section class="sa-stats">
-                <div class="sa-stat blue">
-                    <div class="sa-stat-icon">📁</div>
-                    <span class="sa-stat-label">Projects assigned</span>
-                    <h2 class="sa-stat-value">{{ totals.total }}</h2>
-                    <small class="sa-stat-sub">To all teams</small>
-                </div>
-                <div class="sa-stat green">
-                    <div class="sa-stat-icon">✅</div>
-                    <span class="sa-stat-label">Completed</span>
-                    <h2 class="sa-stat-value">{{ totals.completed }}</h2>
-                    <small class="sa-stat-sub">Fully finished</small>
-                </div>
-                <div class="sa-stat cyan">
-                    <div class="sa-stat-icon">🚀</div>
-                    <span class="sa-stat-label">In progress</span>
-                    <h2 class="sa-stat-value">{{ totals.in_progress }}</h2>
-                    <small class="sa-stat-sub">Being worked on</small>
-                </div>
-                <div class="sa-stat amber">
-                    <div class="sa-stat-icon">⏳</div>
-                    <span class="sa-stat-label">Pending</span>
-                    <h2 class="sa-stat-value">{{ totals.pending }}</h2>
-                    <small class="sa-stat-sub">Not started yet</small>
-                </div>
-                <div class="sa-stat violet">
-                    <div class="sa-stat-icon">🏆</div>
-                    <span class="sa-stat-label">Overall success rate</span>
-                    <h2 class="sa-stat-value">{{ totals.rate }}%</h2>
-                    <small class="sa-stat-sub">Completed / assigned</small>
-                </div>
-            </section>
-
-            <!-- top 3 teams -->
-            <section class="sa-card top-card">
-                <div class="sa-card-head">
-                    <h3>🏆 Top performing teams</h3>
-                    <small class="org-hint">Ranked by completion rate</small>
-                </div>
-
-                <div class="podium" v-if="topThree.length">
-                    <div v-for="(t, i) in topThree" :key="t.id" class="podium-card" :class="'rank-' + (i + 1)">
-                        <span class="medal">{{ ['🥇', '🥈', '🥉'][i] }}</span>
-                        <div class="sa-avatar lg" :class="av(t.id)">{{ initials(t.name) }}</div>
-                        <h4>{{ t.name }}</h4>
-                        <small>{{ t.workspace_name }}</small>
-                        <div class="podium-rate">{{ t.rate }}%</div>
-                        <div class="sa-progress">
-                            <div :style="{ width: t.rate + '%' }"></div>
-                        </div>
-                        <small>{{ t.completed }} of {{ t.total }} projects completed</small>
-                    </div>
-                </div>
-                <div v-else class="sa-empty">No projects have been assigned to teams yet.</div>
-            </section>
-
-            <!-- monthly distribution + donut -->
-            <div class="sa-grid-2">
-                <section class="sa-card">
-                    <div class="sa-card-head">
-                        <h3>Projects assigned per month</h3>
-                        <div class="legend">
-                            <span><i class="dot completed"></i>Completed</span>
-                            <span><i class="dot in_progress"></i>In progress</span>
-                            <span><i class="dot pending"></i>Pending</span>
-                        </div>
-                    </div>
-
-                    <div class="month-chart">
-                        <div v-for="m in monthly" :key="m.key" class="month-col">
-                            <span class="month-total">{{ m.total }}</span>
-                            <div class="month-bar" :title="m.total + ' projects'">
-                                <div class="seg completed" :style="{ height: segHeight(m.completed) }"></div>
-                                <div class="seg in_progress" :style="{ height: segHeight(m.in_progress) }"></div>
-                                <div class="seg pending" :style="{ height: segHeight(m.pending) }"></div>
                             </div>
-                            <span class="month-label">{{ m.label }}</span>
+                            <p v-if="!filteredUnassigned.length" class="zone-empty">
+                                Everyone is on a team. Drag a member here to unassign them.
+                            </p>
                         </div>
-                    </div>
-                </section>
+                    </section>
+                </template>
 
-                <section class="sa-card donut-card">
-                    <div class="sa-card-head">
-                        <h3>Status breakdown</h3>
-                    </div>
+                <template v-else>
 
-                    <div class="donut-wrap">
-                        <svg viewBox="0 0 140 140" class="donut-svg">
-                            <circle cx="70" cy="70" r="54" fill="none" stroke="var(--border-deep)" stroke-width="14" />
-                            <circle v-for="s in donutSegments" :key="s.key" cx="70" cy="70" r="54" fill="none"
-                                stroke-width="14" :stroke-dasharray="s.dash" :stroke-dashoffset="s.offset"
-                                :style="{ stroke: s.color }" transform="rotate(-90 70 70)" />
-                        </svg>
-                        <div class="donut-center">
-                            <strong>{{ totals.rate }}%</strong>
-                            <span>success</span>
+                    <section class="sa-stats">
+                        <div class="sa-stat blue">
+                            <div class="sa-stat-icon">📁</div>
+                            <span class="sa-stat-label">Projects assigned</span>
+                            <h2 class="sa-stat-value">{{ totals.total }}</h2>
+                            <small class="sa-stat-sub">To all teams</small>
                         </div>
-                    </div>
-
-                    <div class="donut-legend">
-                        <div v-for="s in donutSegments" :key="s.key" class="donut-row">
-                            <i class="dot" :style="{ background: s.color }"></i>
-                            <span>{{ s.label }}</span>
-                            <strong>{{ s.value }}</strong>
+                        <div class="sa-stat green">
+                            <div class="sa-stat-icon">✅</div>
+                            <span class="sa-stat-label">Completed</span>
+                            <h2 class="sa-stat-value">{{ totals.completed }}</h2>
+                            <small class="sa-stat-sub">Fully finished</small>
                         </div>
-                    </div>
-                </section>
-            </div>
+                        <div class="sa-stat cyan">
+                            <div class="sa-stat-icon">🚀</div>
+                            <span class="sa-stat-label">In progress</span>
+                            <h2 class="sa-stat-value">{{ totals.in_progress }}</h2>
+                            <small class="sa-stat-sub">Being worked on</small>
+                        </div>
+                        <div class="sa-stat amber">
+                            <div class="sa-stat-icon">⏳</div>
+                            <span class="sa-stat-label">Pending</span>
+                            <h2 class="sa-stat-value">{{ totals.pending }}</h2>
+                            <small class="sa-stat-sub">Not started yet</small>
+                        </div>
+                        <div class="sa-stat violet">
+                            <div class="sa-stat-icon">🏆</div>
+                            <span class="sa-stat-label">Overall success rate</span>
+                            <h2 class="sa-stat-value">{{ totals.rate }}%</h2>
+                            <small class="sa-stat-sub">Completed / assigned</small>
+                        </div>
+                    </section>
 
-            <!-- heatmap: team x month -->
-            <section class="sa-card section-gap">
-                <div class="sa-card-head">
-                    <h3>Project distribution by team &amp; month</h3>
-                    <small class="org-hint">Number of projects assigned to each team</small>
-                </div>
+                    <section class="sa-card top-card">
+                        <div class="sa-card-head">
+                            <h3>🏆 Top performing teams</h3>
+                            <small class="org-hint">Ranked by completion rate</small>
+                        </div>
 
-                <div class="heat-wrap" v-if="heatRows.length">
-                    <table class="heat">
-                        <thead>
-                            <tr>
-                                <th>Team leader</th>
-                                <th v-for="m in heatMonths" :key="m.key">{{ m.label }}</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="row in heatRows" :key="row.id">
-                                <td>
-                                    <div class="heat-team">
-                                        <div class="sa-avatar sm" :class="av(row.id)">{{ initials(row.name) }}</div>
-                                        <span>{{ row.name }}</span>
+                        <div class="podium" v-if="topThree.length">
+                            <div v-for="(t, i) in topThree" :key="t.id" class="podium-card" :class="'rank-' + (i + 1)">
+                                <span class="medal">{{ ['🥇', '🥈', '🥉'][i] }}</span>
+                                <div class="sa-avatar lg" :class="av(t.id)">{{ initials(t.name) }}</div>
+                                <h4>{{ t.name }}</h4>
+                                <small>{{ t.workspace_name }}</small>
+                                <div class="podium-rate">{{ t.rate }}%</div>
+                                <div class="sa-progress">
+                                    <div :style="{ width: t.rate + '%' }"></div>
+                                </div>
+                                <small>{{ t.completed }} of {{ t.total }} projects completed</small>
+                            </div>
+                        </div>
+                        <div v-else class="sa-empty">No projects have been assigned to teams yet.</div>
+                    </section>
+
+                    <div class="sa-grid-2">
+                        <section class="sa-card">
+                            <div class="sa-card-head">
+                                <h3>Projects assigned per month</h3>
+                                <div class="legend">
+                                    <span><i class="dot completed"></i>Completed</span>
+                                    <span><i class="dot in_progress"></i>In progress</span>
+                                    <span><i class="dot pending"></i>Pending</span>
+                                </div>
+                            </div>
+
+                            <div class="month-chart">
+                                <div v-for="m in monthly" :key="m.key" class="month-col">
+                                    <span class="month-total">{{ m.total }}</span>
+                                    <div class="month-bar" :title="m.total + ' projects'">
+                                        <div class="seg completed" :style="{ height: segHeight(m.completed) }"></div>
+                                        <div class="seg in_progress" :style="{ height: segHeight(m.in_progress) }">
+                                        </div>
+                                        <div class="seg pending" :style="{ height: segHeight(m.pending) }"></div>
                                     </div>
-                                </td>
-                                <td v-for="(c, i) in row.cells" :key="i">
-                                    <span class="heat-cell" :style="cellStyle(c)">{{ c || '·' }}</span>
-                                </td>
-                                <td><strong>{{ row.total }}</strong></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div v-else class="sa-empty">No team data yet.</div>
-            </section>
+                                    <span class="month-label">{{ m.label }}</span>
+                                </div>
+                            </div>
+                        </section>
 
-            <!-- success per team -->
-            <section class="sa-card section-gap">
-                <div class="sa-card-head">
-                    <h3>Success rate &amp; status by team</h3>
-                </div>
+                        <section class="sa-card donut-card">
+                            <div class="sa-card-head">
+                                <h3>Status breakdown</h3>
+                            </div>
 
-                <div class="rate-list" v-if="ranked.length">
-                    <div v-for="t in ranked" :key="t.id" class="rate-row">
-                        <div class="rate-team">
-                            <div class="sa-avatar sm" :class="av(t.id)">{{ initials(t.name) }}</div>
-                            <strong>{{ t.name }}</strong>
+                            <div class="donut-wrap">
+                                <svg viewBox="0 0 140 140" class="donut-svg">
+                                    <circle cx="70" cy="70" r="54" fill="none" stroke="var(--border-deep)"
+                                        stroke-width="14" />
+                                    <circle v-for="s in donutSegments" :key="s.key" cx="70" cy="70" r="54" fill="none"
+                                        stroke-width="14" :stroke-dasharray="s.dash" :stroke-dashoffset="s.offset"
+                                        :style="{ stroke: s.color }" transform="rotate(-90 70 70)" />
+                                </svg>
+                                <div class="donut-center">
+                                    <strong>{{ totals.rate }}%</strong>
+                                    <span>success</span>
+                                </div>
+                            </div>
+
+                            <div class="donut-legend">
+                                <div v-for="s in donutSegments" :key="s.key" class="donut-row">
+                                    <i class="dot" :style="{ background: s.color }"></i>
+                                    <span>{{ s.label }}</span>
+                                    <strong>{{ s.value }}</strong>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <section class="sa-card section-gap">
+                        <div class="sa-card-head">
+                            <h3>Project distribution by team &amp; month</h3>
+                            <small class="org-hint">Number of projects assigned to each team</small>
                         </div>
 
-                        <div class="rate-bar">
-                            <div class="sa-progress">
-                                <div :style="{ width: t.rate + '%' }"></div>
+                        <div class="heat-wrap" v-if="heatRows.length">
+                            <table class="heat">
+                                <thead>
+                                    <tr>
+                                        <th>Team leader</th>
+                                        <th v-for="m in heatMonths" :key="m.key">{{ m.label }}</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="row in heatRows" :key="row.id">
+                                        <td>
+                                            <div class="heat-team">
+                                                <div class="sa-avatar sm" :class="av(row.id)">{{ initials(row.name) }}
+                                                </div>
+                                                <span>{{ row.name }}</span>
+                                            </div>
+                                        </td>
+                                        <td v-for="(c, i) in row.cells" :key="i">
+                                            <span class="heat-cell" :style="cellStyle(c)">{{ c || '·' }}</span>
+                                        </td>
+                                        <td><strong>{{ row.total }}</strong></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div v-else class="sa-empty">No team data yet.</div>
+                    </section>
+
+                    <section class="sa-card section-gap">
+                        <div class="sa-card-head">
+                            <h3>Success rate &amp; status by team</h3>
+                        </div>
+
+                        <div class="rate-list" v-if="ranked.length">
+                            <div v-for="t in ranked" :key="t.id" class="rate-row">
+                                <div class="rate-team">
+                                    <div class="sa-avatar sm" :class="av(t.id)">{{ initials(t.name) }}</div>
+                                    <strong>{{ t.name }}</strong>
+                                </div>
+
+                                <div class="rate-bar">
+                                    <div class="sa-progress">
+                                        <div :style="{ width: t.rate + '%' }"></div>
+                                    </div>
+                                </div>
+
+                                <strong class="rate-value">{{ t.rate }}%</strong>
+
+                                <div class="rate-pills">
+                                    <span class="sa-pill green">{{ t.completed }} done</span>
+                                    <span class="sa-pill blue">{{ t.in_progress }} active</span>
+                                    <span class="sa-pill amber">{{ t.pending }} pending</span>
+                                </div>
                             </div>
                         </div>
-
-                        <strong class="rate-value">{{ t.rate }}%</strong>
-
-                        <div class="rate-pills">
-                            <span class="sa-pill green">{{ t.completed }} done</span>
-                            <span class="sa-pill blue">{{ t.in_progress }} active</span>
-                            <span class="sa-pill amber">{{ t.pending }} pending</span>
-                        </div>
-                    </div>
-                </div>
-                <div v-else class="sa-empty">No team data yet.</div>
-            </section>
-        </template>
+                        <div v-else class="sa-empty">No team data yet.</div>
+                    </section>
+                </template>
 
             </div>
         </main>
@@ -426,7 +427,6 @@ const { isDark } = useSuperAdminTheme();
 const tab = ref("organisation");
 const search = ref("");
 
-/* ---------- local copies so drag and drop feels instant ---------- */
 const clone = (v) => JSON.parse(JSON.stringify(v || []));
 const localLeaders = ref(clone(props.leaders));
 const localUnassigned = ref(clone(props.unassigned));
@@ -434,7 +434,6 @@ const localUnassigned = ref(clone(props.unassigned));
 watch(() => props.leaders, (v) => { localLeaders.value = clone(v); });
 watch(() => props.unassigned, (v) => { localUnassigned.value = clone(v); });
 
-/* ---------- helpers ---------- */
 const initials = (name) =>
     (name || "?").split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 const av = (id) => "av-" + (Number(id) % 6);
@@ -446,7 +445,6 @@ const firstError = (errs) => {
     return Array.isArray(v) ? v[0] : v;
 };
 
-/* ---------- search ---------- */
 const q = computed(() => search.value.trim().toLowerCase());
 const hit = (text) => !q.value || (text || "").toLowerCase().includes(q.value);
 
@@ -457,7 +455,6 @@ const filteredLeaders = computed(() =>
 );
 const visibleMembers = (l) => (hit(l.name) ? l.members : l.members.filter((m) => hit(m.name)));
 
-/* ---------- workspaces: administrator -> team leaders -> members ---------- */
 const workspaceGroups = computed(() =>
     props.workspaces.map((w) => ({
         ...w,
@@ -481,11 +478,9 @@ const filteredWorkspaces = computed(() =>
 
 const memberTotal = (w) => w.leaders.reduce((sum, l) => sum + l.members.length, 0);
 
-/* ---------- open / close a workspace ---------- */
 const expandedWs = ref([]);
 const wsKey = (w) => w.id ?? "none";
 
-// while searching, every matching workspace is shown open
 const isWsOpen = (w) => !!q.value || expandedWs.value.includes(wsKey(w));
 
 const toggleWs = (w) => {
@@ -498,7 +493,6 @@ const toggleWs = (w) => {
 const expandAllWs = () => { expandedWs.value = workspaceGroups.value.map(wsKey); };
 const collapseAllWs = () => { expandedWs.value = []; };
 
-// dragging a member over a closed workspace opens it so it can be dropped inside
 const openOnDrag = (w) => {
     if (drag.value && !isWsOpen(w)) expandedWs.value = [...expandedWs.value, wsKey(w)];
 };
@@ -511,7 +505,6 @@ const idleAdmins = computed(() =>
     )
 );
 
-/* ---------- drag and drop ---------- */
 const drag = ref(null);
 const overTarget = ref(null);
 
@@ -578,7 +571,6 @@ const moveToUnassigned = () => {
     });
 };
 
-/* ---------- remove admin / leader ---------- */
 const confirmState = ref({ show: false, kind: null, item: null, busy: false });
 
 const askRemove = (kind, item) => {
@@ -616,7 +608,6 @@ const doRemove = () => {
     });
 };
 
-/* ---------- analytics ---------- */
 const statusOf = (p) => (p.progress >= 100 ? "completed" : p.progress > 0 ? "in_progress" : "pending");
 
 const teamStats = computed(() =>
@@ -735,7 +726,6 @@ const cellStyle = (c) => ({
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
 
-/* ---------- theme variables ---------- */
 .sa-page.theme-dark {
     --dashboard-bg: #10121c;
     --panel-bg: #171a26;
@@ -818,7 +808,6 @@ const cellStyle = (c) => ({
     font-family: 'Lexend', 'Inter', sans-serif;
 }
 
-/* ---------- main area ---------- */
 .sa-main {
     flex: 1;
     min-width: 0;
@@ -862,7 +851,6 @@ const cellStyle = (c) => ({
     padding: 18px 24px 40px;
 }
 
-/* ---------- cards & grids ---------- */
 .sa-card {
     background: var(--panel-bg);
     border: 1px solid var(--border-subtle);
@@ -898,7 +886,6 @@ const cellStyle = (c) => ({
     }
 }
 
-/* ---------- stat cards ---------- */
 .sa-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -937,12 +924,29 @@ const cellStyle = (c) => ({
     background: var(--tone);
 }
 
-.sa-stat.blue { --tone: var(--c-blue); }
-.sa-stat.violet { --tone: var(--c-violet); }
-.sa-stat.green { --tone: var(--c-green); }
-.sa-stat.amber { --tone: var(--c-amber); }
-.sa-stat.cyan { --tone: var(--c-cyan); }
-.sa-stat.red { --tone: var(--c-red); }
+.sa-stat.blue {
+    --tone: var(--c-blue);
+}
+
+.sa-stat.violet {
+    --tone: var(--c-violet);
+}
+
+.sa-stat.green {
+    --tone: var(--c-green);
+}
+
+.sa-stat.amber {
+    --tone: var(--c-amber);
+}
+
+.sa-stat.cyan {
+    --tone: var(--c-cyan);
+}
+
+.sa-stat.red {
+    --tone: var(--c-red);
+}
 
 .sa-stat-icon {
     width: 34px;
@@ -980,7 +984,6 @@ const cellStyle = (c) => ({
     color: var(--text-muted);
 }
 
-/* ---------- buttons, inputs, pills, avatars ---------- */
 .sa-btn {
     display: inline-flex;
     align-items: center;
@@ -998,12 +1001,34 @@ const cellStyle = (c) => ({
     transition: opacity 0.15s ease;
 }
 
-.sa-btn:hover:not(:disabled) { opacity: 0.9; }
-.sa-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.sa-btn.ghost { background: transparent; color: var(--text-main); border: 1px solid var(--border-deep); }
-.sa-btn.ghost:hover:not(:disabled) { background: var(--card-inner-hover); }
-.sa-btn.danger { background: var(--c-red); color: #fff; }
-.sa-btn.success { background: var(--c-green); color: #fff; }
+.sa-btn:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
+.sa-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.sa-btn.ghost {
+    background: transparent;
+    color: var(--text-main);
+    border: 1px solid var(--border-deep);
+}
+
+.sa-btn.ghost:hover:not(:disabled) {
+    background: var(--card-inner-hover);
+}
+
+.sa-btn.danger {
+    background: var(--c-red);
+    color: #fff;
+}
+
+.sa-btn.success {
+    background: var(--c-green);
+    color: #fff;
+}
 
 .sa-icon-btn {
     width: 36px;
@@ -1020,9 +1045,21 @@ const cellStyle = (c) => ({
     transition: all 0.15s ease;
 }
 
-.sa-icon-btn:hover { background: var(--card-inner-hover); border-color: var(--border-deep); }
-.sa-icon-btn.danger:hover { background: rgba(214, 72, 79, 0.14); border-color: rgba(214, 72, 79, 0.4); }
-.sa-icon-btn.sm { width: 30px; height: 30px; font-size: 12px; }
+.sa-icon-btn:hover {
+    background: var(--card-inner-hover);
+    border-color: var(--border-deep);
+}
+
+.sa-icon-btn.danger:hover {
+    background: rgba(214, 72, 79, 0.14);
+    border-color: rgba(214, 72, 79, 0.4);
+}
+
+.sa-icon-btn.sm {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+}
 
 .sa-input {
     width: 250px;
@@ -1037,8 +1074,15 @@ const cellStyle = (c) => ({
     transition: all 0.2s ease;
 }
 
-.sa-input::placeholder { color: var(--text-muted); }
-.sa-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--panel-bg); }
+.sa-input::placeholder {
+    color: var(--text-muted);
+}
+
+.sa-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    background: var(--panel-bg);
+}
 
 .sa-pill {
     --tone: var(--text-muted);
@@ -1054,12 +1098,29 @@ const cellStyle = (c) => ({
     background: color-mix(in srgb, var(--tone) 14%, transparent);
 }
 
-.sa-pill.green { --tone: var(--c-green); }
-.sa-pill.blue { --tone: var(--c-blue); }
-.sa-pill.amber { --tone: var(--c-amber); }
-.sa-pill.red { --tone: var(--c-red); }
-.sa-pill.violet { --tone: var(--c-violet); }
-.sa-pill.cyan { --tone: var(--c-cyan); }
+.sa-pill.green {
+    --tone: var(--c-green);
+}
+
+.sa-pill.blue {
+    --tone: var(--c-blue);
+}
+
+.sa-pill.amber {
+    --tone: var(--c-amber);
+}
+
+.sa-pill.red {
+    --tone: var(--c-red);
+}
+
+.sa-pill.violet {
+    --tone: var(--c-violet);
+}
+
+.sa-pill.cyan {
+    --tone: var(--c-cyan);
+}
 
 .sa-avatar {
     width: 34px;
@@ -1077,16 +1138,44 @@ const cellStyle = (c) => ({
     user-select: none;
 }
 
-.sa-avatar.sm { width: 28px; height: 28px; font-size: 10.5px; border-radius: 7px; }
-.sa-avatar.lg { width: 44px; height: 44px; font-size: 15px; border-radius: 11px; }
-.sa-avatar.av-0 { background: var(--c-blue); }
-.sa-avatar.av-1 { background: var(--c-violet); }
-.sa-avatar.av-2 { background: var(--c-green); }
-.sa-avatar.av-3 { background: var(--c-amber); }
-.sa-avatar.av-4 { background: var(--c-cyan); }
-.sa-avatar.av-5 { background: var(--c-red); }
+.sa-avatar.sm {
+    width: 28px;
+    height: 28px;
+    font-size: 10.5px;
+    border-radius: 7px;
+}
 
-/* ---------- tabs, progress, empty ---------- */
+.sa-avatar.lg {
+    width: 44px;
+    height: 44px;
+    font-size: 15px;
+    border-radius: 11px;
+}
+
+.sa-avatar.av-0 {
+    background: var(--c-blue);
+}
+
+.sa-avatar.av-1 {
+    background: var(--c-violet);
+}
+
+.sa-avatar.av-2 {
+    background: var(--c-green);
+}
+
+.sa-avatar.av-3 {
+    background: var(--c-amber);
+}
+
+.sa-avatar.av-4 {
+    background: var(--c-cyan);
+}
+
+.sa-avatar.av-5 {
+    background: var(--c-red);
+}
+
 .sa-tabs {
     display: inline-flex;
     gap: 3px;
@@ -1110,7 +1199,11 @@ const cellStyle = (c) => ({
     transition: all 0.15s ease;
 }
 
-.sa-tabs button.active { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.sa-tabs button.active {
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 600;
+}
 
 .sa-progress {
     height: 6px;
@@ -1119,7 +1212,7 @@ const cellStyle = (c) => ({
     background: var(--border-deep);
 }
 
-.sa-progress > div {
+.sa-progress>div {
     height: 100%;
     border-radius: 999px;
     background: var(--accent);
@@ -1135,7 +1228,6 @@ const cellStyle = (c) => ({
     border-radius: 10px;
 }
 
-/* ---------- confirm modal ---------- */
 .sa-modal-overlay {
     position: fixed;
     inset: 0;
@@ -1171,15 +1263,29 @@ const cellStyle = (c) => ({
     background: rgba(214, 72, 79, 0.14);
 }
 
-.sa-modal h3 { font-size: 17px; color: var(--text-header); margin-bottom: 8px; }
-.sa-modal p { font-size: 13px; line-height: 1.55; color: var(--text-muted); }
-.sa-modal-actions { display: flex; justify-content: center; gap: 12px; margin-top: 22px; }
+.sa-modal h3 {
+    font-size: 17px;
+    color: var(--text-header);
+    margin-bottom: 8px;
+}
+
+.sa-modal p {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-muted);
+}
+
+.sa-modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 22px;
+}
 
 .section-gap {
     margin-bottom: 18px;
 }
 
-/* ---------- organisation ---------- */
 .org-section {
     margin-bottom: 30px;
 }
@@ -1468,7 +1574,6 @@ const cellStyle = (c) => ({
     grid-column: 1 / -1;
 }
 
-/* ---------- analytics ---------- */
 .podium {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -1791,7 +1896,6 @@ const cellStyle = (c) => ({
     }
 }
 
-/* ---------- workspaces ---------- */
 .org-note {
     margin-bottom: 16px;
     font-size: 12px;
@@ -1876,7 +1980,6 @@ const cellStyle = (c) => ({
     color: var(--text-muted);
 }
 
-/* ---------- collapsible workspaces ---------- */
 .sa-btn.sm {
     padding: 7px 13px;
     font-size: 12px;

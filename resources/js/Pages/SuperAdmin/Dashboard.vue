@@ -76,7 +76,7 @@
                     </button>
 
                     <div class="notification-bell-container" ref="bellRef">
-                        
+
                         <button class="icon-btn" @click.stop="toggleBell" aria-label="Notifications">
                             🔔
                             <span v-if="unseenOverdueCount" class="bell-alert-green-dot">{{ unseenOverdueCount }}</span>
@@ -203,7 +203,9 @@
 
                                     <div v-if="!column.projects.length" class="kanban-empty"
                                         :class="{ 'is-drop-target': dragOverColumn === column.key }">
-                                        {{ dragOverColumn === column.key ? '⬇️ Drop to move here' : '📭 Nothing here — drag a project over' }}
+                                        {{ dragOverColumn === column.key ?
+                                        '⬇️ Drop to move here' :
+                                        '📭 Nothing here — drag a project over' }}
                                     </div>
                                 </div>
                             </div>
@@ -358,7 +360,7 @@
                                     <span>
                                         {{ team.workspace_name }} ·
                                         {{ team.projects_count ?? 0 }} project{{ (team.projects_count ?? 0) === 1 ? '' :
-                                            's' }} ·
+                                        's' }} ·
                                         {{ team.completed_count ?? 0 }} completed
                                     </span>
                                 </div>
@@ -536,8 +538,10 @@
                 <div class="modal-member-list">
                     <div v-for="m in selectedTeam.members" :key="m.id" class="modal-member-row">
                         <div class="rep-avatar small">{{ m.name.charAt(0) }}</div>
-                        <div class="modal-member-info"><strong>{{ m.name }}</strong><span>{{ m.department || m.role
-                        }}</span></div>
+                        <div class="modal-member-info">
+                            <strong>{{ m.name }}</strong>
+                            <span>{{ m.department || m.role }}</span>
+                        </div>
                         <button class="remove-btn" @click="removeMember(m.id)">Remove</button>
                     </div>
                     <div v-if="!selectedTeam.members.length" class="empty-state-inline">No members in this team yet.
@@ -568,7 +572,6 @@
             </div>
         </div>
 
-        <!-- FIX 2: create-user modal now shows validation errors and a saving state -->
         <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
             <div class="modal">
                 <div class="modal-header">
@@ -616,7 +619,6 @@
             </div>
         </div>
 
-        <!-- delete administrator confirmation -->
         <div v-if="adminToDelete" class="modal-overlay" @click.self="cancelDeleteAdmin">
             <div class="modal confirm-modal">
                 <div class="confirm-icon">⚠️</div>
@@ -634,8 +636,7 @@
                     Type <span class="confirm-name">{{ adminToDelete.name }}</span> to confirm
                 </label>
                 <input class="confirm-input" v-model="deleteConfirmText" type="text"
-                    placeholder="Enter the exact user name" autocomplete="off"
-                    @keyup.enter="confirmDeleteAdmin" />
+                    placeholder="Enter the exact user name" autocomplete="off" @keyup.enter="confirmDeleteAdmin" />
 
                 <div class="modal-actions">
                     <button class="cancel-btn" :disabled="deletingAdmin" @click="cancelDeleteAdmin">Cancel</button>
@@ -862,8 +863,6 @@ const onDragEnd = () => {
     dragOverColumn.value = null;
 };
 
-// FIX 1: the card moves immediately, the change is saved to the DB, and it is
-// rolled back (with a message) only if the save actually fails.
 const onDrop = (columnKey) => {
     dragOverColumn.value = null;
     const project = draggedProject.value;
@@ -882,7 +881,6 @@ const onDrop = (columnKey) => {
     else if (columnKey === "completed") newProgress = 100;
     else newProgress = (previousProgress > 0 && previousProgress < 100) ? previousProgress : 50;
 
-    // optimistic move
     target.progress = newProgress;
 
     let saved = false;
@@ -900,7 +898,6 @@ const onDrop = (columnKey) => {
             });
         },
         onFinish: () => {
-            // Covers every failure (404, 419, 500, redirect to login, validation): put the card back.
             if (!saved) {
                 const t = localProjects.value.find(p => p.id === project.id);
                 if (t) t.progress = previousProgress;
@@ -1003,7 +1000,6 @@ const toggleBell = () => {
         try {
             localStorage.setItem(SEEN_KEY, JSON.stringify(seenOverdueIds.value));
         } catch {
-            /* storage unavailable, badge just resets for this session */
         }
     }
 };
@@ -1163,12 +1159,10 @@ function createAdmin() {
     });
 }
 
-/* ---------- delete administrator ---------- */
 const adminToDelete = ref(null);
 const deletingAdmin = ref(false);
 const deleteConfirmText = ref("");
 
-// the delete button only unlocks once the exact user name has been typed
 const canConfirmDelete = computed(
     () => !!adminToDelete.value && deleteConfirmText.value.trim() === adminToDelete.value.name
 );
@@ -1234,7 +1228,6 @@ function logout() {
 </script>
 
 <style scoped>
-
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
 
 .theme-dark {
@@ -3200,7 +3193,7 @@ function logout() {
     color: var(--text-card-sub);
 }
 
-.confirm-warning p + p {
+.confirm-warning p+p {
     margin-top: 8px;
 }
 
@@ -3518,6 +3511,7 @@ function logout() {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
+
 .form-error {
     display: block;
     color: var(--c-red);
@@ -3529,5 +3523,4 @@ function logout() {
 .form-group .form-error {
     margin-left: 2px;
 }
-
 </style>

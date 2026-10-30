@@ -23,7 +23,6 @@
 
             <div class="sa-content">
 
-                <!-- totals -->
                 <section class="sa-stats">
                     <div class="sa-stat violet">
                         <div class="sa-stat-icon">🛡️</div>
@@ -51,7 +50,6 @@
                     </div>
                 </section>
 
-                <!-- teams that need work -->
                 <section class="sa-card urgent-card" :class="{ clear: !needsFiltered.length }">
                     <div class="sa-card-head">
                         <h3>🚨 Teams that need projects urgently</h3>
@@ -167,7 +165,6 @@
                     <div v-else class="sa-empty">No team leaders yet.</div>
                 </section>
 
-                <!-- administrators -->
                 <div class="list-title">
                     <h3>Administrators</h3>
                     <span class="sa-pill violet">{{ shownGroups.length }}</span>
@@ -342,7 +339,6 @@ const needsFiltered = computed(() =>
     props.needsProjects.filter((n) => hit(n.name) || hit(n.workspace_name) || hit(n.admin_name))
 );
 
-/* administrators + one extra group for leaders that have no administrator */
 const groups = computed(() => {
     const base = props.admins.map((a) => ({ ...a }));
 
@@ -468,7 +464,6 @@ const cellStyle = (c) => ({
 
 const expanded = ref([]);
 
-// while searching, every matching administrator is shown open
 const isOpen = (id) => !!q.value || expanded.value.includes(id);
 
 const toggle = (id) => {
