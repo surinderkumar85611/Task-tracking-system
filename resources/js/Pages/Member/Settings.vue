@@ -50,20 +50,18 @@
                     </div>
 
                     <div class="avatar-section">
-                        <div class="avatar-wrapper" @click="triggerAvatarUpload" title="Change profile photo">
+                        <div class="avatar-wrapper">
                             <img
                                 v-if="avatarPreview || profile.avatar_url"
                                 :src="avatarPreview || profile.avatar_url"
                                 class="avatar-image"
-                                alt="Profile photo"
+                               
                             />
                             <div v-else class="avatar-circle">
                                 {{ userInitials }}
                             </div>
 
-                            <div class="avatar-edit-overlay">
-                                <span>📷</span>
-                            </div>
+                           
                         </div>
 
                         <input
@@ -78,9 +76,7 @@
                             <h3>{{ profile.name }}</h3>
                             <span>{{ profile.email }}</span>
                             <div class="photo-actions">
-                                <button type="button" class="change-photo-link" @click="triggerAvatarUpload">
-                                    Change photo
-                                </button>
+                        
                                 <button
                                     v-if="avatarPreview"
                                     type="button"
