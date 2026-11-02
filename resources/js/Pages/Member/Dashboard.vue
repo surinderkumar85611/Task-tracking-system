@@ -465,7 +465,7 @@
 
         </div>
 
-        
+
       </div>
     </main>
   </div>
@@ -644,7 +644,6 @@ const activityDotClass = (type) => {
   return "";
 };
 
-// Recent Activity: only show items from the last 24 hours.
 const last24hActivity = computed(() => {
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   return (props.recentActivity || []).filter((a) => {

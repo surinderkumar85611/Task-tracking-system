@@ -39,7 +39,6 @@
 
                 </div>
 
-                <!-- PROFILE TAB -->
                 <section v-if="activeTab === 'profile'" class="settings-card">
 
                     <div class="card-header">
@@ -128,7 +127,6 @@
 
                 </section>
 
-                <!-- WORKSPACE TAB -->
                 <section v-if="activeTab === 'workspace'" class="settings-card">
 
                     <div class="card-header">
@@ -190,7 +188,6 @@
 
                 </section>
 
-                <!-- SECURITY TAB -->
                 <section v-if="activeTab === 'security'" class="settings-card">
 
                     <div class="card-header">
@@ -270,7 +267,6 @@
                         </div>
                     </div>
 
-                    <!-- TWO FACTOR AUTHENTICATION -->
                     <div class="twofa-box">
                         <div class="twofa-header">
                             <h3>Two Factor Authentication (2FA)</h3>
@@ -323,7 +319,6 @@
 
                 </section>
 
-                <!-- NOTIFICATIONS TAB -->
                 <section v-if="activeTab === 'notifications'" class="settings-card">
 
                     <div class="card-header">
@@ -477,7 +472,6 @@ const fetchProfile = async () => {
     }
 };
 
-/* ---------------- Avatar upload ---------------- */
 const avatarInput = ref(null);
 const avatarFile = ref(null);
 const avatarPreview = ref(null);
@@ -497,7 +491,7 @@ const handleAvatarChange = (e) => {
         return;
     }
 
-    const maxSizeBytes = 5 * 1024 * 1024; // 5MB
+    const maxSizeBytes = 5 * 1024 * 1024;
     if (file.size > maxSizeBytes) {
         toast.error("Image must be smaller than 5MB");
         e.target.value = "";
@@ -646,7 +640,6 @@ const updatePassword = async () => {
             passwordErrors.currentPassword = "Current password does not match";
             passwordTouched.currentPassword = true;
         } else if (/same as|must be different|reuse/i.test(serverMessage)) {
-            // Covers a backend rule like Laravel's `different:current_password`
             passwordErrors.newPassword = "New password must be different from your current password";
             passwordTouched.newPassword = true;
         } else {
@@ -984,9 +977,6 @@ onMounted(() => {
     justify-content: flex-end;
 }
 
-/* ==========================================================================
-   AVATAR / PROFILE PHOTO
-   ========================================================================== */
 .avatar-section {
     display: flex;
     align-items: center;

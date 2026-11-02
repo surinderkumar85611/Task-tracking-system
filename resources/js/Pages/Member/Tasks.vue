@@ -26,7 +26,6 @@
                     </div>
                     </div>
 
-                    <!-- CHAT -->
                     <div class="notif-wrap">
                         <button
                             class="theme-btn notif-btn chat-fab"
@@ -572,7 +571,6 @@ const escapeRegExp = (value) => {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
-// Wraps every match of the search text in a highlight <mark> (text is HTML-escaped).
 const highlightMatch = (text) => {
     const raw = String(text ?? "");
     const term = search.value.trim();
@@ -600,7 +598,6 @@ const leaderName = (task) => {
     return `${leader.first_name || ""} ${leader.last_name || ""}`.trim();
 };
 
-// Search covers everything shown in the table row.
 const taskMatches = (task, term) => {
     return [
         task.title,
@@ -629,12 +626,8 @@ const filteredTasks = computed(() => {
     });
 });
 
-// True when something is typed in the search box but nothing matches.
 const noResults = computed(() => !!search.value.trim() && !filteredTasks.value.length);
 
-// Remembers which chat threads have already been viewed (per browser), so the
-// badge goes away once a chat has been opened, even if the server copy of the
-// task comes back as "unread" after a page refresh or after sending a message.
 const SEEN_STORAGE_KEY = "member_seen_task_notes";
 
 const loadSeenNotes = () => {
@@ -665,7 +658,6 @@ const markSeen = (task) => {
     try {
         localStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(seenNotes.value));
     } catch (e) {
-        // storage unavailable: badge simply falls back to the server's is_read flag
     }
 };
 
@@ -762,7 +754,7 @@ const markTaskAsRead = (task) => {
     }, {
         preserveScroll: true,
         onError: () => {
-            task.is_read = false; 
+            task.is_read = false;
             toast.error("Couldn't mark task as read.");
         },
     });

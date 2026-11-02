@@ -467,7 +467,6 @@ const escapeRegExp = (value) => {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
-// Wraps every match of the search text in a highlight <mark> (text is HTML-escaped).
 const highlightMatch = (text) => {
     const raw = String(text ?? "");
     const term = search.value.trim();
@@ -531,7 +530,6 @@ const filteredProjects = computed(() => {
     );
 });
 
-// When searching, a project whose own details don't match only lists its matching tasks.
 const visibleTasks = (project) => {
     const tasks = project.tasks || [];
     const term = searchTerm.value;
@@ -656,12 +654,8 @@ const tasksWithNotes = computed(() => {
     return entries;
 });
 
-// True when something is typed in the search box but nothing matches.
 const noResults = computed(() => !!searchTerm.value && !filteredProjects.value.length);
 
-// Remembers which chat threads have already been viewed (per browser), so the
-// badge goes away once a chat has been opened, even if the server copy of the
-// task comes back as "unread" after a page refresh or after sending a message.
 const SEEN_STORAGE_KEY = "member_seen_task_notes";
 
 const loadSeenNotes = () => {
@@ -692,7 +686,6 @@ const markSeen = (task) => {
     try {
         localStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(seenNotes.value));
     } catch (e) {
-        // storage unavailable: badge simply falls back to the server's is_read flag
     }
 };
 
