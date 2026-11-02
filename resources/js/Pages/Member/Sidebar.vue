@@ -67,9 +67,6 @@ const logout = () => {
 </script>
 
 <style scoped>
-/* ==========================================================================
-   THEME TOKENS — mirrors Dashboard.vue's palette so both stay in sync
-   ========================================================================== */
 .sidebar.theme-dark {
     --sidebar-bg: #1e2230;
     --sidebar-border: rgba(255, 255, 255, 0.06);
