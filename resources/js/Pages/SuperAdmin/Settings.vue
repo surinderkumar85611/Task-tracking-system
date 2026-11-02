@@ -34,7 +34,7 @@
                     </div>
 
                     <div class="avatar-section">
-                        <div class="avatar-wrapper" @click="triggerAvatarUpload" title="Change profile photo">
+                        <div class="avatar-wrapper" >
                             <img
                                 v-if="avatarPreview || avatarUrl"
                                 :src="avatarPreview || avatarUrl"
@@ -43,9 +43,7 @@
                             />
                             <div v-else class="avatar-circle">{{ userInitials }}</div>
 
-                            <div class="avatar-edit-overlay">
-                                <span>📷</span>
-                            </div>
+                            
                         </div>
 
                         <input
@@ -61,17 +59,8 @@
                             <span>{{ form.email }}</span>
                             <div class="role-tag"><span class="sa-pill violet">Super Administrator</span></div>
                             <div class="photo-actions">
-                                <button type="button" class="change-photo-link" @click="triggerAvatarUpload">
-                                    Change photo
-                                </button>
-                                <button
-                                    v-if="avatarPreview"
-                                    type="button"
-                                    class="cancel-photo-link"
-                                    @click="cancelAvatarChange"
-                                >
-                                    Undo
-                                </button>
+                                
+                            
                             </div>
                         </div>
                     </div>
