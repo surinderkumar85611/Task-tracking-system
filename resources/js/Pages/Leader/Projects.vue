@@ -119,8 +119,6 @@
                 </div>
             </section>
 
-
-
             <div class="monday-board-container">
                 <div v-if="filteredProjects.length === 0" class="empty-board-state">
                     <h3>No projects found matching current parameters</h3>
@@ -192,7 +190,6 @@
                                         </button>
                                     </td>
                                     <td class="cell-member" style="position: relative; padding: 0;">
-                                        <!-- Clickable Cell Area (Matches image_c2dc86.png cell hover borders) -->
                                         <div class="monday-owner-cell-trigger"
                                             @click.stop="toggleAssigneeDropdown(task.id, $event)">
                                             <div v-if="task.member_id && task.member_id.length > 0"
@@ -208,13 +205,11 @@
                                             </div>
                                         </div>
 
-                                        <!-- Premium Custom Flyout Dialog Panel -->
                                         <div v-if="activeAssigneeDropdownTaskId === task.id"
                                             class="monday-popup-modal-panel"
                                             :style="{ top: dropdownPosition.top, left: dropdownPosition.left }"
                                             v-click-outside="closeAssigneeDropdown">
 
-                                            <!-- Active Selections Row Area -->
                                             <div class="modal-pills-row">
                                                 <div v-for="mId in task.member_id" :key="mId" class="member-pill-badge">
                                                     <span class="pill-avatar-dot">{{ getMemberInitials(project, mId)
@@ -230,7 +225,6 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Search Input Bar Header -->
                                             <div class="modal-search-wrapper">
                                                 <span class="search-magnifier-icon">🔍</span>
                                                 <input type="text" v-model="memberSearchQuery"
@@ -239,7 +233,6 @@
                                                 <span class="search-info-bubble">ℹ️</span>
                                             </div>
 
-                                            <!-- Filtered Suggested Lists section -->
                                             <div class="modal-section-title">Suggested people</div>
                                             <div class="modal-list-scrollway">
                                                 <div v-for="member in filterScopeMembers(project)" :key="member.id"
@@ -265,7 +258,6 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Sticky Interaction Footer Block -->
                                             <div class="modal-action-footer">
                                                 <div class="footer-notification-info">
                                                     <span class="footer-bell-icon">🔔</span>
@@ -277,8 +269,7 @@
                                     </td>
                                     <td class="cell-status" :class="getStatusLabelClass(task.status)">
                                         <select v-model="task.status" @change="syncTaskRow(task)"
-                                            class="monday-status-dropdown"
-                                            :disabled="isProjectDeadlinePassed(project)">
+                                            class="monday-status-dropdown" :disabled="isProjectDeadlinePassed(project)">
                                             <option value="Todo">Todo</option>
                                             <option value="In Progress">In Progress</option>
                                             <option value="Completed">Completed</option>
@@ -515,8 +506,6 @@
 
                                     </div>
 
-
-                                    <!-- show reply reference -->
                                     <div v-if="note.reply_to" class="reply-reference">
 
                                         <div class="reply-box">
@@ -659,7 +648,9 @@
                         </div>
 
                         <p v-if="extensionProject.pending_extension_request" class="group-desc-inline full-row-note">
-                            ⏳ A request for {{ String(extensionProject.pending_extension_request.requested_deadline).slice(0, 10) }} is
+                            ⏳ A request for {{
+                                String(extensionProject.pending_extension_request.requested_deadline).slice(0, 10) }}
+                            is
                             awaiting admin review.
                         </p>
                     </div>
@@ -1115,7 +1106,6 @@ const isProjectDeadlinePassed = (project) => {
     return today > deadline;
 };
 
-// Returns true when the project that owns this task has passed its deadline
 const isTaskLocked = (task) => {
     const project = projectsData.value.find(p => p.id === task.project_id);
     return isProjectDeadlinePassed(project);
@@ -1164,7 +1154,6 @@ const appendNewEmptyTask = (project) => {
 };
 
 const syncTaskRow = (task) => {
-    // Block any edit once the project deadline has passed and revert local changes
     if (isTaskLocked(task)) {
         notifyDeadlineLocked();
         router.reload({ only: ['projects'], preserveScroll: true });
@@ -1357,8 +1346,6 @@ const cancelReply = () => {
     replyingTo.value = null;
 
 };
-
-
 
 const addReaction = async (note, reaction) => {
 
@@ -1639,9 +1626,6 @@ const getMemberFullName = (project, memberId) => {
     return found ? `${found.first_name} ${found.last_name || ''}` : "Team Member";
 };
 
-// ---------------------------------------------------------------------------
-// Deadline extension request (leader -> admin) + notifications
-// ---------------------------------------------------------------------------
 const todayStr = (() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -1654,7 +1638,6 @@ const extensionProject = computed(
 );
 const extensionForm = reactive({ requested_deadline: "", reason: "" });
 
-// admin responses (approved / rejected) currently shown inside the modal
 const modalResults = ref([]);
 
 const openExtensionModal = (project) => {
@@ -1662,7 +1645,6 @@ const openExtensionModal = (project) => {
     extensionForm.requested_deadline = "";
     extensionForm.reason = "";
 
-    // show the admin's response in the modal, then mark those notifications as read
     const results = projectResultNotifications(project);
     modalResults.value = [...results];
     markNotificationsRead(results);
@@ -1692,7 +1674,6 @@ const submitExtensionRequest = () => {
     });
 };
 
-// ids clicked in this session, hidden immediately while the server request finishes
 const locallyReadNotificationIds = ref([]);
 
 const extensionNotifications = computed(
@@ -1704,13 +1685,11 @@ const bellCount = computed(
     () => notificationStore.activeUrgentTasks.length + extensionNotifications.value.length
 );
 
-// approved / rejected notifications that belong to one project (used by the project bell)
 const projectResultNotifications = (project) =>
     extensionNotifications.value.filter(
         n => n.project_id === project.id && (n.type === 'approved' || n.type === 'rejected')
     );
 
-// mark several notifications as read, one request after another
 const markNotificationsRead = (list) => {
     const [first, ...rest] = list;
     if (!first) return;
@@ -1724,13 +1703,11 @@ const markNotificationsRead = (list) => {
 };
 
 const markNotificationRead = (n) => {
-    // hide right away so the badge count drops instantly
     locallyReadNotificationIds.value.push(n.id);
 
     router.post(`/extension-notifications/${n.id}/read`, {}, {
         preserveScroll: true,
         onError: () => {
-            // bring it back if the server could not mark it as read
             locallyReadNotificationIds.value = locallyReadNotificationIds.value.filter(id => id !== n.id);
             toast.error("Could not mark the notification as read.");
         }
@@ -1747,7 +1724,6 @@ const logout = () => {
 };
 
 </script>
-
 
 <style scoped>
 .main-content {
@@ -1947,8 +1923,6 @@ const logout = () => {
     width: 100%;
 }
 
-/* Deadline lock: controls ignore the mouse so the click lands on the cell and
-   the capture handler on the wrapper can show the "deadline reached" toast */
 .project-deadline-locked input,
 .project-deadline-locked select,
 .project-deadline-locked button {
@@ -3080,7 +3054,6 @@ tbody tr {
     margin-top: 20px;
 }
 
-/* Extension request bell (next to project name) */
 .extension-bell-btn {
     position: relative;
     background: transparent;
@@ -3176,18 +3149,14 @@ tbody tr {
     background: white;
 }
 
-/* Ensure the CKEditor container is visible and has a crisp layout */
 .notes-editor-section .ck-editor__editable_inline {
     min-height: 200px;
     max-height: 400px;
     color: #1e1e2d !important;
-    /* Prevents text from being white on white background */
     background-color: #ffffff !important;
-    /* Force clean editor look like Image 2 */
     text-align: left !important;
 }
 
-/* Force the toolbar items to show clearly */
 .notes-editor-section .ck-toolbar {
     background: #f3f6f9 !important;
     border: 1px solid #e4e6ef !important;
@@ -3202,7 +3171,6 @@ tbody tr {
     color: #a1a5b7;
 }
 
-/* Ensure the editor text area has a solid background and legible text */
 .notes-editor-section .ck-editor__editable_inline {
     min-height: 250px !important;
     background-color: #ffffff !important;
@@ -3210,14 +3178,11 @@ tbody tr {
     text-align: left !important;
 }
 
-/* Ensure the toolbar icons stand out clearly */
 .notes-editor-section .ck.ck-toolbar {
     background-color: #f8f9fa !important;
     border: 1px solid #ccced1 !important;
 }
 
-/* Fix any dropdown rendering bugs inside absolute modals */
-/* Fix any dropdown and link balloon rendering bugs inside absolute modals */
 :deep(.ck-body-wrapper) {
     z-index: 999999 !important;
 }
@@ -3225,7 +3190,6 @@ tbody tr {
 :deep(.ck-balloon-panel) {
     z-index: 999999 !important;
     position: fixed !important;
-    /* Forces the link window to stay on top of the modal */
 }
 
 :deep(.ck.ck-dropdown__panel) {
@@ -3237,7 +3201,6 @@ tbody tr {
 }
 </style>
 <style>
-/* Global styles to target CKEditor elements appended directly to the body */
 .ck-body-wrapper,
 .ck.ck-body-wrapper,
 .ck-balloon-panel {

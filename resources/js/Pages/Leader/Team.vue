@@ -411,11 +411,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* ==========================================================================
-   Dynamic Theme Variable Tokens
-   ========================================================================== */
 .dashboard {
-  /* Default Dark Mode Color Definitions */
   --bg-main: #0b0f19;
   --text-main: #f1f5f9;
   --text-heading: #ffffff;
@@ -431,7 +427,6 @@ onBeforeUnmount(() => {
   --shadow-color: rgba(0, 0, 0, 0.5);
 }
 
-/* Explicit Rule for when light class is applied to the main wrapper */
 .dashboard.light {
   --bg-main: #f8fafc;
   --text-main: #334155;
@@ -448,7 +443,6 @@ onBeforeUnmount(() => {
   --shadow-color: rgba(15, 23, 42, 0.06);
 }
 
-/* Explicit Rule for when dark class is applied to the main wrapper */
 .dashboard.dark {
   --bg-main: #0b0f19;
   --text-main: #f1f5f9;
@@ -465,9 +459,6 @@ onBeforeUnmount(() => {
   --shadow-color: rgba(0, 0, 0, 0.5);
 }
 
-/* ==========================================================================
-   Structural & Component Layout
-   ========================================================================== */
 .dashboard {
   display: flex;
   min-height: 100vh;
@@ -934,9 +925,6 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
-/* ==========================================================================
-   Modals & Overlays
-   ========================================================================== */
 .modal-overlay {
   position: fixed;
   inset: 0;

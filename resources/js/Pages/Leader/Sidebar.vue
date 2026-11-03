@@ -1,28 +1,24 @@
 <template>
-  <aside class="sidebar">
+    <aside class="sidebar">
 
-    <div class="logo">
-      <h2>Leader Panel</h2>
-    </div>
+        <div class="logo">
+            <h2>Leader Panel</h2>
+        </div>
 
-  
+        <nav class="nav">
+            <Link href="/dashboard" class="nav-item">📊 Dashboard</Link>
+            <Link href="/projects" class="nav-item">📁 Projects</Link>
+            <Link href="/team" class="nav-item">👥 Team Members</Link>
+            <Link href="/settings" class="nav-item">⚙️ Settings</Link>
+        </nav>
 
-    <nav class="nav">
+        <div class="sidebar-footer">
+            <button class="logout-btn" @click="logout">
+                🚪 Logout
+            </button>
+        </div>
 
-      <Link href="/dashboard" class="nav-item">📊 Dashboard</Link>
-      <Link href="/projects" class="nav-item">📁 Projects</Link>
-      <Link href="/team" class="nav-item">👥 Team Members</Link>
-      <Link href="/settings" class="nav-item">⚙️ Settings</Link>
-
-    </nav>
-
-    <div class="sidebar-footer">
-      <button class="logout-btn" @click="logout">
-        🚪 Logout
-      </button>
-    </div>
-
-  </aside>
+    </aside>
 </template>
 
 <script setup>
@@ -35,14 +31,14 @@ const workspaces = page.props.workspaces || [];
 const selectedWorkspace = ref(page.props.currentWorkspace?.id || null);
 
 const changeWorkspace = () => {
-  if (!selectedWorkspace.value) return;
+    if (!selectedWorkspace.value) return;
 
-  router.post("/workspace/select", {
-    workspace_id: selectedWorkspace.value
-  }, {
-    preserveScroll: true,
-    preserveState: true
-  });
+    router.post("/workspace/select", {
+        workspace_id: selectedWorkspace.value
+    }, {
+        preserveScroll: true,
+        preserveState: true
+    });
 };
 
 const logout = () => {
@@ -56,80 +52,78 @@ const logout = () => {
 </script>
 <style scoped>
 .sidebar {
-  width: 260px;
-  height: 100vh;
-  background: #0f172a;
-  border-right: 1px solid #1e293b;
-  display: flex;
-  flex-direction: column;
-  padding: 20px;
-  position: sticky;
-  top: 0;
+    width: 260px;
+    height: 100vh;
+    background: #0f172a;
+    border-right: 1px solid #1e293b;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    position: sticky;
+    top: 0;
 }
 
-/* LOGO */
 .logo {
-  margin-bottom: 30px;
+    margin-bottom: 30px;
 }
 
 .logo h2 {
-  color: white;
-  font-size: 20px;
-  margin: 0;
+    color: white;
+    font-size: 20px;
+    margin: 0;
 }
 
 .logo p {
-  color: #94a3b8;
-  font-size: 12px;
-  margin-top: 4px;
+    color: #94a3b8;
+    font-size: 12px;
+    margin-top: 4px;
 }
 
-/* NAV */
 .nav {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
 }
 
 .nav-item {
-  padding: 12px 14px;
-  border-radius: 10px;
-  color: #cbd5e1;
-  text-decoration: none;
-  transition: 0.2s;
-  font-weight: 500;
+    padding: 12px 14px;
+    border-radius: 10px;
+    color: #cbd5e1;
+    text-decoration: none;
+    transition: 0.2s;
+    font-weight: 500;
 }
 
 .nav-item:hover {
-  background: #1e293b;
-  color: white;
+    background: #1e293b;
+    color: white;
 }
 
 .nav-item.active {
-  background: #2563eb;
-  color: white;
+    background: #2563eb;
+    color: white;
 }
 
-/* FOOTER */
 .sidebar-footer {
-  margin-top: auto;
+    margin-top: auto;
 }
 
 .logout-btn {
-  width: 100%;
-  padding: 12px;
-  background: #ef4444;
-  border: none;
-  color: white;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 600;
+    width: 100%;
+    padding: 12px;
+    background: #ef4444;
+    border: none;
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
 }
 
 .logout-btn:hover {
-  background: #dc2626;
+    background: #dc2626;
 }
+
 .sidebar {
     width: 15%;
     background: var(--sidebar);
@@ -386,4 +380,3 @@ const logout = () => {
     margin-bottom: 20px;
 }
 </style>
-

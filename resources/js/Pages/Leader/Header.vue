@@ -1,7 +1,5 @@
 <template>
     <header class="header">
-
-        <!-- LEFT SIDE -->
         <div class="header-left">
             <slot name="left">
                 <h1>{{ title }}</h1>
@@ -9,19 +7,14 @@
             </slot>
         </div>
 
-        <!-- RIGHT SIDE -->
         <div class="header-right">
-
-            <!-- WORKSPACE (optional) -->
             <div v-if="workspace" class="workspace-label">
                 🏢 {{ workspace }}
             </div>
 
-            <!-- SEARCH (optional) -->
             <input v-if="showSearch" :value="searchModel" @input="emit('update:searchModel', $event.target.value)"
                 type="text" :placeholder="searchPlaceholder" class="search-box" />
 
-            <!-- NOTIFICATIONS (optional) -->
             <div v-if="showNotifications" class="notification-bell-container">
 
                 <button class="icon-btn" @click="toggleNotifications">
@@ -36,15 +29,12 @@
                         <p>No notifications</p>
                     </slot>
                 </div>
-
             </div>
 
-            <!-- THEME -->
             <button class="theme-btn" @click="theme.toggleTheme">
                 {{ theme.isDark ? "☀️" : "🌙" }}
             </button>
 
-            <!-- PROFILE -->
             <div class="profile-container" ref="profileRef">
 
                 <img src="https://i.pravatar.cc/100" class="avatar" @click.stop="showProfile = !showProfile" />
