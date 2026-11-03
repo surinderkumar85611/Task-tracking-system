@@ -38,7 +38,6 @@
 
             </div>
 
-            <!-- PROFILE TAB -->
             <section v-if="activeTab === 'profile'" class="settings-card">
 
                 <div class="card-header">
@@ -85,7 +84,6 @@
 
             </section>
 
-            <!-- WORKSPACE TAB -->
             <section v-if="activeTab === 'workspace'" class="settings-card">
 
                 <div class="card-header">
@@ -147,7 +145,6 @@
 
             </section>
 
-            <!-- SECURITY TAB -->
             <section v-if="activeTab === 'security'" class="settings-card">
 
                 <div class="card-header">
@@ -215,7 +212,6 @@
                             </p>
                         </div>
 
-                        <!-- Action button placed perfectly to fill the grid space shown in image_bb4fad.png -->
                         <div class="form-group password-btn-alignment">
                             <button class="primary-btn" @click="updatePassword">
                                 Update Security
@@ -225,7 +221,6 @@
                     </div>
                 </div>
 
-                <!-- TWO FACTOR AUTHENTICATION -->
                 <div class="twofa-box">
                     <div class="twofa-header">
                         <h3>Two Factor Authentication (2FA)</h3>
@@ -278,7 +273,6 @@
 
             </section>
 
-            <!-- NOTIFICATIONS TAB -->
             <section v-if="activeTab === 'notifications'" class="settings-card">
 
                 <div class="card-header">
@@ -626,7 +620,7 @@ const disable2FA = async () => {
 };
 
 const saveNotificationPreferences = async () => {
-    const hasChanges = 
+    const hasChanges =
         notifications.email !== originalNotifications.email ||
         notifications.tasks !== originalNotifications.tasks ||
         notifications.projects !== originalNotifications.projects ||
@@ -826,7 +820,6 @@ onMounted(() => {
     margin-bottom: 30px;
 }
 
-/* Aligns button inline with the Confirm Password field */
 .password-btn-alignment {
     display: flex;
     align-items: flex-end;
