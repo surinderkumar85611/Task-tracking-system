@@ -20,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'tl'       => \App\Http\Middleware\TeamLeaderMiddleware::class,
             'no-cache' => \App\Http\Middleware\DisableBackForwardCache::class,
         ]);
+
+        $middleware->redirectGuestsTo(fn ($request) =>
+            $request->is('super-admin/*') ? route('super-admin.login') : route('login')
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
