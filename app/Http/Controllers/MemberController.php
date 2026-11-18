@@ -106,7 +106,6 @@ class MemberController extends Controller
             ],
         ]);
 
-        // Member -> TL1
         if ($member->role === 'Member') {
 
             if ((int) $validated['level'] !== 1) {
@@ -116,7 +115,6 @@ class MemberController extends Controller
             }
         }
 
-        // TL1 -> TL2
         if ($member->role === 'TL' && (int) $member->level === 1) {
 
             if ((int) $validated['level'] !== 2) {
@@ -126,7 +124,6 @@ class MemberController extends Controller
             }
         }
 
-        // TL2 -> TL3
         if ($member->role === 'TL' && (int) $member->level === 2) {
 
             if ((int) $validated['level'] !== 3) {
@@ -136,7 +133,6 @@ class MemberController extends Controller
             }
         }
 
-        // TL3 cannot be promoted
         if ($member->role === 'TL' && (int) $member->level === 3) {
 
             return back()->withErrors([

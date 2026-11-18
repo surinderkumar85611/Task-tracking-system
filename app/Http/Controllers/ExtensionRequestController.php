@@ -13,7 +13,6 @@ use Illuminate\Validation\Rule;
 
 class ExtensionRequestController extends Controller
 {
-    // Must match the list in the admin Vue file
     private const REJECTION_REASONS = [
         'Taking too much time',
         'Progress not up to the mark',
@@ -21,16 +20,13 @@ class ExtensionRequestController extends Controller
         'Deadline cannot be changed due to other commitments',
     ];
 
-    // Case-insensitive so both "admin" and "ADMIN" work
     private function isAdmin($user): bool
     {
         return strtolower($user->role ?? '') === 'admin';
     }
 
-    // Leader sends a request
     public function store(Request $request, Project $project)
     {
-        // team_leader_id points to the members table, so match the leader by email
         $leaderMember = Member::find($project->team_leader_id);
 
         abort_unless(
@@ -73,13 +69,11 @@ class ExtensionRequestController extends Controller
         return back();
     }
 
-    // Admin approves
     public function approve(Request $request, ExtensionRequest $extensionRequest)
     {
         return $this->decide($request, $extensionRequest, 'approved');
     }
 
-    // Admin rejects (a reason from the list is required)
     public function reject(Request $request, ExtensionRequest $extensionRequest)
     {
         abort_unless($this->isAdmin($request->user()), 403);
@@ -112,7 +106,6 @@ class ExtensionRequestController extends Controller
             $project->update(['deadline' => $extensionRequest->requested_deadline]);
         }
 
-        // Mark the admins' "requested" notifications for this project as read
         Notification::whereIn('user_id', User::where('role', 'admin')->pluck('id'))
             ->where('type', 'extension_requested')
             ->where('is_read', false)
@@ -123,7 +116,6 @@ class ExtensionRequestController extends Controller
                 }
             });
 
-        // Tell the leader what happened
         NotificationService::create(
             $extensionRequest->requested_by,
             $project->workspace_id ?? session('workspace_id'),
@@ -138,7 +130,6 @@ class ExtensionRequestController extends Controller
         return back();
     }
 
-    // Mark one of the user's own notifications as read
     public function markRead(Request $request, $id)
     {
         Notification::where('id', $id)

@@ -13,7 +13,6 @@ use App\Models\Project;
 
 class TaskController extends Controller
 {
-    // True when the project deadline has passed and the current user is not an admin
     private function isProjectLockedForUser($project): bool
     {
         if (!$project || !$project->deadline) {
@@ -114,7 +113,6 @@ class TaskController extends Controller
             'workspace_id' => 'required',
         ]);
 
-        // Block creating tasks once the project deadline has passed (non-admin)
         if ($this->isProjectLockedForUser(Project::find($request->project_id))) {
             return back()->withErrors([
                 'deadline' => 'Project deadline reached. Contact your manager to extend it.',
@@ -228,9 +226,6 @@ class TaskController extends Controller
             return back();
         }
 
-        // Block edits to name / status / priority / due date / members / duration
-        // once the project deadline has passed (non-admin). Notes, is_read and
-        // unchanged values still pass through.
         if ($this->isProjectLockedForUser($task->project)) {
 
             $titleChanged = $request->has('title')
@@ -408,7 +403,6 @@ class TaskController extends Controller
     {
         $task = Task::with('project')->findOrFail($id);
 
-        // Block deleting tasks once the project deadline has passed (non-admin)
         if ($this->isProjectLockedForUser($task->project)) {
             return back()->withErrors([
                 'deadline' => 'Project deadline reached. Contact your manager to extend it.',

@@ -64,7 +64,7 @@ class ProjectController extends Controller
     {
         $projects = Project::with([
             'teamLeader.teamMembers',
-            'pendingExtensionRequest.requester', // Pending deadline extension request (if any)
+            'pendingExtensionRequest.requester',
             'tasks' => function ($query) {
                 $query
                     ->orderByRaw("
