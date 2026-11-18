@@ -144,11 +144,6 @@ class AdminController extends Controller
                 ->orderBy('first_name')
                 ->get(),
 
-            // Show every workspace notification EXCEPT ones the
-            // logged-in admin triggered themself (e.g. they changed
-            // a task's own status). created_by stores the acting
-            // user's id, so we exclude rows where that matches the
-            // current user.
             'notifications' => \App\Models\Notification::where(function ($query) use ($workspaceId) {
                     $query->where('workspace_id', $workspaceId)
                         ->orWhereNull('workspace_id');

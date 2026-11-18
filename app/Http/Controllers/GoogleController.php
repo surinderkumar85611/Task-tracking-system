@@ -22,7 +22,6 @@ class GoogleController extends Controller
         $role = session('invite_role');
         $department = session('invite_department');
 
-        // If invite exists, enforce email match
         if ($inviteEmail && $inviteEmail !== $googleUser->email) {
             return redirect('/login')->withErrors([
                 'email' => 'This Google account does not match the invited email.'

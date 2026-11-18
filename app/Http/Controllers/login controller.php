@@ -23,7 +23,6 @@ public function login(Request $request)
         ]);
     }
 
-    // 2FA on: don't log in yet, hold the admin in a short-lived pending state
     if ($admin->two_factor_enabled) {
         $request->session()->put('super_admin_2fa', [
             'id'      => $admin->id,
