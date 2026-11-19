@@ -21,7 +21,6 @@ class TwoFactorController extends Controller
 
         $secret = $user->two_factor_secret;
 
-        // This outputs the raw text stream that your new Vue component reads to draw the QR code
         $qr = $google2fa->getQRCodeUrl(
             config('app.name'),
             $user->email,

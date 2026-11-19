@@ -28,17 +28,14 @@ class TeamController extends Controller
             ]);
         }
 
-        // 🔥 STEP 1: members (NO assignedTasks)
         $members = Member::where('workspace_id', $workspaceId)
             ->where('assigned_to', $leader->id)
             ->get();
 
-        // 🔥 STEP 2: leader (NO assignedTasks)
         $teamLeader = Member::where('id', $leader->id)
             ->with('teamMembers')
             ->first();
 
-        // 🔥 STEP 3: ADD PROJECTS (THIS IS THE KEY FIX)
         $projects = Project::where('workspace_id', $workspaceId)
             ->with('tasks')
             ->get();
@@ -46,7 +43,7 @@ class TeamController extends Controller
         return Inertia::render('Leader/Team', [
             'teamLeaders' => [$teamLeader],
             'members' => $members,
-            'projects' => $projects, // ✅ THIS FIXES YOUR UI
+            'projects' => $projects,
         ]);
     }
 }

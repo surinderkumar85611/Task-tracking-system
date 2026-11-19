@@ -46,9 +46,6 @@ class DashboardController extends Controller
 
         $projectIds = $tasks->pluck('project_id')->unique();
 
-        // Team projects = projects this member has tasks in, plus every project
-        // run by their team leader (projects.team_leader_id). If the member is
-        // a leader themselves, their own id is used.
         $teamLeaderId = $member->assigned_to ?: $member->id;
 
         $projects = Project::with(['tasks'])
@@ -71,8 +68,6 @@ class DashboardController extends Controller
             if ($total > 0) {
                 $project->progress = round(($completed / $total) * 100);
             } else {
-                // No tasks of this member's own in the project: use the
-                // project's overall task progress, else its stored value.
                 $allTotal = $project->tasks->count();
                 $allCompleted = $project->tasks->where('status', 'Completed')->count();
 
@@ -88,9 +83,6 @@ class DashboardController extends Controller
         $completedTasks = $tasks->where('status', 'Completed')->count();
         $pendingTasks = $tasks->where('status', '!=', 'Completed')->count();
 
-        // Team = this member + their team leader + everyone under the same leader
-        // (+ anyone assigned to this member, if they are a leader themselves).
-        // Teams are defined by Member.assigned_to (the team leader's member id).
         $teamMembers = Member::query()
             ->when(session('workspace_id'), function ($query) {
                 $query->where('workspace_id', session('workspace_id'));
@@ -120,11 +112,6 @@ class DashboardController extends Controller
 
         $taskHistory = $tasks->where('status', 'Completed')->values();
 
-        // Notifications for the bell dropdown: hide ones this same user
-        // triggered themselves (e.g. they changed their own task's status).
-        // NOTE: created_by stores the AUTH USER id (see NotificationService::create,
-        // which writes auth()->id()) — not the Member id — so we compare
-        // against $user->id here, matching how user_id itself is queried below.
         $notifications = Notification::where('user_id', $user->id)
             ->when(session('workspace_id'), function ($query) {
                 $query->where(function ($q) {
@@ -140,12 +127,6 @@ class DashboardController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Recent Activity feed: a real event log built from notifications
-        // (title/message/who/when), not a re-sorted task list. Unlike the
-        // bell dropdown above, this intentionally INCLUDES self-triggered
-        // events too, since it's meant to read as "what happened to your
-        // tasks" rather than "things you need to be told about."
-        // Only the last 24 hours are shown.
         $recentActivity = Notification::where('user_id', $user->id)
             ->when(session('workspace_id'), function ($query) {
                 $query->where(function ($q) {
@@ -197,13 +178,6 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * Resolves a friendly display name for whoever triggered a notification.
-     * created_by is a User id. For admins we use the User's own name fields;
-     * for members we look up their Member record the same way the rest of
-     * the app matches User <-> Member (by email), since Member records hold
-     * the first_name/last_name people actually recognize.
-     */
     private function resolveActorName(Notification $notification): string
     {
         if (!$notification->created_by) {
@@ -231,11 +205,6 @@ class DashboardController extends Controller
             ?? 'Team Member';
     }
 
-    /**
-     * Counts distinct members assigned across a project's tasks.
-     * task.member_id may be stored as a JSON array, a decoded array,
-     * or a single scalar id, same as the filtering logic above.
-     */
     private function uniqueMemberCount($projectTasks): int
     {
         $ids = collect();

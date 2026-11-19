@@ -57,7 +57,6 @@ class SettingsController extends Controller
 
     public function updateNotifications(Request $request)
     {
-        // You can later store this in DB
         return response()->json([
             'message' => 'Notifications updated successfully',
             'data' => $request->all()

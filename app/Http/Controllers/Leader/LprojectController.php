@@ -14,7 +14,6 @@ class LProjectController extends Controller
     {
         $user = auth()->user();
 
-        // Get logged-in leader
         $leader = Member::where('email', $user->email)->first();
 
         if (!$leader || $leader->role !== 'TL') {
@@ -24,14 +23,14 @@ class LProjectController extends Controller
         $projects = Project::with([
             'tasks',
             'teamLeader',
-            'teamLeader.teamMembers', // Load all members under the leader
-            'pendingExtensionRequest.requester', // Pending deadline extension request (if any)
+            'teamLeader.teamMembers',
+            'pendingExtensionRequest.requester',
         ])
-        ->where('team_leader_id', $leader->id)
-        ->when(session('workspace_id'), function ($query) {
-            $query->where('workspace_id', session('workspace_id'));
-        })
-        ->get();
+            ->where('team_leader_id', $leader->id)
+            ->when(session('workspace_id'), function ($query) {
+                $query->where('workspace_id', session('workspace_id'));
+            })
+            ->get();
 
         return Inertia::render('Leader/Projects', [
             'projects' => $projects,
@@ -41,28 +40,28 @@ class LProjectController extends Controller
                 ->get(),
         ]);
     }
-     public function uploadEditorImage(Request $request)
-{
-    $request->validate([
-        'upload' => [
-            'required',
-            'file',
-            'max:10240',
-            'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,zip'
-        ]
-    ]);
+    public function uploadEditorImage(Request $request)
+    {
+        $request->validate([
+            'upload' => [
+                'required',
+                'file',
+                'max:10240',
+                'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,zip'
+            ]
+        ]);
 
 
-    $file = $request->file('upload');
+        $file = $request->file('upload');
 
 
-    $path = $file->store('ckeditor', 'public');
+        $path = $file->store('ckeditor', 'public');
 
 
-    return response()->json([
-        'url' => asset('storage/' . $path),
-        'name' => $file->getClientOriginalName(),
-        'type' => $file->getMimeType()
-    ]);
-}
+        return response()->json([
+            'url' => asset('storage/' . $path),
+            'name' => $file->getClientOriginalName(),
+            'type' => $file->getMimeType()
+        ]);
+    }
 }
